@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+redis
+tiktoken
+numpy
+mcp
+langchain
+langchain-community
+ollama
