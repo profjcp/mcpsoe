@@ -2,12 +2,12 @@ import redis
 import json
 import os
 import numpy as np
-from mcp.server import MCPClient, ModelContext
+from mcp_lib.server import MCPClient, ModelContext
 
-REDIS_HOST = os.getenv("REDIS_HOST", "redis")
+REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
 REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
 REDIS_DB = int(os.getenv("REDIS_DB", "0"))
-MCP_SERVER_URL = os.getenv("MCP_SERVER_URL", "http://mcp-server:9000")
+MCP_SERVER_URL = os.getenv("MCP_SERVER_URL", "http://localhost:9000")
 
 r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
 mcp_client = MCPClient(server_url=MCP_SERVER_URL)
