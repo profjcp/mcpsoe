@@ -29,29 +29,56 @@ def cosine_similarity(vec1, vec2):
     v2 = np.array(vec2)
     return float(np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2)))
 
-def get_relevant_chunk(question):
+def get_relevant_chunks(question, top_k=3, similarity_threshold=0.70):
+    """
+    Encuentra los 'top_k' fragmentos más relevantes para una pregunta,
+    siempre que superen un umbral de similitud.
+    """
     question_emb = mcp_client.embed(question)
-    best_score = -1
-    best_chunk = None
+    
+    all_chunks = []
     for key in r.scan_iter("chunk:*"):
         chunk_data = r.hgetall(key)
+        chunk_text = chunk_data[b'text'].decode()
         chunk_emb = json.loads(chunk_data[b'embedding'].decode())
+        
         score = cosine_similarity(question_emb, chunk_emb)
-        if score > best_score:
-            best_score = score
-            best_chunk = chunk_data[b'text'].decode()
-    return best_chunk
+        all_chunks.append({"text": chunk_text, "score": score})
+
+    # Filtrar los que superan el umbral y ordenarlos por puntuación
+    relevant_chunks = [chunk for chunk in all_chunks if chunk["score"] > similarity_threshold]
+    relevant_chunks.sort(key=lambda x: x["score"], reverse=True)
+    
+    # Devolver el texto de los 'top_k' mejores fragmentos
+    top_chunks = [chunk["text"] for chunk in relevant_chunks[:top_k]]
+    
+    return top_chunks
 
 def get_answer_mcp(question):
+    """
+    Genera una respuesta usando un contexto enriquecido de múltiples fragmentos.
+    """
     cached = r.get(f"answer:{question}")
     if cached:
         return cached.decode()
-    chunk = get_relevant_chunk(question)
+
+    # 1. Obtener la lista de los fragmentos más relevantes
+    relevant_chunks = get_relevant_chunks(question)
+
+    # 2. Si no se encontraron fragmentos, informar al usuario
+    if not relevant_chunks:
+        return "Lo siento, no encontré información relevante en el documento para responder a tu pregunta."
+
+    # 3. Unir los fragmentos para crear un contexto enriquecido
+    knowledge_context = "\n\n---\n\n".join(relevant_chunks)
+    
+    # 4. Construir el contexto y llamar al modelo
     context = ModelContext(
         user_input=question,
-        knowledge_context=chunk,
-        metadata={"source": "Preguntas_Frecuentes.txt"}
+        knowledge_context=knowledge_context,
+        metadata={"source": "Preguntas_Frecuentes.txt", "chunks_used": len(relevant_chunks)}
     )
+    
     answer = mcp_client.ask(context)
     r.set(f"answer:{question}", answer)
     return answer
