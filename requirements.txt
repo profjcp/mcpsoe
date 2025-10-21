@@ -7,3 +7,4 @@ mcp
 langchain
 langchain-community
 ollama
+streamlit
