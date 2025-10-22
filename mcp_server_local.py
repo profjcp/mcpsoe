@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from langchain_community.llms import Ollama
 from langchain_community.embeddings import OllamaEmbeddings
 from langchain.prompts import PromptTemplate
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 import uvicorn
 import redis
 import json
@@ -22,22 +23,42 @@ app = FastAPI()
 
 def preprocess_and_store_chunks():
     """
-    Reads a document, splits it into chunks, generates embeddings, and stores them in Redis.
+    Reads a document, splits it into chunks using a text splitter,
+    generates embeddings, and stores them in Redis.
     """
     try:
-        print("\n--- Iniciando Preprocesamiento de Documentos ---")
+        print("\n--- Iniciando Preprocesamiento de Documentos (Nueva Estrategia) ---")
 
         print(f"Conectando a Redis en {REDIS_HOST}:{REDIS_PORT}...")
         r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
         r.ping() # Check connection
         print("Conexión a Redis exitosa.")
 
+        # --- Clear old chunks ---
+        print("Eliminando chunks antiguos de la base de datos...")
+        num_deleted = 0
+        for key in r.scan_iter("chunk:*"):
+            r.delete(key)
+            num_deleted += 1
+        print(f"{num_deleted} chunks antiguos eliminados.")
+        # --- End of clear old chunks ---
+
         print(f"Leyendo archivo de documentos: {DOCUMENT_FILE}...")
         with open(DOCUMENT_FILE, "r", encoding="utf-8") as f:
             text = f.read()
         print("Archivo leído correctamente.")
 
-        chunks = [chunk.strip() for chunk in text.split("---") if chunk.strip()]
+        # --- New Chunking Strategy ---
+        print("Dividiendo el documento en chunks semánticos...")
+        text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=1000,
+            chunk_overlap=200,
+            length_function=len,
+            is_separator_regex=False,
+        )
+        chunks = text_splitter.split_text(text)
+        # --- End of New Chunking Strategy ---
+
         print(f"Documento dividido en {len(chunks)} chunks.")
 
         print("Generando y guardando embeddings en Redis (esto puede tardar)...")
