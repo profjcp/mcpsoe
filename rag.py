@@ -29,29 +29,28 @@ def cosine_similarity(vec1, vec2):
     v2 = np.array(vec2)
     return float(np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2)))
 
-def get_relevant_chunks(question, top_k=3, similarity_threshold=0.70):
+def get_relevant_chunks(question, top_k=3):
     """
-    Encuentra los 'top_k' fragmentos más relevantes para una pregunta,
-    siempre que superen un umbral de similitud.
+    Encuentra y devuelve los 'top_k' fragmentos más relevantes para una pregunta,
+    ordenados por similitud.
     """
     question_emb = mcp_client.embed(question)
-    
+
     all_chunks = []
     for key in r.scan_iter("chunk:*"):
         chunk_data = r.hgetall(key)
         chunk_text = chunk_data[b'text'].decode()
         chunk_emb = json.loads(chunk_data[b'embedding'].decode())
-        
+
         score = cosine_similarity(question_emb, chunk_emb)
         all_chunks.append({"text": chunk_text, "score": score})
 
-    # Filtrar los que superan el umbral y ordenarlos por puntuación
-    relevant_chunks = [chunk for chunk in all_chunks if chunk["score"] > similarity_threshold]
-    relevant_chunks.sort(key=lambda x: x["score"], reverse=True)
-    
+    # Ordenar todos los fragmentos por puntuación de similitud
+    all_chunks.sort(key=lambda x: x["score"], reverse=True)
+
     # Devolver el texto de los 'top_k' mejores fragmentos
-    top_chunks = [chunk["text"] for chunk in relevant_chunks[:top_k]]
-    
+    top_chunks = [chunk["text"] for chunk in all_chunks[:top_k]]
+
     return top_chunks
 
 def get_answer_mcp(question):

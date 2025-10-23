@@ -94,7 +94,13 @@ def on_startup():
     global llm, embeddings
     print("--- Cargando Modelos de Ollama ---")
     try:
-        llm = Ollama(model=LLM_MODEL)
+        llm = Ollama(
+            model=LLM_MODEL,
+            temperature=0.1,
+            top_k=20,
+            top_p=0.5,
+            num_ctx=4096
+        )
         embeddings = OllamaEmbeddings(model=EMBEDDING_MODEL)
         # A small test to ensure Ollama is running
         llm.invoke("hello")
