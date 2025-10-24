@@ -8,3 +8,5 @@ langchain
 langchain-community
 ollama
 streamlit
+httpx
+faiss-cpu

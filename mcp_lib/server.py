@@ -1,5 +1,4 @@
-
-import requests
+import httpx
 import json
 
 class ModelContext:
@@ -18,13 +17,15 @@ class ModelContext:
 class MCPClient:
     def __init__(self, server_url):
         self.server_url = server_url
+        self.client = httpx.AsyncClient(timeout=None) # Create a persistent client
 
-    def embed(self, text):
-        response = requests.post(f"{self.server_url}/embed", json={"text": text})
+    async def embed(self, text):
+        response = await self.client.post(f"{self.server_url}/embed", json={"text": text})
         response.raise_for_status()
         return response.json()["embedding"]
 
-    def ask(self, context: ModelContext):
-        response = requests.post(f"{self.server_url}/ask", json=context.to_dict())
-        response.raise_for_status()
-        return response.json()["answer"]
+    async def ask(self, context: ModelContext):
+        async with self.client.stream("POST", f"{self.server_url}/ask", json=context.to_dict()) as response:
+            response.raise_for_status()
+            async for chunk in response.aiter_text():
+                yield chunk

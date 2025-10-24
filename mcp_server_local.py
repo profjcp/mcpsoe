@@ -8,6 +8,8 @@ import uvicorn
 import redis
 import json
 import os
+import time
+from fastapi.responses import StreamingResponse
 
 # --- Configuration ---
 LLM_MODEL = "llama3.2"
@@ -129,8 +131,8 @@ def embed(request: EmbedRequest):
     return {"embedding": embedding}
 
 @app.post("/ask")
-def ask(request: AskRequest):
-    """Generates an answer using the LLM based on the user input and context."""
+async def ask(request: AskRequest):
+    """Generates a streaming answer using the LLM based on the user input and context."""
     template = '''
 Usa la siguiente información de contexto para responder la pregunta al final.
 Si no sabes la respuesta, simplemente di que no la sabes, no intentes inventar una respuesta.
@@ -141,14 +143,19 @@ Pregunta: {question}
 Respuesta útil:
 '''
     prompt = PromptTemplate.from_template(template)
-
     chain = prompt | llm
 
-    # The client-side rag.py will now fetch the context from Redis
-    # This endpoint now assumes context is provided or not needed
-    answer = chain.invoke({"context": request.knowledge_context, "question": request.user_input})
+    async def stream_generator():
+        print(f"--- SERVIDOR: [{time.time()}] Iniciando llamada a chain.astream...")
+        first_chunk = True
+        async for chunk in chain.astream({"context": request.knowledge_context, "question": request.user_input}):
+            if first_chunk:
+                print(f"--- SERVIDOR: [{time.time()}] Recibido el primer chunk del LLM.")
+                first_chunk = False
+            yield chunk
+        print(f"--- SERVIDOR: [{time.time()}] Finalizado el stream del LLM.")
 
-    return {"answer": answer}
+    return StreamingResponse(stream_generator(), media_type="text/event-stream")
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=9000)
