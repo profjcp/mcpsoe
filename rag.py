@@ -5,6 +5,7 @@ import pickle
 from mcp_lib.server import ModelContext
 import asyncio
 from shared_client import mcp_client
+import time
 
 # Define file paths
 FAISS_INDEX_PATH = "faiss_index.bin"
@@ -38,11 +39,19 @@ async def get_relevant_chunks(question, top_k=3):
     if index is None or chunks is None:
         return []
 
+    print("Generando embedding para la pregunta...")
+    start_time = time.time()
     question_emb = await mcp_client.embed(question)
+    end_time = time.time()
+    print(f"Embedding de la pregunta generado en {end_time - start_time:.2f} segundos.")
     question_emb = np.array([question_emb], dtype="float32")
 
     # Search the FAISS index
+    print("Buscando en el índice FAISS...")
+    start_time = time.time()
     distances, indices = index.search(question_emb, top_k)
+    end_time = time.time()
+    print(f"Búsqueda en FAISS completada en {end_time - start_time:.4f} segundos.")
 
     # Get the relevant chunks
     relevant_chunks = [chunks[i] for i in indices[0]]
@@ -52,7 +61,11 @@ async def get_answer_mcp(question):
     """
     Generates an answer using an enriched context from multiple fragments.
     """
+    print("Obteniendo chunks relevantes...")
+    start_time = time.time()
     relevant_chunks = await get_relevant_chunks(question)
+    end_time = time.time()
+    print(f"Chunks relevantes obtenidos en {end_time - start_time:.2f} segundos.")
 
     if not relevant_chunks:
         yield "Lo siento, no encontré información relevante en el documento para responder a tu pregunta. Asegúrese de ejecutar 'preprocess.py' primero."
@@ -67,5 +80,14 @@ async def get_answer_mcp(question):
     )
 
     # Stream the answer
+    print("Transmitiendo respuesta desde mcp_client.ask...")
+    start_time = time.time()
+    first_chunk_received = False
     async for chunk in mcp_client.ask(context):
+        if not first_chunk_received:
+            end_time = time.time()
+            print(f"Tiempo hasta el primer chunk desde mcp_client.ask: {end_time - start_time:.2f} segundos.")
+            first_chunk_received = True
         yield chunk
+    if not first_chunk_received:
+        print("mcp_client.ask finalizó sin generar chunks.")

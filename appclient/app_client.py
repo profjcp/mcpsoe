@@ -36,7 +36,7 @@ if st.button("Preguntar") and question.strip():
             def stream_generator():
                 first_chunk = True
                 with requests.post(
-                    "http://127.0.0.1:8000/ask",
+                    "http://127.0.0.1:9000/ask",
                     json={"question": question},
                     stream=True
                 ) as response:
@@ -64,6 +64,6 @@ if st.button("Preguntar") and question.strip():
         st.rerun()
 
     except requests.exceptions.RequestException as e:
-        st.error(f"Error de conexión: No se pudo conectar al servidor en http://127.0.0.1:8000. ¿Está el servidor `uvicorn` en ejecución?")
+        st.error(f"Error de conexión: No se pudo conectar al servidor en http://127.0.0.1:9000. ¿Está el servidor `mcp_server_local.py` en ejecución?")
     except Exception as e:
         st.error(f"Ocurrió un error inesperado: {e}")

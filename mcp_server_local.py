@@ -3,136 +3,119 @@ from pydantic import BaseModel
 from langchain_community.llms import Ollama
 from langchain_community.embeddings import OllamaEmbeddings
 from langchain.prompts import PromptTemplate
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 import uvicorn
 import redis
 import json
 import os
 import time
+import numpy as np
+import faiss
+import pickle
 from fastapi.responses import StreamingResponse
 
 # --- Configuration ---
-LLM_MODEL = "llama3.2"
+LLM_MODEL = "phi3:3.8b"
 EMBEDDING_MODEL = "nomic-embed-text"
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
 REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
 REDIS_DB = int(os.getenv("REDIS_DB", "0"))
-DOCUMENT_FILE = "documentos/Preguntas_Frecuentes.txt"
+FAISS_INDEX_PATH = "faiss_index.bin"
+CHUNKS_PATH = "chunks.pkl"
 
 app = FastAPI()
+r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB, decode_responses=True)
 
-# --- Preprocessing and Startup Event ---
-
-def preprocess_and_store_chunks():
-    """
-    Reads a document, splits it into chunks using a text splitter,
-    generates embeddings, and stores them in Redis.
-    """
-    try:
-        print("\n--- Iniciando Preprocesamiento de Documentos (Nueva Estrategia) ---")
-
-        print(f"Conectando a Redis en {REDIS_HOST}:{REDIS_PORT}...")
-        r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
-        r.ping() # Check connection
-        print("Conexión a Redis exitosa.")
-
-        # --- Clear old chunks ---
-        print("Eliminando chunks antiguos de la base de datos...")
-        num_deleted = 0
-        for key in r.scan_iter("chunk:*"):
-            r.delete(key)
-            num_deleted += 1
-        print(f"{num_deleted} chunks antiguos eliminados.")
-        # --- End of clear old chunks ---
-
-        print(f"Leyendo archivo de documentos: {DOCUMENT_FILE}...")
-        with open(DOCUMENT_FILE, "r", encoding="utf-8") as f:
-            text = f.read()
-        print("Archivo leído correctamente.")
-
-        # --- New Chunking Strategy ---
-        print("Dividiendo el documento en chunks semánticos...")
-        text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1000,
-            chunk_overlap=200,
-            length_function=len,
-            is_separator_regex=False,
-        )
-        chunks = text_splitter.split_text(text)
-        # --- End of New Chunking Strategy ---
-
-        print(f"Documento dividido en {len(chunks)} chunks.")
-
-        print("Generando y guardando embeddings en Redis (esto puede tardar)...")
-        for idx, chunk in enumerate(chunks):
-            embedding = embeddings.embed_query(chunk)
-            r.hset(f"chunk:{idx}", mapping={
-                "text": chunk,
-                "embedding": json.dumps(embedding)
-            })
-            print(f"  - Chunk {idx+1}/{len(chunks)} procesado.")
-
-        print("--- Preprocesamiento Completado ---\n")
-
-    except FileNotFoundError:
-        print(f"\n[ERROR] El archivo de documentos no fue encontrado en: {DOCUMENT_FILE}")
-        print("Por favor, asegúrate de que el archivo exista en esa ruta.")
-        # Exit if the document is essential
-        exit(1)
-    except redis.exceptions.ConnectionError as e:
-        print(f"\n[ERROR] No se pudo conectar a Redis en {REDIS_HOST}:{REDIS_PORT}.")
-        print(f"Detalle del error: {e}")
-        print("Por favor, asegúrate de que Redis esté en ejecución.")
-        exit(1)
-    except Exception as e:
-        print(f"\n[ERROR] Ocurrió un error inesperado durante el preprocesamiento: {e}")
-        exit(1)
+# --- Global Objects ---
+llm: Ollama
+embeddings: OllamaEmbeddings
+faiss_index: faiss.Index
+chunks: list
 
 @app.on_event("startup")
 def on_startup():
     """
-    Actions to be performed when the application starts.
+    Load all necessary models and data into memory.
     """
-    global llm, embeddings
+    global llm, embeddings, faiss_index, chunks
+
+    # 1. Load LLM and Embedding models
     print("--- Cargando Modelos de Ollama ---")
     try:
-        llm = Ollama(
-            model=LLM_MODEL,
-            temperature=0.1,
-            top_k=20,
-            top_p=0.5,
-            num_ctx=4096
-        )
+        llm = Ollama(model=LLM_MODEL, temperature=0.1, top_k=20, top_p=0.5, num_ctx=4096)
         embeddings = OllamaEmbeddings(model=EMBEDDING_MODEL)
-        # A small test to ensure Ollama is running
-        llm.invoke("hello")
+        llm.invoke("hello") # Test call
         print("Modelos de Ollama cargados exitosamente.")
     except Exception as e:
-        print(f"\n[ERROR] No se pudieron cargar los modelos de Ollama. ¿Está Ollama en ejecución?")
-        print(f"Detalle del error: {e}")
+        print(f"\n[ERROR] No se pudieron cargar los modelos de Ollama. ¿Está Ollama en ejecución? Error: {e}")
         exit(1)
 
-    preprocess_and_store_chunks()
+    # 2. Load FAISS index and chunks
+    print("--- Cargando Índice FAISS y Chunks ---")
+    if not os.path.exists(FAISS_INDEX_PATH) or not os.path.exists(CHUNKS_PATH):
+        print(f"[ERROR] No se encontró '{FAISS_INDEX_PATH}' o '{CHUNKS_PATH}'.")
+        print("Por favor, ejecuta 'python preprocess.py' para generar estos archivos.")
+        exit(1)
+    try:
+        faiss_index = faiss.read_index(FAISS_INDEX_PATH)
+        with open(CHUNKS_PATH, "rb") as f:
+            chunks = pickle.load(f)
+        print(f"Índice FAISS con {faiss_index.ntotal} vectores y {len(chunks)} chunks cargados.")
+    except Exception as e:
+        print(f"[ERROR] Ocurrió un error al cargar los archivos de FAISS/pickle: {e}")
+        exit(1)
+
+    # 3. Connect to Redis for caching
+    try:
+        r.ping()
+        print("Conexión a Redis para caché exitosa.")
+    except redis.exceptions.ConnectionError as e:
+        print(f"\n[ERROR] No se pudo conectar a Redis en {REDIS_HOST}:{REDIS_PORT}. Error: {e}")
+        exit(1)
+
     print("--- Servidor Listo para Recibir Peticiones ---")
 
 # --- API Endpoints ---
 
-class EmbedRequest(BaseModel):
-    text: str
-
 class AskRequest(BaseModel):
-    user_input: str
-    knowledge_context: str | None = None
-
-@app.post("/embed")
-def embed(request: EmbedRequest):
-    """Generates an embedding for the given text."""
-    embedding = embeddings.embed_query(request.text)
-    return {"embedding": embedding}
+    question: str
 
 @app.post("/ask")
 async def ask(request: AskRequest):
-    """Generates a streaming answer using the LLM based on the user input and context."""
+    """
+    Generates a streaming answer using RAG with FAISS and Redis caching.
+    """
+    print(f"Recibida pregunta: {request.question}")
+
+    # 1. Check cache first
+    cached_response = r.get(f"cache:{request.question}")
+    if cached_response:
+        print("Respuesta encontrada en caché.")
+        async def stream_cached_response():
+            yield cached_response
+        return StreamingResponse(stream_cached_response(), media_type="text/event-stream")
+
+    # 2. If not in cache, perform RAG with FAISS
+    print("No hay caché. Realizando búsqueda RAG con FAISS...")
+    
+    # Embed the question
+    start_embed = time.time()
+    question_embedding = embeddings.embed_query(request.question)
+    print(f"Embedding de la pregunta generado en {time.time() - start_embed:.2f}s")
+
+    # Search FAISS index
+    start_faiss = time.time()
+    question_embedding_np = np.array([question_embedding], dtype="float32")
+    distances, indices = faiss_index.search(question_embedding_np, 3) # top_k=3
+    relevant_chunks = [chunks[i] for i in indices[0]]
+    print(f"Búsqueda en FAISS completada en {time.time() - start_faiss:.4f}s")
+
+    if relevant_chunks:
+        knowledge_context = "\n\n---\n\n".join(relevant_chunks)
+        print(f"Contexto encontrado: {len(relevant_chunks)} chunks.")
+        print(f"\n--- INICIO DEL CONTEXTO ---\n{knowledge_context}\n--- FIN DEL CONTEXTO ---\n")
+    else:
+        knowledge_context = "No se encontró información relevante."
+
     template = '''
 Usa la siguiente información de contexto para responder la pregunta al final.
 Si no sabes la respuesta, simplemente di que no la sabes, no intentes inventar una respuesta.
@@ -146,14 +129,16 @@ Respuesta útil:
     chain = prompt | llm
 
     async def stream_generator():
-        print(f"--- SERVIDOR: [{time.time()}] Iniciando llamada a chain.astream...")
-        first_chunk = True
-        async for chunk in chain.astream({"context": request.knowledge_context, "question": request.user_input}):
-            if first_chunk:
-                print(f"--- SERVIDOR: [{time.time()}] Recibido el primer chunk del LLM.")
-                first_chunk = False
+        full_response = ""
+        print("Iniciando llamada a chain.astream...")
+        async for chunk in chain.astream({"context": knowledge_context, "question": request.question}):
+            full_response += chunk
             yield chunk
-        print(f"--- SERVIDOR: [{time.time()}] Finalizado el stream del LLM.")
+        print("Stream del LLM finalizado.")
+        
+        # 3. Save the full response to cache
+        r.set(f"cache:{request.question}", full_response, ex=3600) # Cache for 1 hour
+        print("Respuesta guardada en caché.")
 
     return StreamingResponse(stream_generator(), media_type="text/event-stream")
 
