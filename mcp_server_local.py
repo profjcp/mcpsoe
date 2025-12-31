@@ -1,8 +1,9 @@
 from fastapi import FastAPI
+from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager
 from pydantic import BaseModel
-from langchain_community.llms import Ollama
-from langchain_community.embeddings import OllamaEmbeddings
-from langchain.prompts import PromptTemplate
+from langchain_ollama import OllamaLLM, OllamaEmbeddings
+from langchain_core.prompts import PromptTemplate
 import uvicorn
 import redis
 import json
@@ -28,15 +29,15 @@ app = FastAPI()
 r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB, decode_responses=True)
 
 # --- Global Objects ---
-llm: Ollama
+llm: OllamaLLM
 embeddings: OllamaEmbeddings
 faiss_index: faiss.Index
 chunks: list
 qa_faiss_index: faiss.Index
 qa_cache: dict
 
-@app.on_event("startup")
-def on_startup():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     """
     Load all necessary models and data into memory.
     """
@@ -45,7 +46,7 @@ def on_startup():
     # 1. Load LLM and Embedding models
     print("--- Cargando Modelos de Ollama ---")
     try:
-        llm = Ollama(model=LLM_MODEL, temperature=0.1, top_k=20, top_p=0.5, num_ctx=4096)
+        llm = OllamaLLM(model=LLM_MODEL, temperature=0.1, top_k=20, top_p=0.5, num_ctx=4096)
         embeddings = OllamaEmbeddings(model=EMBEDDING_MODEL)
         llm.invoke("hello") # Test call
         print("Modelos de Ollama cargados exitosamente.")
@@ -103,7 +104,12 @@ def on_startup():
 
     print("--- Servidor Listo para Recibir Peticiones ---")
 
-# --- API Endpoints ---
+    yield
+
+    # Cleanup if needed
+    pass
+
+app = FastAPI(lifespan=lifespan)
 
 class AskRequest(BaseModel):
     question: str

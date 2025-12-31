@@ -46,7 +46,31 @@ Asegúrate de tener lo siguiente instalado en tu sistema:
     pip install -r requirements.txt
     ```
 
-## 3. Primer Uso: Generar Archivos de Datos
+## 3. Ejecución Simplificada (Recomendado)
+
+**Nota**: Asegúrate de que Ollama esté ejecutándose y los modelos descargados antes de usar este script.
+
+1. **Ejecutar el Script de Inicio**:
+   ```bash
+   ./run.sh
+   ```
+
+   Este script:
+   - Activa el entorno virtual.
+   - Inicia el servidor MCP en segundo plano (espera a que cargue los modelos).
+   - Ejecuta `preprocess.py` para generar los índices y chunks.
+   - Inicia la interfaz Streamlit del cliente.
+
+   Una vez ejecutado, podrás acceder a la interfaz web en tu navegador (generalmente en http://localhost:8501).
+
+2. **Detener el Proyecto**:
+   Presiona `Ctrl+C` en la terminal para detener todos los servicios.
+
+## 4. Ejecución Manual (Alternativa)
+
+Si prefieres ejecutar manualmente cada componente:
+
+### 4.1 Primer Uso: Generar Archivos de Datos
 
 Antes de iniciar el servidor por primera vez, debes procesar tus documentos para crear el índice de búsqueda inicial.
 

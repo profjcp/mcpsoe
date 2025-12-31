@@ -10,3 +10,6 @@ ollama
 streamlit
 httpx
 faiss-cpu
+langchain-experimental
+networkx
+neo4j
