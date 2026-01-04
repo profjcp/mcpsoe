@@ -9,6 +9,10 @@ Este proyecto implementa un sistema de Generación Aumentada por Recuperación (
 - **Few-Shot Prompting Dinámico**: Al recibir una pregunta, recupera los ejemplos de Q&A más relevantes y los inyecta en el prompt del LLM. Esto "condiciona" al modelo para generar respuestas más precisas y consistentes.
 - **Aprendizaje Continuo**: Cada nueva interacción se utiliza para ampliar la base de conocimiento del sistema, que se vuelve más inteligente con cada pregunta respondida. Los nuevos aprendizajes se guardan en los archivos `qa_faiss_index.bin` y `qa_cache.pkl`.
 
+## Arquitectura del Proyecto
+
+El diagrama arquitectónico del proyecto se encuentra en el archivo `ArqAi.xml`. Este archivo puede ser abierto con Draw.io para visualizar la estructura del sistema RAG, incluyendo los componentes principales como el servidor FastAPI, el cliente Streamlit, Ollama, FAISS, y Redis.
+
 ## 1. Prerrequisitos
 
 Asegúrate de tener lo siguiente instalado en tu sistema:
