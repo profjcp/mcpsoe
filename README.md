@@ -11,7 +11,11 @@ Este proyecto implementa un sistema de Generación Aumentada por Recuperación (
 
 ## Arquitectura del Proyecto
 
-El diagrama arquitectónico del proyecto se encuentra en el archivo `ArqAi.xml`. Este archivo puede ser abierto con Draw.io para visualizar la estructura del sistema RAG, incluyendo los componentes principales como el servidor FastAPI, el cliente Streamlit, Ollama, FAISS, y Redis.
+El diagrama arquitectónico del proyecto se encuentra en los archivos `ArqAi.xml` (formato Draw.io) y `documentos/Esquema/ArqAi.png` (imagen exportada). El archivo XML puede ser abierto con Draw.io para editar la estructura, mientras que la imagen proporciona una vista rápida del sistema RAG.
+
+![Diagrama Arquitectónico](documentos/Esquema/ArqAi.png)
+
+El diagrama incluye los componentes principales como el servidor FastAPI, el cliente Streamlit, Ollama, FAISS, y Redis.
 
 ## 1. Prerrequisitos
 
