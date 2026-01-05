@@ -46,7 +46,8 @@ async def lifespan(app: FastAPI):
     # 1. Load LLM and Embedding models
     print("--- Cargando Modelos de Ollama ---")
     try:
-        llm = OllamaLLM(model=LLM_MODEL, temperature=0.1, top_k=20, top_p=0.5, num_ctx=4096)
+        # Ajustes en parámetros para mejor precisión
+        llm = OllamaLLM(model=LLM_MODEL, temperature=0.3, top_k=40, top_p=0.9, num_ctx=4096)  # Aumentado temperature y top_k para más diversidad
         embeddings = OllamaEmbeddings(model=EMBEDDING_MODEL)
         llm.invoke("hello") # Test call
         print("Modelos de Ollama cargados exitosamente.")
@@ -150,10 +151,10 @@ async def ask(request: AskRequest):
             similar_qa_examples = "\n\n---\n\nEjemplos de preguntas y respuestas anteriores:\n\n" + "\n\n".join(example_list)
             print(f"Encontrados {len(example_list)} ejemplos de Q&A similares.")
 
-    # 4. Perform RAG search for document chunks
+    # 4. Perform RAG search for document chunks (aumentado a 5 chunks para más contexto)
     print("Realizando búsqueda RAG con FAISS para documentos...")
     start_faiss = time.time()
-    distances, indices = faiss_index.search(question_embedding_np, 3) # top_k=3
+    distances, indices = faiss_index.search(question_embedding_np, 5)  # Cambiado a top_k=5
     relevant_chunks = [chunks[i] for i in indices[0]]
     print(f"Búsqueda en FAISS completada en {time.time() - start_faiss:.4f}s")
 
@@ -163,19 +164,25 @@ async def ask(request: AskRequest):
     else:
         knowledge_context = "No se encontró información relevante en los documentos."
 
-    # 5. Build the prompt with dynamic few-shot examples
+    # 5. Build the improved prompt with better instructions
     template = '''
-Usa la siguiente información de contexto y los ejemplos para responder la pregunta final.
-Si no sabes la respuesta, simplemente di que no la sabes, no intentes inventar una respuesta.
-Mantén la respuesta lo más concisa posible y en el mismo idioma que la pregunta.
+Eres un asistente experto en responder preguntas basadas únicamente en el contexto proporcionado. No inventes información ni respondas fuera del contexto.
 
-Contexto de documentos: {context}
+Instrucciones:
+- Responde de manera concisa, clara y en el mismo idioma que la pregunta.
+- Si la respuesta no está en el contexto, di "No tengo suficiente información para responder esta pregunta".
+- Cita partes relevantes del contexto si es posible.
+- Usa los ejemplos de Q&A anteriores como guía para el estilo de respuesta.
+
+Contexto de documentos:
+{context}
+
+Ejemplos de preguntas y respuestas anteriores:
 {few_shot_examples}
 
----
-
 Pregunta actual: {question}
-Respuesta útil:
+
+Respuesta:
 '''
     prompt = PromptTemplate.from_template(template)
     chain = prompt | llm
@@ -188,7 +195,14 @@ Respuesta útil:
             yield chunk
         print("Stream del LLM finalizado.")
         
-        # 6. Save the new Q&A to cache, FAISS index, and disk
+        # 6. Post-procesamiento: Verificar si la respuesta contiene palabras clave del contexto (básico)
+        context_words = set(knowledge_context.lower().split())
+        response_words = set(full_response.lower().split())
+        overlap = len(context_words.intersection(response_words))
+        if overlap < 5:  # Umbral arbitrario; ajusta según pruebas
+            print(f"[WARNING] Respuesta con bajo solapamiento con contexto ({overlap} palabras). Posible alucinación.")
+        
+        # 7. Save the new Q&A to cache, FAISS index, and disk
         print("Guardando nueva Q&A para aprendizaje futuro...")
         qa_cache[request.question] = full_response
         qa_faiss_index.add(question_embedding_np)
