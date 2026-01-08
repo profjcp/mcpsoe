@@ -15,7 +15,7 @@ import pickle
 from fastapi.responses import StreamingResponse
 
 # --- Configuration ---
-LLM_MODEL = "phi3:3.8b"
+LLM_MODEL = "promptnow/llama-3-typhoon-v1.5-8b-instruct-q4_k_m"  # Cambiado al nuevo modelo para mejor precisión
 EMBEDDING_MODEL = "nomic-embed-text"
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
 REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
@@ -46,8 +46,8 @@ async def lifespan(app: FastAPI):
     # 1. Load LLM and Embedding models
     print("--- Cargando Modelos de Ollama ---")
     try:
-        # Ajustes en parámetros para mejor precisión
-        llm = OllamaLLM(model=LLM_MODEL, temperature=0.3, top_k=40, top_p=0.9, num_ctx=4096)  # Aumentado temperature y top_k para más diversidad
+        # Ajustes optimizados para Llama 3 Typhoon: bajo temperature para precisión, alto top_k/top_p para diversidad sin alucinaciones
+        llm = OllamaLLM(model=LLM_MODEL, temperature=0.2, top_k=50, top_p=0.95, num_ctx=8192)
         embeddings = OllamaEmbeddings(model=EMBEDDING_MODEL)
         llm.invoke("hello") # Test call
         print("Modelos de Ollama cargados exitosamente.")

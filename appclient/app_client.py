@@ -90,9 +90,16 @@ else:
     st.subheader(f"Sesión de: {st.session_state.user_id}")
     
     # Display the chat history
-    for q, a in st.session_state.history:
-        st.markdown(f"**Tú:** {q}")
-        st.markdown(f"**SoeBOT:** {a}")
+    for item in st.session_state.history:
+        if len(item) == 3:  # Nuevo formato con tiempo
+            q, a, t = item
+            st.markdown(f"**Tú:** {q}")
+            st.markdown(f"**SoeBOT:** {a}")
+            st.markdown(f"**Tiempo de respuesta:** {t:.2f} segundos")
+        else:  # Formato antiguo sin tiempo
+            q, a = item
+            st.markdown(f"**Tú:** {q}")
+            st.markdown(f"**SoeBOT:** {a}")
     
     question = st.text_input("Escribe tu pregunta:", key="input_box")
     
@@ -134,10 +141,14 @@ else:
                 answer_placeholder.write_stream(stream_generator)
             
             end_time = time.time()
-            print(f"--- CLIENTE: [{end_time}] Stream finalizado. Tiempo total: {end_time - start_time:.2f}s")
+            response_time = end_time - start_time  # Calcular tiempo total
+            print(f"--- CLIENTE: [{end_time}] Stream finalizado. Tiempo total: {response_time:.2f}s")
+            
+            # Mostrar tiempo en la UI
+            st.markdown(f"**Tiempo de respuesta:** {response_time:.2f} segundos")
             
             # Once the stream is complete, save the full answer to the session state
-            st.session_state.history.append((question, answer_wrapper["text"]))
+            st.session_state.history.append((question, answer_wrapper["text"], response_time))  # Agregado tiempo
             
             # Guardar histórico automáticamente
             user_histories[st.session_state.user_id] = st.session_state.history
