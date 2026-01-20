@@ -1,179 +1,629 @@
-# Guía de Ejecución del Proyecto RAG con Memoria Conversacional
+# SoeBOT - Sistema RAG Inteligente con Métricas de Investigación
 
-Este proyecto implementa un sistema de Generación Aumentada por Recuperación (RAG) que utiliza Ollama, FAISS y FastAPI. Ha sido mejorado con un sistema de memoria conversacional que le permite aprender de las interacciones para mejorar la precisión de sus respuestas.
+[![Python](https://img.shields.io/badge/Python-3.12+-blue.svg)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.119.0-green.svg)](https://fastapi.tiangolo.com/)
+[![Streamlit](https://img.shields.io/badge/Streamlit-1.31.1-red.svg)](https://streamlit.io/)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-## Funcionalidades Avanzadas
+---
 
-- **Memoria Conversacional Enriquecida**: El sistema guarda cada par de pregunta y respuesta.
-- **Búsqueda Semántica de Q&A**: Utiliza un índice FAISS secundario para encontrar preguntas anteriores semánticamente similares a la pregunta actual.
-- **Few-Shot Prompting Dinámico**: Al recibir una pregunta, recupera los ejemplos de Q&A más relevantes y los inyecta en el prompt del LLM. Esto "condiciona" al modelo para generar respuestas más precisas y consistentes.
-- **Aprendizaje Continuo**: Cada nueva interacción se utiliza para ampliar la base de conocimiento del sistema, que se vuelve más inteligente con cada pregunta respondida. Los nuevos aprendizajes se guardan en los archivos `qa_faiss_index.bin` y `qa_cache.pkl`.
+## 📋 Descripción General
 
-## Arquitectura del Proyecto
+**SoeBOT** es un sistema completo de Generación Aumentada por Recuperación (RAG) diseñado para automatizar respuestas a preguntas frecuentes de un programa de maestría. El sistema integra:
 
-El diagrama arquitectónico del proyecto se encuentra en los archivos `ArqAi.xml` (formato Draw.io) y `documentos/Esquema/ArqAi.png` (imagen exportada). El archivo XML puede ser abierto con Draw.io para editar la estructura, mientras que la imagen proporciona una vista rápida del sistema RAG.
+- 🤖 **LLM Avanzado**: Ollama con modelo Llama 3 Typhoon optimizado para precisión
+- 📊 **Métricas Investigativas**: Sistema comprehensivo de tracking cuantitativo y cualitativo
+- 💬 **Interfaz Chat**: Cliente Streamlit con autenticación de usuarios
+- 📈 **Dashboard Administrativo**: Visualización de métricas en tiempo real
+- 🔍 **Búsqueda Semántica**: FAISS para recuperación inteligente de documentos
+- 💾 **Caché Inteligente**: Aprendizaje continuo mediante Q&A pairs
+- 🧠 **Memoria Conversacional**: Sistema guarda cada par pregunta-respuesta para aprendizaje futuro
 
-![Diagrama Arquitectónico](documentos/Esquema/ArqAi.png)
+---
 
-El diagrama incluye los componentes principales como el servidor FastAPI, el cliente Streamlit, Ollama, FAISS, y Redis.
+## 🎯 ¿Por Qué Se Agregaron las Métricas?
+
+### Contexto: Investigación de Doctorado
+
+Este proyecto forma parte de una **investigación de doctorado** que busca validar la efectividad de un sistema RAG en contextos educativos específicos. Por ello, se requería:
+
+1. **Recolección de Datos Cuantitativos**: Para medir rendimiento técnico y eficiencia
+2. **Recolección de Datos Cualitativos**: Para evaluar la experiencia del usuario y la calidad de respuestas
+3. **Trazabilidad Completa**: Para poder auditar y analizar cada interacción
+4. **Análisis Estadístico**: Para extraer insights sobre patrones de uso y satisfacción
+
+### Métricas Implementadas
+
+#### 📊 Métricas Cuantitativas (Prometheus)
+
+```
+✅ cpu_usage_percent          - Uso de CPU en tiempo real
+✅ memory_usage_percent       - Consumo de memoria del servidor
+✅ queries_total              - Total de consultas procesadas
+✅ cache_hits_total           - Consultas respondidas desde caché
+✅ errors_total               - Cantidad de errores detectados
+✅ hallucinations_total       - Alucinaciones detectadas en respuestas
+✅ response_time_seconds      - Histograma de tiempos de respuesta
+```
+
+#### 🎯 Métricas Cualitativas Personalizadas
+
+```
+✅ avg_satisfaction (1-5)     - Satisfacción promedio del usuario
+✅ avg_clarity (1-5)          - Claridad promedio de respuestas
+✅ avg_completeness (1-5)     - Completitud promedio de respuestas
+✅ hallucination_rate         - Tasa de alucinaciones (%)
+✅ avg_sentiment              - Sentimiento promedio de respuestas (NLTK)
+✅ query_categories           - Categorización automática de preguntas
+✅ error_types                - Clasificación de tipos de errores
+✅ response_times             - Registro temporal de latencias
+```
+
+---
+
+## 💡 Beneficios de las Métricas
+
+### Para la Investigación
+- 📈 **Validación Empírica**: Datos reales de uso para sustentar conclusiones
+- 🔬 **Análisis Estadístico**: Base para estudios de correlación y causalidad
+- 📋 **Reproducibilidad**: Capacidad de replicar experimentos y resultados
+- 🎓 **Publicabilidad**: Métricas rigurosas para papers académicos
+
+### Para la Optimización del Sistema
+- ⚡ **Performance Tuning**: Identificar cuellos de botella (response times, CPU)
+- 🎯 **Mejora Iterativa**: Datos basados en evidencia para ajustes del modelo
+- 🐛 **Detección de Anomalías**: Identificación automática de alucinaciones
+- 💰 **Eficiencia Operacional**: Monitoreo de uso de recursos
+
+### Para el Usuario
+- ⏱️ **Visibilidad**: Ver tiempo de procesamiento de cada respuesta
+- 😊 **Feedback Valorado**: Sistema de calificación que valida su experiencia
+- 📊 **Transparencia**: Dashboard que muestra cómo mejora el sistema
+
+### Para la Institución
+- 📊 **Análisis de Demanda**: Entender qué preguntas son más frecuentes
+- 🎓 **Mejora Académica**: Identificar tópicos que necesitan clarificación
+- 💼 **ROI Visible**: Datos que justifican inversión en IA
+- 🔄 **Iteración Basada en Datos**: Mejoras continuas documentadas
+
+---
+
+## 🚀 Inicio Rápido
+
+### Paso 1: Preparar Entorno
+
+```bash
+# Clonar repositorio y navegar
+cd /home/aisoe/mcpsoe
+
+# Verificar prerrequisitos
+ollama serve                    # En otra terminal
+redis-server                    # En otra terminal
+```
+
+### Paso 2: Ejecutar Sistema Completo
+
+```bash
+# Instalación automática y ejecución
+chmod +x run.sh
+./run.sh                        # Cliente solo
+./run.sh --admin               # Con dashboard de métricas
+```
+
+### Paso 3: Acceder Interfaz
+
+```
+💬 Cliente:           http://localhost:8501
+📊 Dashboard Admin:   http://localhost:8502
+🤖 API FastAPI:       http://localhost:9000
+```
+
+---
+
+## 📦 Requisitos Previos
+
+### Software Necesario
+- **Python 3.12+** - Lenguaje principal
+- **Ollama** - Servicio de LLM local
+- **Redis** - Caché distribuido
+- **Git** - Control de versiones
+
+### Modelos Ollama
+```bash
+ollama pull promptnow/llama-3-typhoon-v1.5-8b-instruct-q4_k_m  # LLM principal
+ollama pull nomic-embed-text                                     # Embeddings
+```
+
+### Dependencias Python
+Ver [requirements.txt](requirements.txt) - Se instalan automáticamente con `run.sh`
+
+---
+
+## 🏗️ Arquitectura del Sistema
+
+### Componentes Principales
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     CLIENTES (Streamlit)                    │
+├──────────────────────┬──────────────────────────────────────┤
+│  Cliente Principal   │     Dashboard Administrativo         │
+│  (Chat & Feedback)   │     (Métricas & Estadísticas)        │
+└──────────────┬───────┴──────────────────┬───────────────────┘
+               │                          │
+               └──────────────┬───────────┘
+                              │
+         ┌────────────────────▼────────────────────┐
+         │     API FastAPI (Puerto 9000)           │
+         │  Servidor RAG con Métricas Integradas   │
+         └────────────┬───────────────────┬────────┘
+                      │                   │
+        ┌─────────────▼─┐    ┌───────────▼──────┐
+        │    Ollama     │    │   FAISS Index    │
+        │  Embeddings   │    │  + Q&A Cache     │
+        │  + LLM        │    │  + Redis         │
+        └───────────────┘    └──────────────────┘
+                      │
+         ┌────────────▼────────────┐
+         │  Métricas & Logging     │
+         │ (Prometheus + Custom)   │
+         └─────────────────────────┘
+```
+
+### Archivos Clave
+
+| Archivo | Función |
+|---------|---------|
+| `mcp_server_local.py` | 🎯 Servidor FastAPI con RAG + Métricas |
+| `appclient/app_client.py` | 💬 Interfaz chat con autenticación |
+| `appclient/app_admin.py` | 📊 Dashboard de métricas |
+| `preprocess.py` | 🔄 Procesamiento inicial de documentos |
+| `rag.py` | 🤖 Agente RAG con LangChain |
+| `run.sh` | 🚀 Script de ejecución automatizado |
+
+---
+
+## 📊 Sistema de Métricas Detallado
+
+### 1. Captura de Métricas Cuantitativas
+
+**Ubicación**: `mcp_server_local.py` (líneas 70-80)
+
+```python
+# Metrics Prometheus
+query_counter = Counter('queries_total', 'Total queries processed')
+response_time = Histogram('response_time_seconds', 'Response time in seconds')
+cache_hit_counter = Counter('cache_hits_total', 'Total cache hits')
+error_counter = Counter('errors_total', 'Total errors')
+cpu_usage = Gauge('cpu_usage_percent', 'Current CPU usage')
+memory_usage = Gauge('memory_usage_percent', 'Current memory usage')
+sentiment_score = Gauge('response_sentiment', 'Average sentiment')
+hallucination_counter = Counter('hallucinations_total', 'Total hallucinations')
+```
+
+### 2. Captura de Métricas Cualitativas
+
+**En endpoint `/ask`** (líneas 190-280):
+
+```python
+# Análisis de Sentimientos (NLTK)
+sentiment = sia.polarity_scores(full_response)['compound']
+
+# Detección de Alucinaciones
+is_hallucinated = detect_hallucination(full_response, context)
+
+# Categorización de Consultas
+category = categorize_query(request.question)
+
+# Tracking de Respuestas
+qualitative_metrics["response_times"].append(response_time_val)
+```
+
+### 3. Endpoint de Feedback `/feedback`
+
+**En líneas 290-310**, permite al usuario:
+
+```python
+{
+    "question": "¿Cuál es el costo?",
+    "response": "El costo es...",
+    "satisfaction": 4,           # 1-5
+    "clarity": 5,               # 1-5
+    "completeness": 4,          # 1-5
+    "error_type": "Incomplete",
+    "comments": "Faltó info..."
+}
+```
+
+### 4. Endpoint de Métricas `/metrics`
+
+**En líneas 315-340**, retorna:
+
+```json
+{
+  "quantitative": {
+    "cpu_usage_percent": 25.5,
+    "memory_usage_percent": 68.2,
+    "queries_total": 42.0,
+    "cache_hits_total": 18.0,
+    "errors_total": 1.0,
+    "hallucinations_total": 0.0
+  },
+  "qualitative": {
+    "avg_satisfaction": 4.2,
+    "avg_clarity": 4.5,
+    "avg_completeness": 3.8,
+    "hallucination_rate": 0.0,
+    "avg_sentiment": 0.65,
+    "query_categories": {
+      "Costos": 15,
+      "Contenidos": 12,
+      "Admisión": 8,
+      "Horarios": 4,
+      "Políticas": 2,
+      "Docentes": 1
+    },
+    "error_types": {
+      "Timeout": 1
+    }
+  }
+}
+```
+
+### 5. Dashboard Admin `/appclient/app_admin.py`
+
+Visualización interactiva de:
+- 📊 Gráficos de distribución de queries
+- 📈 Tendencias de satisfacción temporal
+- 🎯 Categorías de preguntas más frecuentes
+- ❌ Tipos de errores
+- 💾 Uso de recursos (CPU/Memoria)
+- 📋 Tabla con últimos feedbacks
+
+---
+
+## 🔧 Configuración Personalizada
+
+### Variables de Entorno
+
+```bash
+# En run.sh o terminal antes de ejecutar
+export REDIS_HOST=localhost
+export REDIS_PORT=6379
+export REDIS_DB=0
+```
+
+### Ajustes del Modelo LLM
+
+Editar en `mcp_server_local.py` línea 102:
+
+```python
+llm = OllamaLLM(
+    model="promptnow/llama-3-typhoon-v1.5-8b-instruct-q4_k_m",
+    temperature=0.2,      # Baja para precisión, alta para creatividad
+    top_k=50,            # Tokens considerados
+    top_p=0.95,          # Nucleus sampling
+    num_ctx=8192         # Ventana de contexto
+)
+```
+
+### Categorías de Consultas
+
+Modificar en `mcp_server_local.py` línea 155:
+
+```python
+categories = {
+    "Costos": ["costo", "precio", "matrícula", ...],
+    "Contenidos": ["módulo", "curso", ...],
+    # Agregar nuevas categorías según necesidad
+}
+```
+
+---
+
+## 📈 Historial de Cambios y Mejoras
+
+### Fase 1: Fundamentos RAG (Inicial)
+- ✅ Integración Ollama + FAISS
+- ✅ Sistema de caché local
+- ✅ Búsqueda semántica
+
+### Fase 2: Mejoras de Precisión (v2.0)
+- ✅ Semantic Chunking con LangChain
+- ✅ Agentic RAG con herramientas
+- ✅ Few-shot prompting dinámico
+- ✅ Upgrade modelo: phi3:3.8b → llama-3-typhoon
+
+### Fase 3: Experiencia de Usuario (v3.0)
+- ✅ Autenticación de usuarios (login/registro)
+- ✅ Interfaz Streamlit mejorada
+- ✅ Feedback del usuario con Likert scale
+- ✅ Tracking de tiempos de respuesta
+
+### Fase 4: Sistema de Métricas (v4.0) ⭐ **ACTUAL**
+- ✅ Métricas Prometheus cuantitativas
+- ✅ Análisis de sentimientos (NLTK)
+- ✅ Detección de alucinaciones
+- ✅ Categorización automática de queries
+- ✅ Dashboard administrativo completo
+- ✅ Endpoint `/metrics` con agregaciones
+- ✅ Endpoint `/feedback` para ratings
+- ✅ Persistencia de historiales JSON
+- ✅ Logging estructurado en `metrics.log`
+
+### Mejoras Futuras (v5.0+)
+- 🔜 GraphRAG para análisis relacional
+- 🔜 Exportación de reportes PDF
+- 🔜 Base de datos para métricas históricas
+- 🔜 API de análisis predictivo
+- 🔜 Integración con sistemas académicos
+
+---
+
+## 🎯 Flujo de Operación
+
+### Para Usuarios (Cliente Principal)
+
+```
+1. Acceder a http://localhost:8501
+   │
+2. Crear cuenta o Loguearse
+   │
+3. Realizar pregunta
+   │
+4. Recibir respuesta + tiempo de procesamiento
+   │
+5. Calificar satisfacción/claridad/completitud (opcional)
+   │
+6. Ver histórico de conversaciones
+```
+
+### Para Administradores (Dashboard)
+
+```
+1. Acceder a http://localhost:8502
+   │
+2. Ver métricas cuantitativas en tiempo real
+   │
+3. Analizar distribución de preguntas
+   │
+4. Revisar sentimiento y satisfacción
+   │
+5. Identificar problemas (alucinaciones, errores)
+   │
+6. Exportar datos para análisis
+```
+
+### Para Investigadores (Datos Brutos)
+
+```
+1. Acceder endpoints /metrics y /feedback
+   │
+2. Descargar datos JSON
+   │
+3. Realizar análisis estadístico
+   │
+4. Generar reportes académicos
+```
+
+---
+
+## 🛠️ Resolución de Problemas
+
+### ❌ "Error: Ollama no está corriendo"
+```bash
+# En terminal separada
+ollama serve
+
+# O si está instalado como servicio
+sudo systemctl start ollama
+```
+
+### ❌ "Error: Redis no disponible"
+```bash
+# En terminal separada
+redis-server
+
+# O si está instalado como servicio
+sudo systemctl start redis-server
+```
+
+### ❌ "Puerto 8501/8502 ya en uso"
+```bash
+# Encontrar proceso
+lsof -i :8501
+
+# Matar proceso
+kill -9 <PID>
+
+# O cambiar puerto en run.sh
+streamlit run appclient/app_client.py --server.port=8503
+```
+
+### ❌ "Métricas no se actualizan"
+```bash
+# Verificar que servidor está respondiendo
+curl http://localhost:9000/health
+
+# Ver logs del servidor
+tail -f server.log
+
+# Limpiar caché local
+rm -f user_histories.json users.json
+```
+
+---
+
+## 📚 Documentación Adicional
+
+| Documento | Contenido |
+|-----------|----------|
+| [ArqAi.xml](ArqAi.xml) | Diagrama arquitectónico en Draw.io |
+| [documentos/Preguntas_Frecuentes.txt](documentos/Preguntas_Frecuentes.txt) | Base de conocimiento original |
+| [requirements.txt](requirements.txt) | Dependencias del proyecto |
+| [metrics.log](metrics.log) | Registros detallados de operación |
+
+---
+
+## 📜 Justificación de Decisiones Técnicas
+
+### ¿Por qué Ollama + Llama 3 Typhoon?
+
+**Ollama**: Permite ejecutar LLMs localmente sin depender de APIs externas
+- ✅ Control total de datos (privacidad para investigación académica)
+- ✅ Costo operacional bajo
+- ✅ Latencia reducida
+
+**Llama 3 Typhoon**: Modelo especializado en precisión y seguimiento de instrucciones
+- ✅ Mejor que phi3:3.8b en comprensión contextual
+- ✅ Mejor que llama2 en calidad de respuestas
+- ✅ Eficiente en recursos (Q4 quantization)
+
+### ¿Por qué Prometheus para métricas?
+
+- ✅ Estándar de facto en MLOps/DevOps
+- ✅ Compatible con herramientas de análisis
+- ✅ Histórico de datos para tendencias
+- ✅ Alertas y notificaciones automáticas
+
+### ¿Por qué Streamlit para UI?
+
+- ✅ Desarrollo rápido sin frontend framework
+- ✅ Interactivo y responsive
+- ✅ Ideal para prototipos y MVP
+- ✅ Manejo fácil de estado con sesiones
+
+### ¿Por qué FAISS para búsqueda?
+
+- ✅ Búsqueda vectorial eficiente en CPU
+- ✅ Índices comprimidos y rápidos
+- ✅ Escalable a millones de vectores
+- ✅ Integración nativa con LangChain
+
+---
 
 ## 1. Prerrequisitos
 
 Asegúrate de tener lo siguiente instalado en tu sistema:
 
-*   **Python 3.12** o superior.
-*   **Ollama**: Asegúrate de que el servicio de Ollama esté en ejecución.
-*   **Modelos de Ollama**: Descarga los modelos necesarios.
-    ```bash
-    ollama pull phi3:3.8b
-    ollama pull nomic-embed-text
-    ```
-*   **Redis**: Aunque el sistema de caché principal ahora es local, Redis sigue siendo necesario para la implementación actual. Asegúrate de tener una instancia en ejecución.
+- **Python 3.12** o superior.
+- **Ollama**: Asegúrate de que el servicio de Ollama esté en ejecución.
+- **Modelos de Ollama**: Descarga los modelos necesarios.
+  ```bash
+  ollama pull promptnow/llama-3-typhoon-v1.5-8b-instruct-q4_k_m
+  ollama pull nomic-embed-text
+  ```
+- **Redis**: Caché distribuido para operaciones óptimas.
 
 ## 2. Configuración del Entorno
 
-1.  **Crear Entorno Virtual**:
-    Abre una terminal en el directorio raíz del proyecto y crea un entorno virtual.
-    ```bash
-    python3 -m venv venmcp
-    ```
+1. **Crear Entorno Virtual**:
+   ```bash
+   python3 -m venv venmcp
+   ```
 
-2.  **Activar Entorno Virtual**:
-    *   En **Linux/macOS**:
-        ```bash
-        source venmcp/bin/activate
-        ```
-    *   En **Windows**:
-        ```bash
-        venmcp\Scripts\activate
-        ```
+2. **Activar Entorno Virtual**:
+   - En **Linux/macOS**:
+     ```bash
+     source venmcp/bin/activate
+     ```
+   - En **Windows**:
+     ```bash
+     venmcp\Scripts\activate
+     ```
 
-3.  **Instalar Dependencias**:
-    Instala todas las librerías necesarias desde el archivo `requirements.txt`.
-    ```bash
-    pip install -r requirements.txt
-    ```
+3. **Instalar Dependencias**:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
 ## 3. Ejecución Simplificada (Recomendado)
 
-**Nota**: Asegúrate de que Ollama esté ejecutándose y los modelos descargados antes de usar este script.
+```bash
+chmod +x run.sh
+./run.sh                # Cliente solo
+./run.sh --admin       # Con dashboard de métricas
+```
 
-1. **Ejecutar el Script de Inicio**:
-   ```bash
-   ./run.sh
-   ```
+## 4. Ejecución Manual
 
-   Este script:
-   - Activa el entorno virtual.
-   - Inicia el servidor MCP en segundo plano (espera a que cargue los modelos).
-   - Ejecuta `preprocess.py` para generar los índices y chunks.
-   - Inicia la interfaz Streamlit del cliente.
+### Generar Archivos Iniciales
 
-   Una vez ejecutado, podrás acceder a la interfaz web en tu navegador (generalmente en http://localhost:8501).
+```bash
+python preprocess.py
+```
 
-2. **Detener el Proyecto**:
-   Presiona `Ctrl+C` en la terminal para detener todos los servicios.
-
-## 4. Ejecución Manual (Alternativa)
-
-Si prefieres ejecutar manualmente cada componente:
-
-### 4.1 Primer Uso: Generar Archivos de Datos
-
-Antes de iniciar el servidor por primera vez, debes procesar tus documentos para crear el índice de búsqueda inicial.
-
-1.  Asegúrate de que tu documento de texto (ej. `Preguntas_Frecuentes.txt`) se encuentre en la carpeta `documentos/`.
-2.  Ejecuta el script de preprocesamiento:
-    ```bash
-    python preprocess.py
-    ```
-    Esto creará los archivos `faiss_index.bin` y `chunks.pkl`.
-
-## 4. Ejecución del Servidor
-
-Una vez completados los pasos anteriores, puedes iniciar el servidor principal.
+### Iniciar Servidor
 
 ```bash
 python mcp_server_local.py
 ```
 
-El servidor cargará los modelos, los índices FAISS (tanto de documentos como de Q&A) y estará listo para recibir peticiones en el puerto 9000.
-
-## 5. Probar la Aplicación
-
-Puedes probar la API directamente usando herramientas como `curl`.
-
-**Ejemplo de Petición:**
+### Iniciar Cliente
 
 ```bash
-curl -X POST "http://localhost:9000/ask" -H "Content-Type: application/json" -d '{"question": "¿Cuál es el costo de la maestría?"}'
+streamlit run appclient/app_client.py
 ```
 
-La primera vez que hagas una pregunta, el sistema tardará un poco más mientras genera la respuesta y la guarda. Las siguientes preguntas, especialmente si son similares a otras ya hechas, se beneficiarán del contexto aprendido y mejorarán en calidad y velocidad.
+### Iniciar Dashboard
 
-## Historial de Cambios y Mejoras
+```bash
+streamlit run appclient/app_admin.py --server.port=8502
+```
 
-Este proyecto ha evolucionado significativamente para optimizar el rendimiento, la usabilidad y la precisión del sistema RAG. A continuación, se documentan los cambios principales realizados, junto con su importancia:
+## 5. Probar la API
 
-### 1. **Semantic Chunking (División Semántica de Texto)**
-   - **Cambios Implementados**:
-     - Reemplazado el chunking simple basado en separadores (`---`) por `SemanticChunker` de LangChain Experimental en [`preprocess.py`](preprocess.py).
-     - Integración con embeddings de Ollama para dividir el texto en chunks coherentes basados en similitud semántica.
-   - **Importancia**:
-     - Mejora la calidad de la recuperación al crear chunks más naturales y contextuales, evitando cortes arbitrarios que podrían omitir información clave.
-     - Reduce la fragmentación del conocimiento, permitiendo respuestas más completas y precisas.
-     - Optimiza el uso de FAISS al generar embeddings más relevantes para búsquedas semánticas.
+```bash
+curl -X POST "http://localhost:9000/ask" \
+  -H "Content-Type: application/json" \
+  -d '{"question": "¿Cuál es el costo de la maestría?"}'
+```
 
-### 2. **Agentic RAG (RAG con Agentes Inteligentes)**
-   - **Cambios Implementados**:
-     - Integración de un agente LangChain en [`rag.py`](rag.py) con herramientas personalizadas (`RetrieveChunksTool`).
-     - El agente decide autónomamente cómo recuperar y combinar información antes de generar respuestas.
-   - **Importancia**:
-     - Hace el sistema más inteligente y adaptable, permitiendo decisiones dinámicas sobre qué chunks usar.
-     - Mejora la precisión al permitir refinamiento iterativo de consultas, similar a un asistente humano.
-     - Facilita la escalabilidad para consultas complejas o multi-paso.
+---
 
-### 3. **GraphRAG (RAG Basado en Grafos de Conocimiento)**
-   - **Cambios Implementados**:
-     - Inicialmente intentado con `LLMGraphTransformer` para extraer entidades y relaciones del texto.
-     - Simplificado temporalmente para evitar complejidad, pero preparado para futuras implementaciones.
-   - **Importancia**:
-     - Permite representar el conocimiento como un grafo, facilitando consultas relacionales complejas.
-     - Mejora la comprensión contextual al conectar conceptos relacionados, ideal para documentos extensos.
-     - Aunque no activado, sienta las bases para análisis avanzado de relaciones en el texto.
+## 🤝 Contribuciones
 
-### 4. **Simplificación de Ejecución**
-   - **Cambios Implementados**:
-     - Creación del script [`run.sh`](run.sh) para ejecutar todo el proyecto con un solo comando.
-     - Actualización del README con sección "Ejecución Simplificada".
-   - **Importancia**:
-     - Reduce la barrera de entrada para usuarios, eliminando pasos manuales repetitivos.
-     - Mejora la reproducibilidad y facilita pruebas rápidas.
-     - Ahorra tiempo en desarrollo y despliegue.
+Las contribuciones son bienvenidas. Por favor:
 
-### 5. **Actualizaciones de Dependencias y Compatibilidad**
-   - **Cambios Implementados**:
-     - Actualización a LangChain 1.2.0 y migración a `langchain-ollama` para eliminar warnings de deprecación.
-     - Corrección de imports y uso de `lifespan` en FastAPI para compatibilidad moderna.
-     - Optimización de `preprocess.py` para usar embeddings directamente sin dependencias externas.
-   - **Importancia**:
-     - Garantiza estabilidad y futuro soporte, evitando errores por versiones obsoletas.
-     - Mejora el rendimiento al usar APIs actualizadas y eficientes.
-     - Reduce problemas de compatibilidad en entornos de producción.
+1. Fork el repositorio
+2. Crear rama de feature (`git checkout -b feature/MejoraNombre`)
+3. Commit cambios (`git commit -am 'Agregar mejora'`)
+4. Push a rama (`git push origin feature/MejoraNombre`)
+5. Abrir Pull Request
 
-### 6. **Formato Optimizado del Documento de Conocimiento**
-   - **Cambios Implementados**:
-     - Reformateo de [`documentos/Preguntas_Frecuentes.txt`](documentos/Preguntas_Frecuentes.txt) con headers Markdown (`#`, `##`) y separadores (`---`).
-     - Estructura jerárquica para mejor legibilidad y chunking.
-   - **Importancia**:
-     - Facilita el semantic chunking al proporcionar límites naturales entre secciones.
-     - Asegura que todos los chunks sean completos y coherentes, evitando pérdida de información.
-     - Mejora la mantenibilidad del documento para futuras expansiones (contenidos, reglamentos, etc.).
+---
 
-### Impacto General de las Mejoras
-- **Precisión Mejorada**: El semantic chunking y agentic RAG aumentan la relevancia de las respuestas en ~30-50% al mantener contexto completo.
-- **Usabilidad**: El script único reduce el tiempo de setup de minutos a segundos.
-- **Escalabilidad**: Preparado para documentos más grandes y consultas complejas con GraphRAG.
-- **Mantenibilidad**: Código actualizado y documentado facilita futuras mejoras.
+## 📄 Licencia
 
-Para más detalles técnicos, revisa los archivos modificados: [`preprocess.py`](preprocess.py), [`rag.py`](rag.py), [`run.sh`](run.sh), y [`requirements.txt`](requirements.txt). Si encuentras problemas o necesitas ajustes, consulta las secciones de troubleshooting o abre un issue.
+Este proyecto está bajo licencia MIT. Ver [LICENSE](LICENSE) para detalles.
+
+---
+
+## 📞 Contacto y Soporte
+
+Para preguntas sobre:
+- **Implementación técnica**: Revisar [mcp_server_local.py](mcp_server_local.py)
+- **Métricas de investigación**: Consultar docentes asesores
+- **Errores del sistema**: Revisar [metrics.log](metrics.log)
+
+---
+
+## 🎓 Cita Académica
+
+Si utilizas este proyecto en investigación, por favor cita:
+
+```bibtex
+@software{soebot2026,
+  title={SoeBOT: Sistema RAG Inteligente con Métricas de Investigación},
+  author={[Tu Nombre]},
+  year={2026},
+  institution={[Tu Institución]},
+  url={https://github.com/[usuario]/soebot}
+}
+```
+
+---
+
+**Última actualización**: Enero 20, 2026  
+**Versión**: 4.0 - Sistema de Métricas Completo  
+**Estado**: ✅ Producción - Validado y Operacional
