@@ -1,0 +1,102 @@
+INFO:     Started server process [765061]
+INFO:     Waiting for application startup.
+2026-01-20 11:02:36,614 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/generate "HTTP/1.1 200 OK"
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:9000 (Press CTRL+C to quit)
+--- Cargando Modelos de Ollama ---
+Modelos de Ollama cargados exitosamente.
+Redis conectado exitosamente.
+--- Cargando índices FAISS y chunks ---
+Índice FAISS cargado: 4 chunks
+Caché Q&A cargado: 18 pares
+Índice Q&A FAISS cargado: 18 embeddings
+INFO:     127.0.0.1:44058 - "GET /metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46988 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34204 - "GET /metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36294 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43536 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52952 - "GET /metrics HTTP/1.1" 200 OK
+2026-01-20 11:08:47,784 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/embed "HTTP/1.1 200 OK"
+Recibida pregunta: ¿Cuál es el costo de la maestría?
+Embedding de la pregunta generado en 2.05s
+Buscando preguntas similares en el índice de Q&A...
+Encontrados 3 ejemplos de Q&A similares.
+Realizando búsqueda RAG con FAISS para documentos...
+Búsqueda en FAISS completada en 0.0000s
+Contexto encontrado: 5 chunks.
+INFO:     127.0.0.1:36622 - "POST /ask HTTP/1.1" 200 OK
+2026-01-20 11:14:04,163 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/generate "HTTP/1.1 200 OK"
+2026-01-20 11:14:14,593 - WARNING - NLTK sentiment analyzer not available: 
+**********************************************************************
+  Resource [93mwordnet[0m not found.
+  Please use the NLTK Downloader to obtain the resource:
+
+  [31m>>> import nltk
+  >>> nltk.download('wordnet')
+  [0m
+  For more information see: https://www.nltk.org/data.html
+
+  Attempted to load [93mcorpora/wordnet[0m
+
+  Searched in:
+    - '/home/aisoe/nltk_data'
+    - '/home/aisoe/mcpsoe/venmcp/nltk_data'
+    - '/home/aisoe/mcpsoe/venmcp/share/nltk_data'
+    - '/home/aisoe/mcpsoe/venmcp/lib/nltk_data'
+    - '/usr/share/nltk_data'
+    - '/usr/local/share/nltk_data'
+    - '/usr/lib/nltk_data'
+    - '/usr/local/lib/nltk_data'
+**********************************************************************
+
+2026-01-20 11:14:14,613 - INFO - Respuesta completada en 326.17s | Categoría: Costos | Hallucination: False | Sentiment: 0.00
+2026-01-20 11:16:13,246 - INFO - Feedback recibido: Satisfacción=3, Claridad=3, Completitud=3
+Iniciando llamada a chain.astream...
+Stream del LLM finalizado.
+Guardando nueva Q&A para aprendizaje futuro...
+Índice y caché de Q&A actualizados en disco.
+INFO:     127.0.0.1:52080 - "POST /feedback HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51298 - "GET /metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51306 - "GET /metrics HTTP/1.1" 200 OK
+2026-01-20 11:19:18,071 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/embed "HTTP/1.1 200 OK"
+Recibida pregunta: Que informacion tienes sobre los horarios y fechas de inicio del programa de ciencias de datos.
+Embedding de la pregunta generado en 3.00s
+Buscando preguntas similares en el índice de Q&A...
+Encontrados 3 ejemplos de Q&A similares.
+Realizando búsqueda RAG con FAISS para documentos...
+Búsqueda en FAISS completada en 0.0000s
+Contexto encontrado: 5 chunks.
+INFO:     127.0.0.1:53160 - "POST /ask HTTP/1.1" 200 OK
+2026-01-20 11:24:22,497 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/generate "HTTP/1.1 200 OK"
+2026-01-20 11:30:03,242 - WARNING - NLTK sentiment analyzer not available: 
+**********************************************************************
+  Resource [93mwordnet[0m not found.
+  Please use the NLTK Downloader to obtain the resource:
+
+  [31m>>> import nltk
+  >>> nltk.download('wordnet')
+  [0m
+  For more information see: https://www.nltk.org/data.html
+
+  Attempted to load [93mcorpora/wordnet[0m
+
+  Searched in:
+    - '/home/aisoe/nltk_data'
+    - '/home/aisoe/mcpsoe/venmcp/nltk_data'
+    - '/home/aisoe/mcpsoe/venmcp/share/nltk_data'
+    - '/home/aisoe/mcpsoe/venmcp/lib/nltk_data'
+    - '/usr/share/nltk_data'
+    - '/usr/local/share/nltk_data'
+    - '/usr/lib/nltk_data'
+    - '/usr/local/lib/nltk_data'
+**********************************************************************
+
+2026-01-20 11:30:03,242 - INFO - Respuesta completada en 645.16s | Categoría: Contenidos | Hallucination: False | Sentiment: 0.00
+2026-01-20 11:34:01,813 - INFO - Feedback recibido: Satisfacción=3, Claridad=3, Completitud=3
+Iniciando llamada a chain.astream...
+Stream del LLM finalizado.
+Guardando nueva Q&A para aprendizaje futuro...
+Índice y caché de Q&A actualizados en disco.
+INFO:     127.0.0.1:48834 - "POST /feedback HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37626 - "GET /metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37634 - "GET /metrics HTTP/1.1" 200 OK

@@ -13,3 +13,8 @@ faiss-cpu
 langchain-experimental
 networkx
 neo4j
+prometheus-client==0.20.0
+psutil==6.0.0
+nltk==3.9
+matplotlib==3.9.0
+pandas==2.2.0

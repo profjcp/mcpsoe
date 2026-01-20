@@ -89,13 +89,45 @@ else:
     
     st.subheader(f"Sesión de: {st.session_state.user_id}")
     
-    # Display the chat history
+    # Display the chat history with feedback
     for item in st.session_state.history:
         if len(item) == 3:  # Nuevo formato con tiempo
             q, a, t = item
             st.markdown(f"**Tú:** {q}")
             st.markdown(f"**SoeBOT:** {a}")
             st.markdown(f"**Tiempo de respuesta:** {t:.2f} segundos")
+            
+            # Agregar opciones de feedback para cada respuesta
+            with st.expander("📝 Enviar Feedback (opcional)"):
+                col1, col2, col3 = st.columns(3)
+                satisfaction = col1.slider("Satisfacción", 1, 5, 3, key=f"sat_{q}")
+                clarity = col2.slider("Claridad", 1, 5, 3, key=f"clar_{q}")
+                completeness = col3.slider("Completitud", 1, 5, 3, key=f"comp_{q}")
+                
+                error_type = st.selectbox("¿Hubo algún error?", ["Ninguno", "Contexto insuficiente", "Alucinación", "Interpretación errónea", "Formato incorrecto"], key=f"err_{q}")
+                comments = st.text_area("Comentarios adicionales", key=f"comm_{q}")
+                
+                if st.button("Enviar Feedback", key=f"btn_{q}"):
+                    try:
+                        error_val = "" if error_type == "Ninguno" else error_type
+                        feedback_response = requests.post(
+                            "http://127.0.0.1:9000/feedback",
+                            json={
+                                "question": q,
+                                "response": a,
+                                "satisfaction": satisfaction,
+                                "clarity": clarity,
+                                "completeness": completeness,
+                                "error_type": error_val,
+                                "comments": comments
+                            }
+                        )
+                        if feedback_response.status_code == 200:
+                            st.success("✅ Feedback guardado exitosamente. ¡Gracias!")
+                        else:
+                            st.error("Error al enviar feedback.")
+                    except Exception as e:
+                        st.error(f"Error: {e}")
         else:  # Formato antiguo sin tiempo
             q, a = item
             st.markdown(f"**Tú:** {q}")

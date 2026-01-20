@@ -1,0 +1,56 @@
+2026-01-20 11:02:02,279 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/generate "HTTP/1.1 200 OK"
+2026-01-20 11:02:36,614 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/generate "HTTP/1.1 200 OK"
+2026-01-20 11:08:47,784 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/embed "HTTP/1.1 200 OK"
+2026-01-20 11:14:04,163 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/generate "HTTP/1.1 200 OK"
+2026-01-20 11:14:14,593 - WARNING - NLTK sentiment analyzer not available: 
+**********************************************************************
+  Resource [93mwordnet[0m not found.
+  Please use the NLTK Downloader to obtain the resource:
+
+  [31m>>> import nltk
+  >>> nltk.download('wordnet')
+  [0m
+  For more information see: https://www.nltk.org/data.html
+
+  Attempted to load [93mcorpora/wordnet[0m
+
+  Searched in:
+    - '/home/aisoe/nltk_data'
+    - '/home/aisoe/mcpsoe/venmcp/nltk_data'
+    - '/home/aisoe/mcpsoe/venmcp/share/nltk_data'
+    - '/home/aisoe/mcpsoe/venmcp/lib/nltk_data'
+    - '/usr/share/nltk_data'
+    - '/usr/local/share/nltk_data'
+    - '/usr/lib/nltk_data'
+    - '/usr/local/lib/nltk_data'
+**********************************************************************
+
+2026-01-20 11:14:14,613 - INFO - Respuesta completada en 326.17s | Categoría: Costos | Hallucination: False | Sentiment: 0.00
+2026-01-20 11:16:13,246 - INFO - Feedback recibido: Satisfacción=3, Claridad=3, Completitud=3
+2026-01-20 11:19:18,071 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/embed "HTTP/1.1 200 OK"
+2026-01-20 11:24:22,497 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/generate "HTTP/1.1 200 OK"
+2026-01-20 11:30:03,242 - WARNING - NLTK sentiment analyzer not available: 
+**********************************************************************
+  Resource [93mwordnet[0m not found.
+  Please use the NLTK Downloader to obtain the resource:
+
+  [31m>>> import nltk
+  >>> nltk.download('wordnet')
+  [0m
+  For more information see: https://www.nltk.org/data.html
+
+  Attempted to load [93mcorpora/wordnet[0m
+
+  Searched in:
+    - '/home/aisoe/nltk_data'
+    - '/home/aisoe/mcpsoe/venmcp/nltk_data'
+    - '/home/aisoe/mcpsoe/venmcp/share/nltk_data'
+    - '/home/aisoe/mcpsoe/venmcp/lib/nltk_data'
+    - '/usr/share/nltk_data'
+    - '/usr/local/share/nltk_data'
+    - '/usr/lib/nltk_data'
+    - '/usr/local/lib/nltk_data'
+**********************************************************************
+
+2026-01-20 11:30:03,242 - INFO - Respuesta completada en 645.16s | Categoría: Contenidos | Hallucination: False | Sentiment: 0.00
+2026-01-20 11:34:01,813 - INFO - Feedback recibido: Satisfacción=3, Claridad=3, Completitud=3

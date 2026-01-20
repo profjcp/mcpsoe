@@ -1,32 +1,61 @@
 #!/bin/bash
 
 # Script to run the entire project with one command
+# Usage: ./run.sh         (normal mode)
+# Usage: ./run.sh --admin (with admin dashboard for metrics)
 
 echo "Activating virtual environment..."
 source venmcp/bin/activate
 
-echo "Running preprocess.py..."
-python preprocess.py
-
-if [ $? -ne 0 ]; then
-    echo "Error in preprocess.py. Exiting."
-    exit 1
+# Verificar que Ollama y Redis estén corriendo
+echo "Verificando prerrequisitos..."
+if ! pgrep -f "ollama serve" > /dev/null; then
+    echo "⚠️ Advertencia: Ollama no está ejecutándose. Ejecuta 'ollama serve' en otra terminal."
 fi
 
-echo "Starting MCP server in background..."
+if ! pgrep -f "redis-server" > /dev/null; then
+    echo "⚠️ Advertencia: Redis no está ejecutándose. Ejecuta 'redis-server' en otra terminal."
+fi
+
+# Ejecutar preprocess si los índices no existen
+if [ ! -f "faiss_index.bin" ] || [ ! -f "chunks.pkl" ]; then
+    echo "Ejecutando preprocess.py..."
+    python preprocess.py
+    if [ $? -ne 0 ]; then
+        echo "Error en preprocess.py. Saliendo."
+        exit 1
+    fi
+fi
+
+echo "Iniciando servidor MCP en background..."
 python mcp_server_local.py &
 MCP_PID=$!
 
-echo "Waiting for MCP server to start..."
-sleep 5  # Adjust if needed
+echo "Esperando a que el servidor MCP cargue los modelos..."
+sleep 10  # Aumentado para que Ollama cargue los modelos
 
-echo "Starting Streamlit client..."
-streamlit run appclient/app_client.py &
-STREAMLIT_PID=$!
+# Verificar flag --admin para lanzar dashboard administrativo
+if [ "$1" == "--admin" ]; then
+    echo "🚀 Iniciando dashboard administrativo en terminal separada..."
+    if command -v tmux &> /dev/null; then
+        # Usar tmux si está disponible
+        tmux new-session -d -s soebot_admin "source venmcp/bin/activate && streamlit run appclient/app_admin.py --logger.level=error"
+        echo "✅ Dashboard administrativo en sesión tmux 'soebot_admin'"
+    else
+        # Fallback: ejecutar en background
+        streamlit run appclient/app_admin.py --logger.level=error &
+        ADMIN_PID=$!
+        echo "✅ Dashboard administrativo en PID: $ADMIN_PID"
+    fi
+fi
 
-echo "Project is running. MCP Server PID: $MCP_PID, Streamlit PID: $STREAMLIT_PID"
-echo "Press Ctrl+C to stop."
+echo "Iniciando cliente principal Streamlit..."
+streamlit run appclient/app_client.py
 
-# Wait for interrupt
-trap "echo 'Stopping services...'; kill $MCP_PID $STREAMLIT_PID; exit" INT
-wait
+# Cleanup al salir
+echo "Deteniendo servicios..."
+kill $MCP_PID 2>/dev/null
+if [ ! -z "$ADMIN_PID" ]; then
+    kill $ADMIN_PID 2>/dev/null
+fi
+echo "Proyecto detenido."
