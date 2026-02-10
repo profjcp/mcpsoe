@@ -16,7 +16,10 @@ USERS_FILE = "users.json"
 def load_histories():
     if os.path.exists(HISTORIES_FILE):
         with open(HISTORIES_FILE, "r") as f:
-            return json.load(f)
+            try:
+                return json.load(f)
+            except json.JSONDecodeError:
+                return {}
     return {}
 
 # Función para guardar históricos en archivo
@@ -28,7 +31,10 @@ def save_histories(histories):
 def load_users():
     if os.path.exists(USERS_FILE):
         with open(USERS_FILE, "r") as f:
-            return json.load(f)
+            try:
+                return json.load(f)
+            except json.JSONDecodeError:
+                return {}
     return {}
 
 # Función para guardar usuarios en archivo
@@ -90,7 +96,7 @@ else:
     st.subheader(f"Sesión de: {st.session_state.user_id}")
     
     # Display the chat history with feedback
-    for item in st.session_state.history:
+    for idx, item in enumerate(st.session_state.history):
         if len(item) == 3:  # Nuevo formato con tiempo
             q, a, t = item
             st.markdown(f"**Tú:** {q}")
@@ -100,14 +106,14 @@ else:
             # Agregar opciones de feedback para cada respuesta
             with st.expander("📝 Enviar Feedback (opcional)"):
                 col1, col2, col3 = st.columns(3)
-                satisfaction = col1.slider("Satisfacción", 1, 5, 3, key=f"sat_{q}")
-                clarity = col2.slider("Claridad", 1, 5, 3, key=f"clar_{q}")
-                completeness = col3.slider("Completitud", 1, 5, 3, key=f"comp_{q}")
+                satisfaction = col1.slider("Satisfacción", 1, 5, 3, key=f"sat_{idx}")
+                clarity = col2.slider("Claridad", 1, 5, 3, key=f"clar_{idx}")
+                completeness = col3.slider("Completitud", 1, 5, 3, key=f"comp_{idx}")
                 
-                error_type = st.selectbox("¿Hubo algún error?", ["Ninguno", "Contexto insuficiente", "Alucinación", "Interpretación errónea", "Formato incorrecto"], key=f"err_{q}")
-                comments = st.text_area("Comentarios adicionales", key=f"comm_{q}")
+                error_type = st.selectbox("¿Hubo algún error?", ["Ninguno", "Contexto insuficiente", "Alucinación", "Interpretación errónea", "Formato incorrecto"], key=f"err_{idx}")
+                comments = st.text_area("Comentarios adicionales", key=f"comm_{idx}")
                 
-                if st.button("Enviar Feedback", key=f"btn_{q}"):
+                if st.button("Enviar Feedback", key=f"btn_{idx}"):
                     try:
                         error_val = "" if error_type == "Ninguno" else error_type
                         feedback_response = requests.post(
@@ -170,7 +176,7 @@ else:
                                 yield decoded_chunk
                 
                 # Use write_stream to display the content as it arrives
-                answer_placeholder.write_stream(stream_generator)
+                answer_placeholder.write_stream(stream_generator())
             
             end_time = time.time()
             response_time = end_time - start_time  # Calcular tiempo total

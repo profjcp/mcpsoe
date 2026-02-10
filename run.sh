@@ -9,12 +9,25 @@ source venmcp/bin/activate
 
 # Verificar que Ollama y Redis estén corriendo
 echo "Verificando prerrequisitos..."
+
+# Iniciar Ollama si no está corriendo
 if ! pgrep -f "ollama serve" > /dev/null; then
-    echo "⚠️ Advertencia: Ollama no está ejecutándose. Ejecuta 'ollama serve' en otra terminal."
+    echo "🔄 Iniciando Ollama en background..."
+    ollama serve &
+    OLLAMA_PID=$!
+    sleep 5
+else
+    echo "✅ Ollama ya está corriendo."
 fi
 
+# Iniciar Redis si no está corriendo
 if ! pgrep -f "redis-server" > /dev/null; then
-    echo "⚠️ Advertencia: Redis no está ejecutándose. Ejecuta 'redis-server' en otra terminal."
+    echo "🔄 Iniciando Redis en background..."
+    redis-server &
+    REDIS_PID=$!
+    sleep 2
+else
+    echo "✅ Redis ya está corriendo."
 fi
 
 # Ejecutar preprocess si los índices no existen
@@ -57,5 +70,11 @@ echo "Deteniendo servicios..."
 kill $MCP_PID 2>/dev/null
 if [ ! -z "$ADMIN_PID" ]; then
     kill $ADMIN_PID 2>/dev/null
+fi
+if [ ! -z "$OLLAMA_PID" ]; then
+    kill $OLLAMA_PID 2>/dev/null
+fi
+if [ ! -z "$REDIS_PID" ]; then
+    kill $REDIS_PID 2>/dev/null
 fi
 echo "Proyecto detenido."
