@@ -54,3 +54,7 @@
 
 2026-01-20 11:30:03,242 - INFO - Respuesta completada en 645.16s | Categoría: Contenidos | Hallucination: False | Sentiment: 0.00
 2026-01-20 11:34:01,813 - INFO - Feedback recibido: Satisfacción=3, Claridad=3, Completitud=3
+2026-02-09 21:03:46,167 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/generate "HTTP/1.1 200 OK"
+2026-02-09 21:09:12,010 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/generate "HTTP/1.1 200 OK"
+2026-02-09 21:20:53,952 - INFO - HTTP Request: POST http://127.0.0.1:11434/api/generate "HTTP/1.1 200 OK"
+2026-02-09 21:23:22,536 - INFO - Feedback recibido: Satisfacción=3, Claridad=3, Completitud=3
