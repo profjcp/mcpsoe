@@ -178,7 +178,7 @@ def detect_hallucination(response: str, context: str) -> bool:
     return overlap < len(response_words) * 0.1 if response_words else False
 
 def categorize_query(question: str) -> str:
-    """Categorizar pregunta por tipo."""
+    """Categorizar pregunta por tipo (categoría única)."""
     question_lower = question.lower()
     categories = {
         "Costos": ["costo", "precio", "pago", "matrícula", "arancel", "inversión"],
@@ -193,17 +193,107 @@ def categorize_query(question: str) -> str:
             return category
     return "Otro"
 
+def categorize_query_multi(question: str) -> list:
+    """Devuelve todas las categorías relevantes para la pregunta (multi-categoría)."""
+    question_lower = question.lower()
+    categories = {
+        "AtencionCliente": ["costo", "precio", "pago", "matrícula", "arancel", "inversión", "docente", "profesor", "contacto", "tiempo"],
+        "Academica": ["malla", "plan de estudio", "materia", "asignatura", "contenido", "programa", "curso", "módulo", "ciberseguridad", "ciberdefensa", "seguridad", "defensa"],
+        "Investigacion": ["línea de investigación", "perfil", "tutor", "asesor", "tesis", "investigación"]
+    }
+    matched = []
+    for category, keywords in categories.items():
+        if any(kw in question_lower for kw in keywords):
+            matched.append(category)
+    return matched if matched else ["Otro"]
+
+def cargar_faqs_con_embeddings(faq_path: str, embed_fn):
+    """Carga preguntas y respuestas del FAQ y calcula embeddings de las preguntas."""
+    if not os.path.exists(faq_path):
+        return []
+    faqs = []
+    try:
+        with open(faq_path, "r", encoding="utf-8") as f:
+            blocks = f.read().split("\n\n")
+            for block in blocks:
+                lines = block.strip().split("\n")
+                if len(lines) < 2:
+                    continue
+                pregunta = lines[0].replace("Pregunta:", "").strip()
+                respuesta = lines[1].replace("Respuesta:", "").strip()
+                if pregunta and respuesta:
+                    embedding = embed_fn(pregunta)
+                    faqs.append({"pregunta": pregunta, "respuesta": respuesta, "embedding": embedding})
+    except Exception as e:
+        logging.warning(f"Error cargando FAQ de {faq_path}: {e}")
+    return faqs
+
+def buscar_faq_semantico(question: str, faqs: list, embed_fn, threshold: float = 0.75):
+    """Busca la pregunta más similar en el FAQ usando similitud de embeddings."""
+    if not faqs:
+        return None
+    try:
+        q_emb = np.array(embed_fn(question))
+        sims = []
+        for f in faqs:
+            f_emb = np.array(f["embedding"])
+            # Similitud de coseno
+            sim = np.dot(q_emb, f_emb) / (np.linalg.norm(q_emb) * np.linalg.norm(f_emb) + 1e-8)
+            sims.append(sim)
+        
+        max_idx = int(np.argmax(sims))
+        if sims[max_idx] >= threshold:
+            faq = faqs[max_idx]
+            return f"Pregunta: {faq['pregunta']}\nRespuesta: {faq['respuesta']}"
+    except Exception as e:
+        logging.warning(f"Error en búsqueda semántica de FAQ: {e}")
+    return None
+
 @app.post("/ask")
 async def ask(request: AskRequest):
     """
     Generates a streaming answer using RAG with FAISS and Redis caching.
+    Primero busca en FAQs por dominio, luego en RAG si no encuentra.
     """
     print(f"Recibida pregunta: {request.question}")
     query_counter.inc()
     
-    # Categorizar consulta
-    category = categorize_query(request.question)
-    qualitative_metrics["query_categories"][category] = qualitative_metrics["query_categories"].get(category, 0) + 1
+    # Categorizar consulta (multi-categoría)
+    categories = categorize_query_multi(request.question)
+    qualitative_metrics["query_categories"][str(categories)] = qualitative_metrics["query_categories"].get(str(categories), 0) + 1
+    print(f"Categorías detectadas: {categories}")
+
+    # 0. Buscar en FAQs por dominio ANTES que en RAG
+    faq_files = {
+        "AtencionCliente": "documentos/faq_atencion_cliente.txt",
+        "Academica": "documentos/faq_academica.txt",
+        "Investigacion": "documentos/faq_investigacion.txt"
+    }
+    faq_responses = []
+    for cat in categories:
+        if cat in faq_files:
+            print(f"Buscando en FAQ de {cat}...")
+            faqs = cargar_faqs_con_embeddings(faq_files[cat], embeddings.embed_query)
+            faq_response = buscar_faq_semantico(request.question, faqs, embeddings.embed_query, threshold=0.75)
+            if faq_response:
+                faq_responses.append(f"Respuesta ({cat}):\n{faq_response}")
+                print(f"Encontrada respuesta en FAQ de {cat}")
+    
+    if faq_responses:
+        print(f"Devolviendo {len(faq_responses)} respuesta(s) de FAQ")
+        async def stream_faq_response():
+            combined_response = "\n\n".join(faq_responses)
+            # Guardar en caché también
+            qa_cache[request.question] = combined_response
+            qa_faiss_index.add(np.array([embeddings.embed_query(request.question)], dtype="float32"))
+            try:
+                faiss.write_index(qa_faiss_index, QA_FAISS_INDEX_PATH)
+                with open(QA_CACHE_PATH, "wb") as f:
+                    pickle.dump(qa_cache, f)
+            except Exception as e:
+                logging.error(f"Error guardando caché: {e}")
+            yield combined_response
+        return StreamingResponse(stream_faq_response(), media_type="text/event-stream")
 
     # 1. Check cache first (exact match)
     if request.question in qa_cache:
@@ -327,7 +417,7 @@ Respuesta:
             logging.error(f"Error guardando caché: {e}")
             error_counter.inc()
 
-        logging.info(f"Respuesta completada en {response_time_val:.2f}s | Categoría: {category} | Hallucination: {is_hallucinated} | Sentiment: {sentiment:.2f}")
+        logging.info(f"Respuesta completada en {response_time_val:.2f}s | Categorías: {categories} | Hallucination: {is_hallucinated} | Sentiment: {sentiment:.2f}")
 
     return StreamingResponse(stream_generator(), media_type="text/event-stream")
 

@@ -1,0 +1,32 @@
+Pregunta: ¿Cuáles son las líneas de investigación del programa?
+Respuesta: Las líneas de investigación principales del programa son: 1) Machine Learning Aplicado, 2) Visión Artificial y Procesamiento de Imágenes, 3) Procesamiento de Lenguaje Natural (NLP), 4) Data Engineering y Big Data, 5) Análisis de Información y Business Intelligence.
+
+Pregunta: ¿Quiénes son los tutores disponibles?
+Respuesta: Los tutores disponibles son especializados en diferentes áreas. MSc. Edwin Rene Salcedo Aliaga en Machine Learning y Visión Artificial, MSc. Danny Luis Huanca Sevilla en Ciencia de Datos y Data Mining, MSc. Renzo Franck Claure Arena en Machine Learning y Deep Learning. Contacta con la coordinación académica para asignación de tutores.
+
+Pregunta: ¿Cuál es el perfil del investigador del programa?
+Respuesta: El perfil del investigador debe ser un profesional con experiencia en análisis de datos, con capacidad crítica y analítica, orientado a resolver problemas complejos mediante enfoques científicos y datos. Debe demostrar interés en áreas como AI, Machine Learning, Data Engineering o campos relacionados.
+
+Pregunta: ¿Cómo puedo hacer una tesis de investigación?
+Respuesta: La investigación se realiza a través de dos talleres: Taller de Tesis I (Módulo 11) y Taller de Tesis II (Módulo 16). Debes proponer un tema dentro de las líneas de investigación del programa y contar con un tutor asignado.
+
+Pregunta: ¿Qué requisitos debo cumplir para la investigación?
+Respuesta: Para realizar investigación debes: 1) Estar inscrito en el programa, 2) Tener propuesto un tema de investigación, 3) Contar con un tutor asignado, 4) Cumplir con la metodología de investigación del programa.
+
+Pregunta: ¿Cuál es la metodología de investigación del programa?
+Respuesta: La metodología de investigación se enseña en el Módulo 6 - Metodología de la Investigación. Incluye enfoques científicos, análisis de datos, validación de resultados y documentación académica rigurosa.
+
+Pregunta: ¿Puedo investigar sobre machine learning?
+Respuesta: Sí, Machine Learning es una de las líneas de investigación principales del programa. Puedes trabajar en temas como clasificación, regresión, clustering, redes neuronales, análisis predictivo, entre otros. Contacta con los tutores especializados.
+
+Pregunta: ¿Puedo investigar sobre visión artificial?
+Respuesta: Sí, Visión Artificial y Procesamiento de Imágenes es una línea de investigación del programa. Puedes trabajar en detección de objetos, reconocimiento facial, análisis de imágenes, entre otros temas. MSc. Edwin Rene Salcedo Aliaga es especialista en esta área.
+
+Pregunta: ¿Puedo investigar sobre procesamiento de lenguaje natural?
+Respuesta: Sí, Procesamiento de Lenguaje Natural (NLP) es una línea de investigación del programa. Puedes trabajar en análisis de sentimientos, extracción de información, traducción automática, chatbots, entre otros. Hay tutores especializados disponibles.
+
+Pregunta: ¿Cómo se evalúa la tesis?
+Respuesta: La tesis se evalúa a través de: 1) Seguimiento continuo del tutor, 2) Presentación en el Taller de Tesis II, 3) Defensa final ante un tribunal académico, con un costo de 4.200 Bs como derecho a defensa.
+
+Pregunta: ¿Puedo colaborar con otros estudiantes en investigación?
+Respuesta: Sí, se pueden formar equipos de investigación. Contacta con la coordinación académica para coordinar proyectos colaborativos.

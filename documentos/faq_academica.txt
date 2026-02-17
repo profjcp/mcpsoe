@@ -1,0 +1,80 @@
+Pregunta: ¿Cuál es el nombre del programa de Ciencia de Datos e Inteligencia Artificial?
+Respuesta: Maestría en Ciencia de Datos e Inteligencia Artificial (1° Versión).
+
+Pregunta: ¿Qué tipo de programa es la Maestría en Ciencia de Datos e Inteligencia Artificial?
+Respuesta: Es un programa de Maestría.
+
+Pregunta: ¿Cuál es la unidad de posgrado del programa de Ciencia de Datos e Inteligencia Artificial?
+Respuesta: School Of Engineering - Facultad de Ciencias de la Computación U.A.G.R.M.
+
+Pregunta: ¿Cuál es la modalidad del programa de Ciencia de Datos e Inteligencia Artificial?
+Respuesta: Modalidad online con clases en vivo.
+
+Pregunta: ¿Cuál es la duración total del programa de Ciencia de Datos e Inteligencia Artificial?
+Respuesta: 16 meses (3 semestres).
+
+Pregunta: ¿Cuántos créditos académicos tiene el programa de Ciencia de Datos e Inteligencia Artificial?
+Respuesta: 64 ECTS.
+
+Pregunta: ¿Cuál es el resumen del programa de Ciencia de Datos e Inteligencia Artificial?
+Respuesta: Está diseñado para profesionales que buscan liderar proyectos innovadores y desarrollar sistemas inteligentes basados en inteligencia artificial con enfoque práctico y ético.
+
+Pregunta: ¿Cuál es la fecha de inicio del programa de Ciencia de Datos e Inteligencia Artificial?
+Respuesta: Martes, 2 de septiembre de 2025.
+
+Pregunta: ¿Cuál es la fecha límite de inscripción del programa de Ciencia de Datos e Inteligencia Artificial?
+Respuesta: Viernes, 29 de agosto de 2025.
+
+Pregunta: ¿Cuáles son los horarios de clases del programa de Ciencia de Datos e Inteligencia Artificial?
+Respuesta: Martes 19:00 - 22:00 y Jueves 19:00 - 22:00 (Hora de Bolivia).
+
+Pregunta: ¿Cuáles son los módulos del programa de Ciencia de Datos e Inteligencia Artificial?
+Respuesta: Módulo 1 Fundamentos de Ingeniería de Software para Científicos de Datos; Módulo 2 Data, Big Data and Open Data; Módulo 3 Cloud Computing e Infraestructura para Big Data; Módulo 4 Data Management and Business Intelligence; Módulo 5 Análisis Estadístico de Datos; Módulo 6 Metodología de la Investigación; Módulo 7 Data Visualization and Visual Analytics; Módulo 8 Machine Learning and Deep Learning; Módulo 9 Data Mining; Módulo 10 Natural Language Processing (NLP), Text Analytics and Search; Módulo 11 Taller de Tesis I; Módulo 12 Practicing Data Science; Módulo 13 Generative Models and Computer Vision; Módulo 14 ML-Ops y Puesta en Producción; Módulo 15 Taller de Desarrollo de Habilidades Gerenciales; Módulo 16 Taller de Tesis II.
+
+Pregunta: ¿Cuáles son los diplomados del programa de Ciencia de Datos e Inteligencia Artificial?
+Respuesta: Diplomado en Ingeniería de Datos y Analítica Avanzada; Diplomado en Machine Learning y Análisis de Información Avanzada; Maestría en Ciencia de Datos e Inteligencia Artificial.
+
+Pregunta: ¿Quiénes son los docentes del programa de Ciencia de Datos e Inteligencia Artificial?
+Respuesta: MSc. Edwin Rene Salcedo Aliaga; MSc. Danny Luis Huanca Sevilla; MSc. Renzo Franck Claure Arena; MSc. Juan Marcelo Claure Salinas; PhD. Luis Roberto Pérez Ríos; Coordinador Académico MSc. Jessy Carrillo Martínez.
+
+Pregunta: ¿Cuál es el nombre del programa de Ciberseguridad y Ciberdefensa?
+Respuesta: Maestría en Ciberseguridad y Ciberdefensa (3° Versión).
+
+Pregunta: ¿Qué tipo de programa es la Maestría en Ciberseguridad y Ciberdefensa?
+Respuesta: Es un programa de Maestría.
+
+Pregunta: ¿Cuál es la unidad de posgrado del programa de Ciberseguridad y Ciberdefensa?
+Respuesta: UAGRM School of Engineering - Facultad de Ingeniería en Ciencias de la Computación y Telecomunicaciones.
+
+Pregunta: ¿Cuál es la modalidad del programa de Ciberseguridad y Ciberdefensa?
+Respuesta: Modalidad virtual.
+
+Pregunta: ¿Cuál es la duración total del programa de Ciberseguridad y Ciberdefensa?
+Respuesta: 18 meses (16 módulos).
+
+Pregunta: ¿Cuántos créditos académicos tiene el programa de Ciberseguridad y Ciberdefensa?
+Respuesta: 2.400 horas académicas.
+
+Pregunta: ¿Cuál es el resumen del programa de Ciberseguridad y Ciberdefensa?
+Respuesta: Programa diseñado para formar expertos en protección de infraestructuras críticas y activos digitales, con defensa proactiva, gestión de riesgos y cumplimiento legal.
+
+Pregunta: ¿Cuál es la fecha de inicio del programa de Ciberseguridad y Ciberdefensa?
+Respuesta: Gestión 2025.
+
+Pregunta: ¿Cuál es la fecha límite de inscripción del programa de Ciberseguridad y Ciberdefensa?
+Respuesta: Según cronograma de la Unidad de Postgrado.
+
+Pregunta: ¿Cuáles son los horarios de clases del programa de Ciberseguridad y Ciberdefensa?
+Respuesta: Martes 19:15 - 22:15 y Sábados 15:30 - 17:45 (Hora de Bolivia). Clases por videoconferencias en vivo y plataforma virtual 24/7.
+
+Pregunta: ¿Cuál es el perfil del aspirante para Ciberseguridad y Ciberdefensa?
+Respuesta: Profesionales con Licenciatura en Ciencias de la Computación, Telecomunicaciones, Informática, Sistemas, Redes, Auditoría o ramas afines.
+
+Pregunta: ¿Cuáles son los requisitos de admisión para Ciberseguridad y Ciberdefensa?
+Respuesta: Fotocopia legalizada del título universitario, fotocopia de cédula de identidad vigente, una fotografía 4x4 fondo azul o blanco y comprobante de pago de matrícula.
+
+Pregunta: ¿Cuáles son los ejes y módulos del programa de Ciberseguridad y Ciberdefensa?
+Respuesta: Eje 1 Ciberseguridad Estratégica y Operacional: Módulo 1 Introducción Avanzada a la Ciberseguridad y Ciberdefensa, Módulo 2 Gestión Estratégica de Riesgos Cibernéticos, Módulo 4 Liderazgo y Estrategia en Ciberseguridad. Eje 2 Auditoría y Cumplimiento: Módulo 3 Auditoría y Cumplimiento en Ciberseguridad, Módulo 5 Gestión de Incidentes y Resiliencia Operacional, Módulo 7 Continuidad del Negocio y Recuperación ante Desastres (DRP). Eje 3 Ciberdefensa y Especialización: Módulo 9 Seguridad en Infraestructuras Críticas, Módulo 11 Operaciones de Ciberdefensa y Análisis de Malware, Módulo 13 Ciberinteligencia y Contrainteligencia. Eje 4 Investigación y Graduación: Módulo 6 Metodología de la Investigación, Módulo 16 Taller de Tesis (Defensa Final).
+
+Pregunta: ¿Quiénes son los docentes del programa de Ciberseguridad y Ciberdefensa?
+Respuesta: M.Sc. Julio Cesar Becerra Lino (coordinador del programa); M.Sc. Alexis García Sandoval; M.Sc. Roque Javier Bueno Gallardo; PhD. Luis Roberto Pérez Ríos; M.Sc. Dydier José Rojas Guerrero.

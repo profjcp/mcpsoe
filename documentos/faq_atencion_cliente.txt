@@ -1,0 +1,35 @@
+Pregunta: ¿Cuál es el costo total del programa?
+Respuesta: El costo total del programa es 24.200 Bs. (Veinticuatro mil doscientos bolivianos), distribuido así: Matrícula 2.000 Bs, Derecho a Estudio 18.000 Bs y Defensa 4.200 Bs.
+
+Pregunta: ¿Cuál es la fecha de inicio del programa?
+Respuesta: La fecha de inicio de la próxima edición es el martes, 2 de septiembre de 2025.
+
+Pregunta: ¿Cuál es la fecha límite de inscripción?
+Respuesta: La fecha límite de inscripción es el viernes, 29 de agosto de 2025.
+
+Pregunta: ¿Cuáles son los horarios de clases?
+Respuesta: Los horarios de clases son: Martes 19:00 - 22:00 (Hora de Bolivia) y Jueves 19:00 - 22:00 (Hora de Bolivia).
+
+Pregunta: ¿Cuál es la duración total del programa?
+Respuesta: La duración total del programa es 16 meses distribuidos en 3 semestres.
+
+Pregunta: ¿Existe un plan de pagos?
+Respuesta: Sí, el derecho a estudio de 18.000 Bs puede ser pagado en 12 cuotas mensuales de 1.500 Bs.
+
+Pregunta: ¿Qué descuentos están disponibles?
+Respuesta: Los descuentos disponibles son: 10% por inscripción temprana, 15% para grupos de 3 o más personas, 20% por pago al contado, y 30% por convenios interinstitucionales.
+
+Pregunta: ¿Cuál es la forma de pago?
+Respuesta: La forma de pago es mediante transferencia bancaria.
+
+Pregunta: ¿Cuáles son los requisitos de admisión?
+Respuesta: Los requisitos de admisión son: Título de Licenciatura (2 copias legalizadas), Cédula de identidad vigente (2 copias), Formulario de inscripción completo, Curriculum Vitae actualizado y 3 fotos de 3x4 fondo rojo.
+
+Pregunta: ¿A quién está dirigido el programa?
+Respuesta: El programa está dirigido a Ingenieros en sistemas, informáticos, industriales, estadísticos y profesionales con experiencia en áreas de tecnología y análisis de datos.
+
+Pregunta: ¿Cómo me inscribo?
+Respuesta: Para inscribirse debe completar el formulario de inscripción y presentar toda la documentación requerida antes de la fecha límite. Contacte a la unidad de posgrado para más detalles.
+
+Pregunta: ¿Cuál es el modalidad del programa?
+Respuesta: El programa es Online con clases en vivo realizadas en horarios establecidos (martes y jueves).
