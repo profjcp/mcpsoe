@@ -212,8 +212,8 @@ sentiment = sia.polarity_scores(full_response)['compound']
 # Detección de Alucinaciones
 is_hallucinated = detect_hallucination(full_response, context)
 
-# Categorización de Consultas
-category = categorize_query(request.question)
+# Categorización de Consultas (multi-categoria)
+categories = categorize_query_multi(request.question)
 
 # Tracking de Respuestas
 qualitative_metrics["response_times"].append(response_time_val)
@@ -255,14 +255,12 @@ qualitative_metrics["response_times"].append(response_time_val)
     "avg_completeness": 3.8,
     "hallucination_rate": 0.0,
     "avg_sentiment": 0.65,
-    "query_categories": {
-      "Costos": 15,
-      "Contenidos": 12,
-      "Admisión": 8,
-      "Horarios": 4,
-      "Políticas": 2,
-      "Docentes": 1
-    },
+      "query_categories": {
+         "['Academica']": 15,
+         "['AtencionCliente']": 12,
+         "['Investigacion']": 8,
+         "['Academica', 'AtencionCliente']": 4
+      },
     "error_types": {
       "Timeout": 1
     }
@@ -283,6 +281,21 @@ Visualización interactiva de:
 ---
 
 ## 🔧 Configuración Personalizada
+
+### FAQs por Dominio
+
+El sistema consulta FAQs por dominio antes de RAG. Archivos:
+
+- `documentos/faq_atencion_cliente.txt`
+- `documentos/faq_academica.txt`
+- `documentos/faq_investigacion.txt`
+
+Formato requerido por bloque:
+
+```
+Pregunta: ¿Texto de la pregunta?
+Respuesta: Texto de la respuesta.
+```
 
 ### Variables de Entorno
 
@@ -307,15 +320,15 @@ llm = OllamaLLM(
 )
 ```
 
-### Categorías de Consultas
+### Categorías de Consultas (multi-categoria)
 
 Modificar en `mcp_server_local.py` línea 155:
 
 ```python
 categories = {
-    "Costos": ["costo", "precio", "matrícula", ...],
-    "Contenidos": ["módulo", "curso", ...],
-    # Agregar nuevas categorías según necesidad
+   "AtencionCliente": ["costo", "precio", "pago", "matrícula", "docente", ...],
+   "Academica": ["malla", "plan de estudio", "programa", "ciberseguridad", ...],
+   "Investigacion": ["línea de investigación", "tutor", "tesis", ...]
 }
 ```
 
