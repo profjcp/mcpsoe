@@ -1,61 +1,107 @@
-# 📚 Índice de Documentación - SoeBOT v4.0
+# 📚 Índice de Documentación - SoeBOT v5.0
 
 ## 🎯 Empezar Aquí
 
 Si es tu **primera vez** visitando el proyecto:
 
-1. Lee [README.md](README.md) - Visión general y inicio rápido
-2. Ejecuta `./run.sh --admin` para ver el sistema en acción
-3. Accede a http://localhost:8501 (cliente) y http://localhost:8502 (admin)
+1. Lee [README.md](README.md) - Visión general completa con arquitectura híbrida FAQ-RAG
+2. Revisa [METODOLOGIA_DOCTORAL.md](METODOLOGIA_DOCTORAL.md) - Fundamentos científicos y diseño experimental
+3. Ejecuta `./run.sh --admin` para ver el sistema en acción
+4. Accede a http://localhost:8501 (cliente Gemini-style) y http://localhost:8502 (dashboard de tesis)
 
 ---
 
 ## 📄 Documentos Principales
 
-### 1. [README.md](README.md) - Guía Completa (629 líneas)
+### 1. [README.md](README.md) - Documentación Técnica Completa (800+ líneas)
 
-**Contenido**:
-- 📋 Descripción general del proyecto
-- 🎯 ¿Por qué se agregaron las métricas?
-- 💡 16+ Beneficios documentados
+**Contenido actualizado v5.0**:
+- 📋 Sistema RAG híbrido FAQ-first con búsqueda semántica por dominio
+- 🎯 Marco de investigación doctoral con 4 preguntas de investigación (RQ1-RQ4)
+- 🔬 Hipótesis de investigación (H1a-H1d) con criterios de validación
+- 💡 Comparación FAQ-RAG Híbrido vs. RAG Tradicional (tabla de ventajas)
 - 🚀 Inicio rápido en 3 pasos
 - 📦 Requisitos y dependencias
-- 🏗️ Arquitectura del sistema
-- 📊 Sistema de métricas detallado
+- 🏗️ Arquitectura actualizada con componentes de FAQ
+- 📊 Sistema de métricas alineado a criterios de tesis
+- 📚 Documentación detallada del sistema de FAQs por dominio
 - 🔧 Configuración personalizada
-- 📈 Historial de cambios (4 fases)
-- 🎯 Flujos de operación
+- 📈 Historial de cambios (v1.0 → v5.0)
+- 🎯 Flujos de operación FAQ → RAG
 - 🛠️ Troubleshooting
-- 📜 Justificación técnica
+- 📜 Justificación técnica y académica
 
 **Para quién**:
-- 👤 Usuarios nuevos
-- 🎓 Investigadores
-- 🏢 Administradores
-- 👨‍💻 Desarrolladores
+- 👤 Usuarios nuevos (inicio rápido)
+- 🎓 Investigadores (marco teórico)
+- 🏢 Administradores (deployment)
+- 👨‍💻 Desarrolladores (arquitectura)
 
 ---
 
-### 2. [CAMBIOS_METRICAS.md](CAMBIOS_METRICAS.md) - Detalles Técnicos (400+ líneas)
+### 2. [METODOLOGIA_DOCTORAL.md](METODOLOGIA_DOCTORAL.md) - Marco de Investigación Científica (500+ líneas) 🆕
 
-**Contenido**:
-- 📊 15 Métricas implementadas (desglose completo)
-- 🔌 Endpoints nuevos/modificados con ejemplos JSON
-- 💻 Cambios en clientes (auth, feedback, admin dashboard)
-- 📁 Nuevos archivos de persistencia
-- 🔍 Algoritmos de detección (alucinaciones, sentimiento)
-- 🏷️ Categorización de consultas
-- 🔄 Flujos de captura de datos
-- 📊 Agregación de métricas
-- 🎓 Beneficios para investigación
-- 🔮 Mejoras futuras
-- ✅ Checklist de implementación
+**Contenido completo de investigación doctoral**:
+- 📋 **Resumen ejecutivo** con variables dependientes/independientes
+- 🎯 **Cuatro preguntas de investigación** (RQ1-RQ4) con hipótesis detalladas
+  - RQ1: Eficiencia computacional (H1a)
+  - RQ2: Claridad y comprensibilidad (H1b)
+  - RQ3: Veracidad y reducción de alucinaciones (H1c)
+  - RQ4: Satisfacción del usuario (H1d)
+- 🔬 **Diseño experimental**: Estudio cuasi-experimental con grupo control
+- 📊 **Recolección de datos**: Cuantitativos (Prometheus) + Cualitativos (feedback)
+- 📈 **Análisis estadístico**: 
+  - Pruebas paramétricas (t-Student, ANOVA)
+  - Pruebas no paramétricas (Mann-Whitney, Kruskal-Wallis)
+  - Análisis de correlación y series temporales
+- 🎯 **Criterios de validación**: Interna, externa, constructo, confiabilidad
+- 📊 **Dashboard de análisis** con 4 secciones por criterio de tesis
+- 🔄 **Proceso de iteración** en 5 fases (Baseline → Validación)
+- 📝 **Consideraciones éticas**: Consentimiento, privacidad, transparencia
+- 📚 **Referencias metodológicas**: Campbell & Stanley, Field, Lewis et al.
+- 🔮 **Extensiones futuras**: Técnicas, analíticas, escalamiento
 
 **Para quién**:
-- 👨‍💻 Desarrolladores
-- 🔬 Investigadores técnicos
-- 🏗️ Arquitectos del sistema
-- 📊 Analistas de datos
+- 🎓 Doctorando (documento central de metodología)
+- 🔬 Comité de tesis (evaluación de rigor científico)
+- 📊 Analistas de datos (protocolos de análisis)
+- 📚 Investigadores interesados (replicación)
+
+---
+
+---
+
+### 3. [CAMBIOS_METRICAS.md](CAMBIOS_METRICAS.md) - Historia de Versiones y Detalles Técnicos (500+ líneas)
+
+**Contenido actualizado v5.0**:
+- 📊 **Novedades v5.0** (2026-02-17):
+  1. Sistema de FAQs semántico por dominio (3 archivos, 52 Q&A)
+  2. Cliente estilo Gemini con gestión conversacional
+  3. Dashboard administrativo con criterios de tesis
+  4. Categorización multi-dominio mejorada
+- 📈 15 Métricas implementadas (desglose completo por criterio)
+- 🔌 Endpoints nuevos/modificados con ejemplos JSON
+  - POST `/ask`: Búsqueda FAQ → Cache → RAG
+  - POST `/feedback`: Calificaciones Likert + comentarios
+  - GET `/metrics`: Agregación cuantitativa + cualitativa
+  - GET `/health`: Status del sistema
+- 💻 Cambios en clientes:
+  - `app_client.py`: Layout Gemini, conversaciones, feedback UI
+  - `app_admin.py`: 4 secciones de tesis con CSV export
+- 📁 Nuevos archivos de persistencia (feedback.jsonl, user_histories.json)
+- 🔍 Algoritmos de detección (alucinaciones heurísticas, sentimiento NLTK)
+- 🏷️ Categorización de consultas multi-label con keywords expandidos
+- 🔄 Flujos de captura de datos (automáticos + explícitos)
+- 📊 Agregación de métricas por criterio de tesis
+- 🎓 Beneficios para investigación doctoral
+- 🔮 Mejoras futuras (embeddings contextuales, multi-idioma)
+- ✅ Checklist de implementación completa
+
+**Para quién**:
+- 👨‍💻 Desarrolladores (historia de cambios)
+- 🔬 Investigadores técnicos (algoritmos)
+- 🏗️ Arquitectos del sistema (decisiones de diseño)
+- 📊 Analistas de datos (formato de métricas)
 
 ---
 
@@ -63,46 +109,72 @@ Si es tu **primera vez** visitando el proyecto:
 
 ```
 mcpsoe/
-├── README.md                 ← ⭐ EMPIEZA AQUÍ
-├── CAMBIOS_METRICAS.md       ← Detalles técnicos
-├── INDICE_DOCUMENTACION.md   ← Estás aquí
+├── 📄 Documentación (v5.0)
+│   ├── README.md                       ⭐ EMPIEZA AQUÍ - Guía técnica completa
+│   ├── METODOLOGIA_DOCTORAL.md         🎓 NUEVO - Marco científico y experimental
+│   ├── CAMBIOS_METRICAS.md             📊 Historia de versiones (v1.0 → v5.0)
+│   └── INDICE_DOCUMENTACION.md         📚 Estás aquí - Mapa de navegación
 │
-├── mcp_server_local.py       🤖 Servidor RAG + Métricas (354 líneas)
-│   ├─ Endpoints: /ask, /feedback, /metrics, /health
-│   ├─ Métricas Prometheus
-│   ├─ Análisis de sentimientos y alucinaciones
-│   └─ Categorización de consultas
-│
-├── appclient/
-│   ├─ app_client.py         💬 Cliente chat (196 líneas)
-│   │  ├─ Login/registro
-│   │  ├─ Chat con feedback
-│   │  └─ Tracking de tiempos
+├── 🤖 Backend (Servidor FastAPI)
+│   ├── mcp_server_local.py             🎯 Servidor RAG híbrido (~420 líneas)
+│   │   ├─ Sistema FAQ semántico (líneas 196-243)
+│   │   ├─ Categorización multi-dominio (línea 196)
+│   │   ├─ Endpoints: /ask, /feedback, /metrics, /health
+│   │   ├─ Métricas Prometheus (8 contadores)
+│   │   └─ Detección de alucinaciones + análisis de sentimiento
 │   │
-│   └─ app_admin.py          📊 Dashboard admin (250+ líneas)
-│      ├─ Métricas en tiempo real
-│      ├─ Gráficos y visualizaciones
-│      └─ Tabla de feedbacks
+│   ├── rag.py                          🤖 Agente RAG generativo (~200 líneas)
+│   ├── preprocess.py                   🔄 Procesamiento de documentos (~150 líneas)
+│   └── shared_client.py                🔗 Utilidades compartidas
 │
-├── preprocess.py            🔄 Procesamiento inicial
-├── rag.py                   🤖 Agente RAG
-├── requirements.txt         📦 Dependencias (21 librerías)
-├── run.sh                   🚀 Script de ejecución
+├── 💬 Frontend (Clientes Streamlit)
+│   └── appclient/
+│       ├── app_client.py               💬 Cliente Gemini-style (~300 líneas)
+│       │   ├─ Layout de dos columnas (sidebar + main)
+│       │   ├─ Gestión de conversaciones con IDs
+│       │   ├─ Mensajes con burbujas estilizadas
+│       │   ├─ Visualización de tiempos de respuesta
+│       │   └─ Sistema de feedback integrado
+│       │
+│       └── app_admin.py                📊 Dashboard de tesis (~350 líneas)
+│           ├─ Sección 1: Eficiencia (cache, latencia, recursos)
+│           ├─ Sección 2: Claridad (distribución, casos bajos)
+│           ├─ Sección 3: Veracidad (alucinaciones, errores)
+│           ├─ Sección 4: Satisfacción (tendencia, comentarios)
+│           └─ Exportación CSV por criterio
 │
-├── documentos/
-│   ├─ Preguntas_Frecuentes.txt  📚 Base de conocimiento
-│   └─ Esquema/ArqAi.png         🏗️ Diagrama arquitectónico
+├── 📚 Base de Conocimiento
+│   └── documentos/
+│       ├── faq_atencion_cliente.txt    📞 12 Q&A (costos, inscripción)
+│       ├── faq_academica.txt           🎓 29 Q&A (programas, requisitos)
+│       ├── faq_investigacion.txt       🔬 11 Q&A (tesis, tutores)
+│       ├── Preguntas_Frecuentes.txt    📋 Documento base general
+│       └── Esquema/
+│           └── ArqAi.xml               🏗️ Esquema arquitectónico
 │
-├── faiss_index.bin          📍 Índice FAISS (chunks)
-├── qa_faiss_index.bin       📍 Índice Q&A (caché)
-├── chunks.pkl               💾 Chunks procesados
-├── qa_cache.pkl             💾 Respuestas cacheadas
+├── 💾 Persistencia y Cache
+│   ├── faiss_index.bin                 📍 Índice FAISS de chunks documentales
+│   ├── qa_faiss_index.bin              📍 Índice FAISS de pares Q&A
+│   ├── chunks.pkl                      💾 Chunks procesados (pickle)
+│   ├── qa_cache.pkl                    💾 Cache de respuestas (pickle)
+│   ├── feedback.jsonl                  📊 Base de datos de feedback (JSON Lines)
+│   ├── user_histories.json             💬 Historiales de conversaciones
+│   ├── users.json                      👤 Base de usuarios con hashing
+│   └── metrics.log                     📋 Logs del servidor (timestamped)
 │
-├── users.json               👤 Base de usuarios
-├── user_histories.json      💬 Historiales de chats
-├── metrics.log              📋 Logs del servidor
+├── 🚀 Deployment
+│   ├── run.sh                          🚀 Script de orquestación (~150 líneas)
+│   │   ├─ Health check Redis (10 reintentos)
+│   │   ├─ Health check Ollama (120 reintentos)
+│   │   ├─ Health check MCP Server (180 reintentos)
+│   │   └─ Lanzamiento de clientes Streamlit
+│   │
+│   ├── requirements.txt                📦 Dependencias Python (25+ librerías)
+│   └── deploy/
+│       └── fastapi-deployment.yaml     ☸️ Configuración Kubernetes (opcional)
 │
-└── venmcp/                  🐍 Entorno virtual Python 3.12
+└── 🐍 Entorno Virtual
+    └── venmcp/                         🐍 Python 3.12 con todas las dependencias
 ```
 
 ---
@@ -239,14 +311,18 @@ mcpsoe/
 | Pregunta | Documento | Sección |
 |----------|-----------|---------|
 | ¿Qué es el proyecto? | README.md | Descripción General |
+| ¿Marco de investigación? | METODOLOGIA_DOCTORAL.md | Resumen Ejecutivo |
 | ¿Cómo inicio? | README.md | Inicio Rápido |
-| ¿Qué son las métricas? | README.md | ¿Por Qué Métricas? |
-| ¿Cuáles son los beneficios? | README.md | Beneficios de Métricas |
-| ¿Cómo funciona? | README.md | Arquitectura |
-| ¿Qué métricas se capturan? | CAMBIOS_METRICAS.md | Métricas Implementadas |
-| ¿Cómo se usan los endpoints? | CAMBIOS_METRICAS.md | Endpoints |
+| ¿Sistema de FAQs? | README.md | Sistema de FAQs Semántico |
+| ¿Arquitectura híbrida? | README.md | Sistema Híbrido FAQ-RAG |
+| ¿Qué métricas hay? | README.md | Marco de Validación (4 Criterios) |
+| ¿Diseño experimental? | METODOLOGIA_DOCTORAL.md | Diseño Experimental |
+| ¿Análisis estadístico? | METODOLOGIA_DOCTORAL.md | Análisis Estadístico |
+| ¿Cambios recientes? | CAMBIOS_METRICAS.md | Novedades v5.0 |
+| ¿Endpoints API? | CAMBIOS_METRICAS.md | Endpoints |
 | ¿Hay problemas? | README.md | Troubleshooting |
-| ¿Qué mejorar en futuro? | CAMBIOS_METRICAS.md | Mejoras Futuras |
+| ¿Cliente Gemini? | CAMBIOS_METRICAS.md | Cliente Estilo Gemini |
+| ¿Dashboard tesis? | CAMBIOS_METRICAS.md | Dashboard Administrativo |
 
 ---
 
@@ -254,24 +330,52 @@ mcpsoe/
 
 Para preguntas específicas:
 
-| Pregunta | Contactar |
-|----------|-----------|
-| Implementación técnica | Ver [mcp_server_local.py](mcp_server_local.py) |
-| Métricas de investigación | Consultar asesores de tesis |
+| Pregunta | Recurso |
+|----------|---------|
+| Implementación técnica | Ver [mcp_server_local.py](mcp_server_local.py) líneas 196-420 |
+| Metodología doctoral | Consultar [METODOLOGIA_DOCTORAL.md](METODOLOGIA_DOCTORAL.md) |
+| Sistema de FAQs | Ver `documentos/faq_*.txt` y README.md sección FAQs |
+| Dashboard de tesis | Ver [appclient/app_admin.py](appclient/app_admin.py) |
+| Métricas de investigación | Endpoint GET `/metrics` o dashboard admin |
 | Errores del sistema | Revisar [metrics.log](metrics.log) |
-| Documentación faltante | Revisar [CAMBIOS_METRICAS.md](CAMBIOS_METRICAS.md) |
+| Feedback de usuarios | Ver [feedback.jsonl](feedback.jsonl) |
+
+---
+
+## 📊 Estadísticas de Documentación (v5.0)
+
+| Aspecto | Valor |
+|---------|-------|
+| **Documentos principales** | 4 (README, METODOLOGIA, CAMBIOS, INDICE) |
+| **Líneas totales** | 2000+ |
+| **Secciones principales** | 40+ |
+| **Archivos FAQ** | 3 dominios (52 pares Q&A) |
+| **Criterios de tesis** | 4 (Eficiencia, Claridad, Veracidad, Satisfacción) |
+| **Métricas documentadas** | 20+ |
+| **Preguntas de investigación** | 4 (RQ1-RQ4) |
+| **Hipótesis** | 5 (H0, H1a-H1d) |
+| **Diagramas** | 6 |
+| **Ejemplos de código** | 40+ |
+| **Tablas informativas** | 15+ |
+| **Referencias académicas** | 10+ |
 
 ---
 
 ## ✨ Hoja de Ruta de Documentación
 
-### ✅ Completado (v4.0)
-- [x] Documentación completa del proyecto
-- [x] Explicación de métricas
-- [x] Beneficios documentados
-- [x] Ejemplos de código
-- [x] Troubleshooting
-- [x] Índice de navegación
+### ✅ Completado (v5.0)
+- [x] Documentación completa del proyecto (README 800+ líneas)
+- [x] Marco metodológico doctoral (METODOLOGIA 500+ líneas)
+- [x] Sistema de FAQs por dominio documentado
+- [x] Cliente Gemini-style documentado
+- [x] Dashboard de tesis documentado
+- [x] Explicación de métricas por criterio
+- [x] Beneficios académicos documentados
+- [x] Ejemplos de código y diagramas
+- [x] Troubleshooting actualizado
+- [x] Índice de navegación completo
+- [x] Historia de versiones detallada
+- [x] Referencias científicas incluidas
 
 ### 🔜 Futuro (v5.0+)
 - [ ] Video tutorials

@@ -1,12 +1,168 @@
-# 📊 Cambios Implementados - Sistema de Métricas (v4.0)
+# 📊 Cambios Implementados - Sistema RAG Híbrido con Validación Doctoral (v5.0)
 
 ## Resumen Ejecutivo
 
-Se ha implementado un **sistema completo de recolección y análisis de métricas** diseñado específicamente para una **investigación de doctorado**. El sistema permite capturar datos cuantitativos (rendimiento) y cualitativos (experiencia) de cada interacción con el RAG.
+Se ha implementado un **sistema RAG híbrido FAQ-first** con **marco de validación doctoral** completo. El sistema integra búsqueda semántica sobre FAQs categorizadas por dominio, interfaz estilo Gemini, y dashboard analítico estructurado según los cuatro criterios de tesis: eficiencia, claridad, veracidad y satisfacción. Diseñado para sustentar investigación doctoral con datos empíricos rigurosos.
 
 ---
 
-## 🎯 Motivación
+## � Novedades de v5.0 (2026-02-17)
+
+### 1. Sistema de FAQs Semántico por Dominio
+
+**Implementación**: `mcp_server_local.py` líneas 196-243
+
+**Características**:
+- ✅ **Tres dominios especializados**: AtencionCliente, Academica, Investigacion
+- ✅ **Categorización multi-label**: Una consulta puede activar múltiples dominios  
+- ✅ **Búsqueda semántica con FAISS**: Embeddings nomic-embed-text (768 dims)
+- ✅ **Umbral de confianza configurable**: 0.75 (balance precisión/cobertura)
+- ✅ **Fallback inteligente**: Si no hay match en FAQs → RAG generativo
+
+**Archivos de FAQs**:
+```
+documentos/faq_atencion_cliente.txt  → 12 pares Q&A (costos, inscripción, horarios)
+documentos/faq_academica.txt         → 29 pares Q&A (programas, requisitos, contenidos)
+documentos/faq_investigacion.txt     → 11 pares Q&A (tesis, tutores, metodología)
+```
+
+**Formato estandarizado**:
+```
+Pregunta: ¿Cuál es el costo del programa?
+Respuesta: El costo total es $X USD dividido en Y cuotas...
+
+Pregunta: ¿Cuáles son los requisitos de admisión?
+Respuesta: Los requisitos son: 1) Título de licenciatura...
+```
+
+**Flujo de decisión**:
+```
+Query → Categorización → Carga FAQs relevantes → Embedding → 
+Similitud coseno → Si >= 0.75: Retorna FAQ (0.3s) | Si < 0.75: RAG completo (2.5s)
+```
+
+**Mejoras clave**:
+- Keywords ciberseguridad/ciberdefensa agregados a categoría Academica
+- Soporte para consultas multi-categoría (ej: "¿Cuál es el costo del programa de ciberseguridad?")
+- Parser robusto que maneja variaciones de formato
+
+---
+
+### 2. Cliente Estilo Gemini con Gestión Conversacional
+
+**Archivo**: `appclient/app_client.py` (rediseño completo ~300 líneas)
+
+**Características UX**:
+- ✅ **Layout de dos columnas**: Sidebar (25%) + Área principal (75%)
+- ✅ **Gestión de conversaciones**: 
+  - Lista de conversaciones en sidebar con títulos generados automáticamente
+  - Crear nueva conversación con botón "➕"
+  - Cambiar entre conversaciones preservando historial
+  - Eliminar conversaciones individuales
+- ✅ **Mensajes con burbujas estilizadas**: 
+  - Usuario: Azul claro, alineado a la derecha
+  - Asistente: Gris claro, alineado a la izquierda
+- ✅ **Visualización de tiempos de respuesta**: Badge con tiempo en cada mensaje
+- ✅ **Migración automática**: Convierte historial antiguo a nuevo formato con IDs
+
+**Estructura de datos**:
+```python
+conversations = [
+    {
+        "id": "conv_20260217_153045_abc123",
+        "title": "Consulta sobre ciberseguridad",  # Generado del primer mensaje
+        "messages": [
+            {
+                "role": "user|assistant",
+                "content": "...",
+                "response_time": 0.34,
+                "timestamp": "2026-02-17T15:30:45"
+            }
+        ]
+    }
+]
+```
+
+**CSS personalizado**:
+- Font: Space Grotesk (profesional y moderno)
+- Colores: Paleta de azules y grises (#4A90E2, #F7F9FC)
+- Animaciones suaves en hover
+- Responsive design
+
+---
+
+### 3. Dashboard Administrativo con Criterios de Tesis
+
+**Archivo**: `appclient/app_admin.py` (reestructuración completa ~350 líneas)
+
+**Estructura por criterios doctorales**:
+
+#### 📊 Sección 1: Eficiencia Computacional
+**Visualizaciones**:
+- Métricas Cards: Queries totales, Cache hits, Avg response time, CPU/Memoria
+- Gauge de tasa de cache hit (target: > 60%)
+- Bar chart: Tiempos de respuesta FAQ vs. RAG
+- Tabla de percentiles (P50, P75, P90, P95, P99)
+
+**CSV Export**: `eficiencia.csv` con todas las métricas temporales
+
+#### 🎯 Sección 2: Claridad y Comprensibilidad
+**Visualizaciones**:
+- Métrica principal: Promedio de claridad (1-5)
+- Histogram: Distribución de calificaciones de claridad
+- Heatmap: Claridad por categoría de consulta
+- Tabla: Casos con baja claridad (< 3) para análisis cualitativo
+
+**CSV Export**: `claridad.csv` con desagregación por caso
+
+#### 🛡️ Sección 3: Veracidad y Confiabilidad
+**Visualizaciones**:
+- Gauge: Tasa de alucinaciones (%)
+- Pie chart: Distribución de tipos de error (Incomplete, Incorrect, Irrelevant)
+- Line chart: Evolución temporal de alucinaciones
+- Tabla: Casos de alucinaciones detectadas con contexto
+
+**CSV Export**: `veracidad.csv` con clasificación de errores
+
+#### 😊 Sección 4: Satisfacción del Usuario
+**Visualizaciones**:
+- Métricas Cards: Avg satisfaction, Avg completeness, Avg sentiment
+- Line chart: Tendencia temporal de satisfacción
+- Histogram: Distribución de calificaciones
+- Tabla: Casos con baja satisfacción (< 3) con comentarios
+
+**CSV Export**: `satisfaccion.csv` con feedback textual incluido
+
+**Funcionalidades adicionales**:
+- Filtros de fecha para análisis temporal
+- Botón de refresh manual
+- Visualización de distribución de consultas por dominio
+- Totales y promedios destacados
+
+---
+
+### 4. Categorización Multi-dominio Mejorada
+
+**Función**: `categorize_query_multi()` en `mcp_server_local.py` (línea 196)
+
+**Mejoras**:
+- Retorna **lista de categorías** en lugar de una sola
+- Soporta consultas complejas que abarcan múltiples dominios
+- Keywords expandidos:
+  - **AtencionCliente**: costo, precio, pago, matrícula, inscripción, horario, contacto
+  - **Academica**: programa, maestría, módulo, contenido, requisito, admisión, docente, **ciberseguridad**, **ciberdefensa**, **seguridad**, **defensa**, datos, inteligencia artificial
+  - **Investigacion**: tesis, tutor, investigación, defensa, metodología, titulación
+  
+**Ejemplo**:
+```python
+query = "¿Cuál es el costo del programa de ciberseguridad?"
+categories = categorize_query_multi(query)
+# Resultado: ["AtencionCliente", "Academica"]
+```
+
+---
+
+## �🎯 Motivación
 
 Este proyecto es parte de una investigación académica que necesita:
 - ✅ **Validación empírica** del desempeño del sistema RAG
