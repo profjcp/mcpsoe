@@ -102,7 +102,7 @@ MCP_PID=$!
 # Health check del MCP Server con reintentos más agresivos
 echo "⏳ Esperando a que MCP cargue los modelos de Ollama..."
 MCP_RETRIES=0
-MAX_MCP_RETRIES=180  # 3 minutos
+MAX_MCP_RETRIES=${MAX_MCP_RETRIES:-420}  # default 7 minutos (configurable por variable de entorno)
 while [ $MCP_RETRIES -lt $MAX_MCP_RETRIES ]; do
     if curl -s http://localhost:9000/health > /dev/null 2>&1; then
         echo "✅ Servidor MCP está listo!"
@@ -117,7 +117,7 @@ while [ $MCP_RETRIES -lt $MAX_MCP_RETRIES ]; do
 done
 
 if [ $MCP_RETRIES -eq $MAX_MCP_RETRIES ]; then
-    echo "❌ ERROR: MCP no está respondiendo después de 3 minutos"
+    echo "❌ ERROR: MCP no está respondiendo después de $MAX_MCP_RETRIES segundos"
     echo "Revisa: tail -f /tmp/mcp_server.log"
     kill $MCP_PID 2>/dev/null || true
     exit 1
