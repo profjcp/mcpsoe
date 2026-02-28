@@ -134,13 +134,21 @@ if [ "$1" == "--admin" ]; then
     echo "🚀 Iniciando dashboard administrativo..."
     sleep 1
     if command -v tmux &> /dev/null; then
-        # Usar tmux si está disponible
-        tmux new-session -d -s soebot_admin "cd $(pwd) && source venmcp/bin/activate && streamlit run appclient/app_admin.py --logger.level=error --client.showErrorDetails=false 2>/dev/null"
-        echo "✅ Dashboard administrativo en sesión tmux 'soebot_admin' (puerto 8502)"
+        # Usar tmux si está disponible. Intentar limpiar sesión previa y crear una nueva
+        tmux has-session -t soebot_admin 2>/dev/null && tmux kill-session -t soebot_admin 2>/dev/null || true
+        tmux new-session -d -s soebot_admin "bash -lc 'cd \"$(pwd)\" && source venmcp/bin/activate && streamlit run appclient/app_admin.py --server.port=8502 --server.address=0.0.0.0 --logger.level=error --client.showErrorDetails=false'"
+        if [ $? -eq 0 ]; then
+            echo "✅ Dashboard administrativo en sesión tmux 'soebot_admin' (puerto 8502)"
+        else
+            echo "⚠️ No se pudo crear la sesión tmux, iniciando en background como fallback"
+            streamlit run appclient/app_admin.py --server.port=8502 --server.address=0.0.0.0 --logger.level=error --client.showErrorDetails=false &
+            ADMIN_PID=$!
+            echo "✅ Dashboard administrativo en PID: $ADMIN_PID (puerto 8502)"
+        fi
         sleep 2
     else
-        # Fallback: ejecutar en background
-        streamlit run appclient/app_admin.py --logger.level=error --client.showErrorDetails=false &
+        # Fallback: ejecutar en background y fijar puerto 8502
+        streamlit run appclient/app_admin.py --server.port=8502 --server.address=0.0.0.0 --logger.level=error --client.showErrorDetails=false &
         ADMIN_PID=$!
         echo "✅ Dashboard administrativo en PID: $ADMIN_PID (puerto 8502)"
         sleep 2
