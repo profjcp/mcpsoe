@@ -45,6 +45,21 @@
 
 ---
 
+## 2.1) Tabla comparativa de corridas T1 (evidencia ejecutada)
+
+| Perfil | Run ID | Requests | Concurrency | Success Rate | Auto Pass Rate | FAQ Pattern Ratio | Latency Avg (ms) | Latency P95 (ms) | Latency P99 (ms) |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Smoke | run_20260228_111117 | 30 | 3 | 0.7000 | 0.7000 | 0.7000 | 33402.84 | 90096.86 | 91817.34 |
+| Intermedia | run_20260228_112510 | 20 | 4 | 0.6000 | 0.6000 | 0.6000 | 66882.47 | 120107.49 | 120107.78 |
+| Perfil humano | run_20260228_113657 | 12 | 1 | 1.0000 | 1.0000 | 1.0000 | 4200.65 | 5839.17 | 5879.05 |
+
+### Lectura comparativa rápida
+- Bajo carga tipo usuario individual (`concurrency=1`), el sistema cumple de forma robusta y consistente.
+- Al elevar concurrencia (`>=3`), la latencia degrada de forma marcada y afecta la tasa de éxito efectiva.
+- Para T1 con usuarios humanos, la configuración de baja concurrencia muestra viabilidad operativa inmediata.
+
+---
+
 ## 3) Resultados por dominio
 
 (Completar desde `summary.json` → `by_domain`)
