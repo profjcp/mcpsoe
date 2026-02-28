@@ -66,6 +66,7 @@ faiss_index: faiss.Index
 chunks: list
 qa_faiss_index: faiss.Index
 qa_cache: dict
+faq_cache: dict = {}
 
 # --- Métricas Prometheus (Cuantitativas) ---
 query_counter = Counter('queries_total', 'Total queries processed')
@@ -94,7 +95,7 @@ async def lifespan(app: FastAPI):
     """
     Load all necessary models and data into memory.
     """
-    global llm, embeddings, faiss_index, chunks, qa_faiss_index, qa_cache, r
+    global llm, embeddings, faiss_index, chunks, qa_faiss_index, qa_cache, faq_cache, r
 
     # 1. Load LLM and Embedding models
     print("--- Cargando Modelos de Ollama ---")
@@ -148,6 +149,17 @@ async def lifespan(app: FastAPI):
         qa_cache = {}
         qa_faiss_index = faiss.IndexFlatL2(768)
         print("Iniciando caché Q&A vacío")
+
+    # 4. Warmup de FAQs por dominio para reducir latencia en T1
+    faq_cache = {}
+    faq_files = {
+        "AtencionCliente": "documentos/faq_atencion_cliente.txt",
+        "Academica": "documentos/faq_academica.txt",
+        "Investigacion": "documentos/faq_investigacion.txt"
+    }
+    for domain, path in faq_files.items():
+        faqs = cargar_faqs_con_embeddings(path, embeddings.embed_query)
+        print(f"FAQ {domain} precargado: {len(faqs)} preguntas")
 
     yield
 
@@ -229,25 +241,64 @@ def categorize_query_multi(question: str) -> list:
     return matched if matched else ["Otro"]
 
 def cargar_faqs_con_embeddings(faq_path: str, embed_fn):
-    """Carga preguntas y respuestas del FAQ y calcula embeddings de las preguntas."""
+    """Carga preguntas/respuestas del FAQ con cache por mtime y embeddings precalculados."""
     if not os.path.exists(faq_path):
         return []
-    faqs = []
+
     try:
+        mtime = os.path.getmtime(faq_path)
+        cached = faq_cache.get(faq_path)
+        if cached and cached.get("mtime") == mtime:
+            return cached.get("faqs", [])
+
+        faqs = []
         with open(faq_path, "r", encoding="utf-8") as f:
-            blocks = f.read().split("\n\n")
-            for block in blocks:
-                lines = block.strip().split("\n")
-                if len(lines) < 2:
-                    continue
-                pregunta = lines[0].replace("Pregunta:", "").strip()
-                respuesta = lines[1].replace("Respuesta:", "").strip()
-                if pregunta and respuesta:
-                    embedding = embed_fn(pregunta)
-                    faqs.append({"pregunta": pregunta, "respuesta": respuesta, "embedding": embedding})
+            lines = [line.rstrip("\n") for line in f]
+
+        current_question = None
+        current_answer_lines = []
+
+        def flush_current():
+            nonlocal current_question, current_answer_lines, faqs
+            if current_question and current_answer_lines:
+                answer_text = "\n".join(current_answer_lines).strip()
+                if answer_text:
+                    faqs.append({
+                        "pregunta": current_question,
+                        "respuesta": answer_text,
+                        "embedding": embed_fn(current_question)
+                    })
+            current_question = None
+            current_answer_lines = []
+
+        for raw_line in lines:
+            line = raw_line.strip()
+
+            if line.startswith("Pregunta:"):
+                flush_current()
+                current_question = line.replace("Pregunta:", "", 1).strip()
+                continue
+
+            if line.startswith("Respuesta:"):
+                response_first_line = line.replace("Respuesta:", "", 1).strip()
+                if response_first_line:
+                    current_answer_lines.append(response_first_line)
+                continue
+
+            if current_question is not None:
+                current_answer_lines.append(raw_line)
+
+        flush_current()
+
+        faq_cache[faq_path] = {
+            "mtime": mtime,
+            "faqs": faqs
+        }
+        logging.info(f"FAQ cargado/actualizado desde disco: {faq_path} ({len(faqs)} preguntas)")
+        return faqs
     except Exception as e:
         logging.warning(f"Error cargando FAQ de {faq_path}: {e}")
-    return faqs
+        return []
 
 def buscar_faq_semantico(question: str, faqs: list, embed_fn, threshold: float = 0.75):
     """Busca la pregunta más similar en el FAQ usando similitud de embeddings."""
