@@ -16,6 +16,7 @@ import psutil
 from prometheus_client import Counter, Histogram, Gauge, generate_latest
 from datetime import datetime
 import logging
+import unicodedata
 
 # Lazy import de NLTK para evitar errores de inicialización
 def get_sentiment_analyzer():
@@ -177,15 +178,21 @@ def detect_hallucination(response: str, context: str) -> bool:
     overlap = len(context_words.intersection(response_words))
     return overlap < len(response_words) * 0.1 if response_words else False
 
+def normalize_text(text: str) -> str:
+    """Normaliza texto para matching robusto (minúsculas y sin acentos)."""
+    text = text.lower()
+    text = unicodedata.normalize("NFD", text)
+    return "".join(ch for ch in text if unicodedata.category(ch) != "Mn")
+
 def categorize_query(question: str) -> str:
     """Categorizar pregunta por tipo (categoría única)."""
-    question_lower = question.lower()
+    question_lower = normalize_text(question)
     categories = {
-        "Costos": ["costo", "precio", "pago", "matrícula", "arancel", "inversión"],
-        "Contenidos": ["contenido", "módulo", "curso", "materia", "clase", "programa"],
-        "Admisión": ["admisión", "requisito", "inscripción", "documentos", "aplicar"],
+        "Costos": ["costo", "precio", "pago", "matricula", "arancel", "inversion"],
+        "Contenidos": ["contenido", "modulo", "curso", "materia", "clase", "programa"],
+        "Admisión": ["admision", "requisito", "inscripcion", "documentos", "aplicar"],
         "Horarios": ["horario", "hora", "clase", "fecha", "inicio", "calendario"],
-        "Políticas": ["política", "regla", "norma", "reglamento", "procedimiento"],
+        "Políticas": ["politica", "regla", "norma", "reglamento", "procedimiento"],
         "Docentes": ["profesor", "docente", "instructor", "maestro"]
     }
     for category, keywords in categories.items():
@@ -195,11 +202,25 @@ def categorize_query(question: str) -> str:
 
 def categorize_query_multi(question: str) -> list:
     """Devuelve todas las categorías relevantes para la pregunta (multi-categoría)."""
-    question_lower = question.lower()
+    question_lower = normalize_text(question)
     categories = {
-        "AtencionCliente": ["costo", "precio", "pago", "matrícula", "arancel", "inversión", "docente", "profesor", "contacto", "tiempo"],
-        "Academica": ["malla", "plan de estudio", "materia", "asignatura", "contenido", "programa", "curso", "módulo", "ciberseguridad", "ciberdefensa", "seguridad", "defensa"],
-        "Investigacion": ["línea de investigación", "perfil", "tutor", "asesor", "tesis", "investigación"]
+        "AtencionCliente": [
+            "costo", "precio", "pago", "matricula", "arancel", "inversion",
+            "inscripcion", "documento", "formulario", "hoja de vida", "tramitar", "tramite",
+            "certificacion", "certificaciones", "intermedia", "intermedias", "copia legalizada",
+            "avance academico", "certificado de calificaciones", "vencimiento de plan",
+            "caja", "mensajero", "atencion", "horario de atencion", "donde queda",
+            "ubicado", "correo", "apoyoacademico", "reprobar", "modulos puedo reprobar"
+        ],
+        "Academica": [
+            "malla", "plan de estudio", "materia", "asignatura", "contenido", "programa",
+            "curso", "modulo", "modulos", "docente", "profesor", "requisito de admision",
+            "ciberseguridad", "ciberdefensa", "seguridad", "defensa", "inteligencia artificial"
+        ],
+        "Investigacion": [
+            "linea de investigacion", "perfil", "tutor", "asesor", "tesis", "investigacion",
+            "metodologia", "monografia"
+        ]
     }
     matched = []
     for category, keywords in categories.items():

@@ -4,6 +4,7 @@ import time
 import json
 import os
 import html
+import re
 
 st.set_page_config(page_title="SoeBOT WebUI", page_icon="🤖", layout="wide")
 
@@ -129,6 +130,11 @@ st.markdown("<div class='app-subtitle'>Chat academico con FAQs por dominio y RAG
 HISTORIES_FILE = "user_histories.json"
 USERS_FILE = "users.json"
 
+USERNAME_PATTERN = re.compile(r"^[a-zA-Z0-9_.-]{3,30}$")
+
+def safe_html_text(value):
+    return html.escape(str(value), quote=True)
+
 # Función para cargar históricos desde archivo
 def load_histories():
     if os.path.exists(HISTORIES_FILE):
@@ -192,7 +198,7 @@ def get_active_conversation(conversations, active_id):
     return conversations[0] if conversations else None
 
 def render_message(role, text, response_time=None):
-    safe_text = html.escape(text).replace("\n", "<br>")
+    safe_text = safe_html_text(text).replace("\n", "<br>")
     css_class = "user" if role == "user" else "bot"
     st.markdown(f"<div class='bubble {css_class}'>{safe_text}</div>", unsafe_allow_html=True)
     if role == "bot":
@@ -238,6 +244,9 @@ if not st.session_state.logged_in:
     elif action == "Registrarse":
         if st.button("Registrarse"):
             if username and password:
+                if not USERNAME_PATTERN.match(username):
+                    st.error("Usuario inválido. Usa 3-30 caracteres: letras, números, _, - o .")
+                    st.stop()
                 if username in users:
                     st.error("El usuario ya existe. Elige otro nombre.")
                 else:
@@ -308,7 +317,8 @@ else:
 
     with right_col:
         st.markdown("<div class='panel'>", unsafe_allow_html=True)
-        st.markdown(f"<div class='panel-header'><span class='panel-title'>Sesion de: {st.session_state.user_id}</span><span class='badge'>Activo</span></div>", unsafe_allow_html=True)
+        safe_user_id = safe_html_text(st.session_state.user_id)
+        st.markdown(f"<div class='panel-header'><span class='panel-title'>Sesion de: {safe_user_id}</span><span class='badge'>Activo</span></div>", unsafe_allow_html=True)
 
         active_conversation = get_active_conversation(
             st.session_state.conversations,
@@ -392,7 +402,7 @@ else:
                                 decoded_chunk = chunk.decode("utf-8")
                                 answer_wrapper["text"] += decoded_chunk
                                 answer_placeholder.markdown(
-                                    f"<div class='bubble bot'>{html.escape(answer_wrapper['text']).replace('\n', '<br>')}</div>",
+                                    f"<div class='bubble bot'>{safe_html_text(answer_wrapper['text']).replace('\n', '<br>')}</div>",
                                     unsafe_allow_html=True
                                 )
 
