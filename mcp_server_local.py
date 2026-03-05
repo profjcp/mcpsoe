@@ -223,6 +223,7 @@ def categorize_query_multi(question: str) -> list:
             "avance academico", "certificado de calificaciones", "vencimiento de plan",
             "caja", "mensajero", "atencion", "horario de atencion", "donde queda",
             "ubicado", "correo", "apoyoacademico", "reprobar", "modulos puedo reprobar"
+            , "tutor", "tutoria", "tutorias", "tutoría", "tutorías"
         ],
         "Academica": [
             "malla", "plan de estudio", "materia", "asignatura", "contenido", "programa",
