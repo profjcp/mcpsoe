@@ -1,32 +1,51 @@
-Pregunta: ¿Cuáles son las líneas de investigación del programa?
-Respuesta: Las líneas de investigación principales del programa son: 1) Machine Learning Aplicado, 2) Visión Artificial y Procesamiento de Imágenes, 3) Procesamiento de Lenguaje Natural (NLP), 4) Data Engineering y Big Data, 5) Análisis de Información y Business Intelligence.
+Pregunta: ¿Cómo puedo obtener mi tutor?
+Respuesta: Debe mandar un correo a: investigacion@soe.uagrm.edu.bo para que nuestra Coordinadora de Investigación pueda proveerle el banco de tutores oficial de su programa.
 
-Pregunta: ¿Quiénes son los tutores disponibles?
-Respuesta: Los tutores disponibles son especializados en diferentes áreas. MSc. Edwin Rene Salcedo Aliaga en Machine Learning y Visión Artificial, MSc. Danny Luis Huanca Sevilla en Ciencia de Datos y Data Mining, MSc. Renzo Franck Claure Arena en Machine Learning y Deep Learning. Contacta con la coordinación académica para asignación de tutores.
 
-Pregunta: ¿Cuál es el perfil del investigador del programa?
-Respuesta: El perfil del investigador debe ser un profesional con experiencia en análisis de datos, con capacidad crítica y analítica, orientado a resolver problemas complejos mediante enfoques científicos y datos. Debe demostrar interés en áreas como AI, Machine Learning, Data Engineering o campos relacionados.
+Pregunta: ¿Puedo tener un tutor externo al listado provisto por la unidad de postgrado?
+Respuesta: Es posible el poder solicitar un profesional externo al listado presentado por la UPG para que sea su tutor, pero el postgraduante deberá proporcionar estos requisitos complementarios:
+Hoja de vida del profesional.
+Escaneado del título de postgrado del área específica.
+ 
+Pregunta: ¿Hay algún formato para solicitar al tutor?
+Respuesta: Si, en la unidad contamos con una plantilla para que el postgraduante pueda solicitarlo.
 
-Pregunta: ¿Cómo puedo hacer una tesis de investigación?
-Respuesta: La investigación se realiza a través de dos talleres: Taller de Tesis I (Módulo 11) y Taller de Tesis II (Módulo 16). Debes proponer un tema dentro de las líneas de investigación del programa y contar con un tutor asignado.
+Pregunta: ¿Dónde envío esta carta de solicitud de tutor para que sea válida?
+Respuesta: Si vive en Santa Cruz de la Sierra puede pasar por nuestras oficinas en Av. Bush entre el 2do y 3er Anillo, Módulo 232, 2do Piso en la Ciudad Universitaria. Si su persona no vive en Santa Cruz de la Sierra, puede mandar la carta escaneada a los siguientes correos: investigacion@soe.uagrm.edu.bo y apoyoinvestigacion@soe.uagrm.edu.bo 
 
-Pregunta: ¿Qué requisitos debo cumplir para la investigación?
-Respuesta: Para realizar investigación debes: 1) Estar inscrito en el programa, 2) Tener propuesto un tema de investigación, 3) Contar con un tutor asignado, 4) Cumplir con la metodología de investigación del programa.
+Pregunta: ¿Qué hago después de enviar la carta de solicitud?
+Respuesta: Debe ponerse en labor junto con su tutor, ya que este debe emitir un informe preliminar a su Trabajo Final de Grado, mismo informe nos debe ser enviado para que podamos registrar oficialmente al profesional que eligió cómo su Director de Trabajo Final de Grado.
 
-Pregunta: ¿Cuál es la metodología de investigación del programa?
-Respuesta: La metodología de investigación se enseña en el Módulo 6 - Metodología de la Investigación. Incluye enfoques científicos, análisis de datos, validación de resultados y documentación académica rigurosa.
+Pregunta: ¿Cómo procedo luego de ya contar con mi tutor debidamente asignado por la unidad de postgrado?
+Respuesta: Debe continuar con sus labores cómo tutorado hasta culminar su Trabajo final de Grado junto a su tutor; llegado a ese punto ya nos tiene que comunicar para seguirle informando qué pasos más debe seguir.
 
-Pregunta: ¿Puedo investigar sobre machine learning?
-Respuesta: Sí, Machine Learning es una de las líneas de investigación principales del programa. Puedes trabajar en temas como clasificación, regresión, clustering, redes neuronales, análisis predictivo, entre otros. Contacta con los tutores especializados.
+Pregunta: ¿Puedo cambiar mi tema de investigación o mi título del trabajo una vez iniciado?
+Respuesta: Es posible, siempre y cuando sea hasta antes de su predefensa virtual, pasado ese punto ya no se pueden hacer modificaciones de ese tipo al Trabajo Final de Grado.
 
-Pregunta: ¿Puedo investigar sobre visión artificial?
-Respuesta: Sí, Visión Artificial y Procesamiento de Imágenes es una línea de investigación del programa. Puedes trabajar en detección de objetos, reconocimiento facial, análisis de imágenes, entre otros temas. MSc. Edwin Rene Salcedo Aliaga es especialista en esta área.
+Pregunta: ¿Qué pasa si no hago mi Trabajo Final de Grado en los 2 años de plazo que brinda la UAGRM?
+Respuesta: De acuerdo a la normativa vigente de la Dirección General de Postgrado, el postgraduante que no finalice su proceso de defensa en el plazo de 2 años concluido su programa de maestría debe realizar un curso de actualización para actualizar su perfil.
 
-Pregunta: ¿Puedo investigar sobre procesamiento de lenguaje natural?
-Respuesta: Sí, Procesamiento de Lenguaje Natural (NLP) es una línea de investigación del programa. Puedes trabajar en análisis de sentimientos, extracción de información, traducción automática, chatbots, entre otros. Hay tutores especializados disponibles.
+Pregunta: ¿Qué es el curso de actualización?
+Respuesta: Es un programa de nivelación para actualizar los contenidos de los perfiles de los Trabajos Finales de Grado, el cual consiste en dos módulos desarrollados en el lapso de 2 meses,  con una temática dirigida a la investigación y la realización de los Trabajos Finales de Grado. 
 
-Pregunta: ¿Cómo se evalúa la tesis?
-Respuesta: La tesis se evalúa a través de: 1) Seguimiento continuo del tutor, 2) Presentación en el Taller de Tesis II, 3) Defensa final ante un tribunal académico, con un costo de 4.200 Bs como derecho a defensa.
 
-Pregunta: ¿Puedo colaborar con otros estudiantes en investigación?
-Respuesta: Sí, se pueden formar equipos de investigación. Contacta con la coordinación académica para coordinar proyectos colaborativos.
+Pregunta: ¿Puedo hacer el Curso de Actualización si vivo en otro departamento?
+Respuesta: Los Cursos de Actualización son brindados de forma virtual, por lo que es posible que postgraduantes que se encuentren en otros departamentos puedan tomarlo.
+
+Pregunta: ¿Cuál es el costo de los cursos de Actualización?
+Respuesta: El coste de por módulo es de 1.400 bs. siendo 2.800 bs el costo total por el Curso de Actualización.
+
+Pregunta: ¿Cuáles son los horarios de los Cursos de Actualización?
+Respuesta: El horario de las clases es en la noche, los días en específico se informan de acuerdo a la versión que se este dando actualmente.
+
+
+Pregunta: ¿Cuántos módulos puedo reprobar en un Curso de Actualización?
+Respuesta: Ninguno, porque al reprobar un módulo ya pierde todo lo invertido para el Curso de Actualización.
+
+
+Pregunta: ¿Los módulos son convalidables?
+Respuesta: No, el Curso de Actualización solo es válido para la versión y edición publicada a la fecha, no pueden ser convalidados a futuro.
+
+
+Pregunta: ¿Realizar un Curso de Actualización me sirve para más de un programa de maestría cursado en la Unidad de Postgrado?
+Respuesta: No, un Curso de Actualización solo es válido para un programa, dado que el fin es reacondicionar el perfil del postgraduante para poder presentarlo cómo su Trabajo Final de Grado; si el postgraduante cuenta con mas de un programa cursado debe pasar un Curso de Actualización por cada uno.

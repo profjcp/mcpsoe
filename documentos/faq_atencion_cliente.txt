@@ -1,5 +1,5 @@
 Pregunta: ¿Cómo puedo tramitar las certificaciones intermedias?
-Respuesta: Debe cumplir con los siguientes requisitos 
+Respuesta: Debe cumplir con los siguientes requisitos
 1. Es requisito fundamental haber saldado el costo total del programa de maestría
 2. Documentación de inscripción en física completa.
 3. Haber aprobado todos los módulos que habilitan los certificados intermedios.
@@ -62,3 +62,89 @@ Respuesta: Por normativa solo puede reprobar 2 módulos.
 
 Pregunta: ¿Qué pasa si repruebo más de 2 módulos?
 Respuesta: Al reprobar el tercer módulo pierde la opción a defender su tesis por ende no puede acceder a título de Máster.
+
+Pregunta: ¿Cuanto es la nota minima de Aprobación?
+Respuesta: Es de 66 pts.
+
+Pregunta:¿Cuántas faltas puede llegar a tener?
+Respuesta: Solo 1 falta, debido a que son 8 clases y esas 8 clases hacen el puntaje de 10 pts sobre la nota final, tomando en cuenta que la nota mínima de asistencia es de 8 pts.
+
+Pregunta ¿Qué pasa si NO cumplo con la nota mínima de asistencia?
+Respuesta: Si no tiene respaldo de las faltas, pierde el módulo por inasistencia, aunque haya presentado y aprobado todas sus actividades en el módulo.
+
+Pregunta: ¿Puedo congelar mi Maestria?
+Respuesta: Puede congelarse con un máximo de 3 meses, para la cual aplican ciertos riesgos.
+
+
+Pregunta:¿Cuales son los riesgos de congelar mi Maestria?
+Respuesta: Los riesgos son que su programa no tenga una nueva edición y tenga que migrar a una nueva versión, lo que implica que al moverse a una nueva versión no todos los módulos que curso se podrán convalidar.
+
+Pregunta: ¿En que casos se aplica la convalidación de módulos?
+Respuesta: Se aplica en las siguientes casos que su persona curso un módulo fuera de su programa original:
+- Cuando varia la versión entre programas Eje. MCCV2E4 a MCCV3E1
+- Cuando es en otro programa diferente del de su original Eje. MCC2E4  a MIAV1E1
+
+
+Pregunta: ¿En que caso NO aplica la convalidación?
+Respuesta: Los casos que no aplica son cuando el programa original no varia de Versión y solo cambia de edición. Eje. MCCV3E1 a MCCV3E2
+
+
+Pregunta: ¿Cuáles son los pasos para realizar la convalidación?
+Respuesta: Los pasos son:
+1. SOLICITUD DE CONVALIDACIÓN (CODIGO102) (FIRMA DIRECTOR DE POSTGRADO) 
+2. SOLICITUD DE CONVALIDACIÓN DE MÓDULO (FIRMADO POR EL ESTUDIANTE) 
+3. FOTOCOPIA SIMPLE DEL CI DEL ESTUDIANTE
+4. FORMULARIO RESUMEN DE CONVALIDACIÓN (FIRMA DIRECTOR DE POSTGRADO) 2
+5. CERTIFICADO DE NOTAS (PROGRAMA ORIGINAL) EMITIDA POR EPG 18-04-2024
+6. CERTIFICADO DE NOTAS (PROGRAMA DONDE CURSO) EMITIDA POR EPG 
+7. PLAN DE ESTUDIO (EMITIDO POR EL ANSIO) (PROGRAMA ORIGINAL)
+8. PLAN DE ESTUDIO (EMITIDO POR EL ANSIO) (PROGRAMA DONDE CURSÓ)
+9. PROGRAMA ANALITICO (PROGRAMA ORIGINAL)
+10. PROGRAMA ANALITICO (PROGRAMA DONDE CURSO)
+11. SOLICITUD DE INFORME DE CONVALIDACIÓN PARA EL MÓDULO (FIRMA DE COORDINADORA ACADÉMICA) 
+12. INFORME DE DOCENTE (FIRMA EL DOCENTE) 
+13. RESOLUCIÓN DE COMITÉ ACADÉMICO CIENTÍFICO GENERAR NÚMERO DE RESOLUCIÓN
+
+
+Pregunta:¿Qué pasos implican al estudiante?
+Respuesta: Los pasos son:
+2. SOLICITUD DE CONVALIDACIÓN DE MÓDULO (FIRMADO POR EL ESTUDIANTE) 
+3. FOTOCOPIA SIMPLE DEL CI DEL ESTUDIANTE
+5. CERTIFICADO DE NOTAS (PROGRAMA ORIGINAL) EMITIDA POR EPG 
+6. CERTIFICADO DE NOTAS (PROGRAMA DONDE CURSO) EMITIDA POR EPG 
+
+
+Pregunta ¿Cómo tramita el estudiante los Certificados de Notas Emitida por EPG?
+Respuesta: El estudiante debe seguir los siguientes pasos:
+1.Se solicita el Avance académico por correo apoyoacademico@soe.uagrm.edu.bo  (costo 50 bs  lo emite UNIDAD DE POSTGRADO SOE FICCT)(dicho cobro de 50 bs la encargada de caja se comunicara de forma interna para realizar el cobro del mismo). 
+2.Se cancela en Caja de la UAGRM (Campus Universitario) se cancela Bs. 40 | Certificado de Calificaciones
+3.Con los Recibo original emitido por Caja de la UAGRM de los anteriores mencionado + El Avance Académico se dirige a la Escuela de Postgrado (Campus Universitario Pabellón N°126 Aula 4), donde le entregarán el Certificación de Notas.
+
+Pregunta:¿Cuando se aplica una tutoría?
+Respuesta: La tutoría se aplica en los siguientes casos:
+- Su programa original ya finalizó hace más de 2 años
+- No existe un módulo que tenga el mismo contenido mínimo
+
+Pregunta:¿Cuáles son los pasos para acceder a la tutoría?
+1.Carta de Solicitud de tutoría
+2.Certificado de Notas Emitido por EPG
+Cómo obtener el Certificado de notas Emitido por EPG
+- Se solicita el avance académico a apoyoacademico@soe.uagrm.edu.bo  (costo 50 bs  lo emite UNIDAD DE POSTGRADO SOE FICCT)(dicho cobro de 50 bs la encargada de caja se comunicará de forma interna para realizar el cobro del mismo).
+- Se cancela en Caja de la UAGRM (Campus Universitario) se cancela Bs. 40 | Certificado de Calificaciones
+- Posterior a dicho pago con los Recibo original emitido por Caja de la UAGRM de los anteriores mencionado + El Avance Académico se dirige a la Escuela de Postgrado (Campus Universitario Pabellón N°126 Aula 4), donde le entregarán el Certificación de Notas.
+Nota: el paso 1 y 2 debe traerlo a oficinas para que la Coordinadora Académica empiece a realizar la gestiones para conseguir el docente para la tutoría.
+
+Pregunta:¿Si realiza tutoría, debe realizar Convalidación?
+Respuesta: No
+
+Pregunta:¿Cuántas tutorías puedo acceder en todo mi programa ?
+Respuesta: Solo se Puede 2
+
+
+
+
+
+
+
+
+
