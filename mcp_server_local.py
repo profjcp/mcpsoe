@@ -217,18 +217,25 @@ def categorize_query_multi(question: str) -> list:
     question_lower = normalize_text(question)
     categories = {
         "AtencionCliente": [
-            "costo", "precio", "pago", "matricula", "arancel", "inversion",
-            "inscripcion", "documento", "formulario", "hoja de vida", "tramitar", "tramite",
-            "certificacion", "certificaciones", "intermedia", "intermedias", "copia legalizada",
-            "avance academico", "certificado de calificaciones", "vencimiento de plan",
-            "caja", "mensajero", "atencion", "horario de atencion", "donde queda",
-            "ubicado", "correo", "apoyoacademico", "reprobar", "modulos puedo reprobar"
-            , "tutor", "tutoria", "tutorias", "tutoría", "tutorías"
-        ],
+                "costo", "precio", "pago", "matricula", "arancel", "inversion",
+                "inscripcion", "documento", "formulario", "hoja de vida", "tramitar", "tramite",
+                "certificacion", "certificaciones", "intermedia", "intermedias", "copia legalizada",
+                "avance academico", "certificado de calificaciones", "vencimiento de plan",
+                "caja", "mensajero", "atencion", "horario de atencion", "donde queda",
+                "ubicado", "correo", "apoyoacademico", "reprobar", "modulos puedo reprobar",
+                "tutor", "tutoria", "tutorias", "tutoría", "tutorías",
+                "asesoria", "asesoría", "asesorias", "asesorías",
+                "congelar", "congelarse", "congelacion",
+                "fotocopia", "fotocopias", "titulo", "título", "cedula", "cédula",
+                "fotografía", "fotografias", "inasistencia", "falta", "faltas", "asistencia",
+                "nota", "aprobacion", "aprobación", "nota minima", "nota mínima",
+                "certificado de notas", "certificado", "certificados"
+            ],
         "Academica": [
             "malla", "plan de estudio", "materia", "asignatura", "contenido", "programa",
             "curso", "modulo", "modulos", "docente", "profesor", "requisito de admision",
-            "ciberseguridad", "ciberdefensa", "seguridad", "defensa", "inteligencia artificial"
+            "ciberseguridad", "ciberdefensa", "seguridad", "defensa", "inteligencia artificial",
+            "convalidacion", "convalidar", "convalidación", "convalidaciones"
         ],
         "Investigacion": [
             "linea de investigacion", "perfil", "tutor", "asesor", "tesis", "investigacion",
