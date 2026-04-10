@@ -12,6 +12,7 @@
 - No inventar nuevas métricas ni cambiar su significado sin solicitud explícita.
 - Priorizar cambios pequeños, claros y consistentes con la estructura actual.
 - Si se modifica la lógica FAQ, preservar la separación por dominio: Académica, Atención al Cliente e Investigación.
+- Priorizar la trazabilidad analítica y la consistencia de reportes usados en la tesis doctoral.
 
 ## Persistencia y datos
 - Respetar los archivos persistentes usados por el sistema:
