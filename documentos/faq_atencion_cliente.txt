@@ -52,99 +52,176 @@ Módulo 232, 2do Piso
 Ciudad Universitaria
 Santa Cruz - Bolivia
 
-Pregunta:¿Cuáles son los horarios de atención de SOE?
-Respuesta: Horario de atención es de: 9:00 AM a 3:00 PM
+Pregunta: ¿Cuáles son los horarios de atención de SOE?
+Respuesta: El horario de atención es de 9:00 AM a 3:00 PM.
 
-
-Pregunta:¿Cuántos módulos puedo reprobar?
+Pregunta: ¿Cuántos módulos puedo reprobar?
 Respuesta: Por normativa solo puede reprobar 2 módulos.
 
-
 Pregunta: ¿Qué pasa si repruebo más de 2 módulos?
-Respuesta: Al reprobar el tercer módulo pierde la opción a defender su tesis por ende no puede acceder a título de Máster.
+Respuesta: Al reprobar el tercer módulo pierde la opción a defender su tesis; por ende, no puede acceder al título de Máster.
 
-Pregunta: ¿Cuanto es la nota minima de Aprobación?
-Respuesta: Es de 66 pts.
+Pregunta: ¿Cuánto es la nota mínima de aprobación?
+Respuesta: Es de 66 puntos.
 
-Pregunta:¿Cuántas faltas puede llegar a tener?
-Respuesta: Solo 1 falta, debido a que son 8 clases y esas 8 clases hacen el puntaje de 10 pts sobre la nota final, tomando en cuenta que la nota mínima de asistencia es de 8 pts.
+Pregunta: ¿Cuántas faltas puede llegar a tener?
+Respuesta: Solo 1 falta, debido a que son 8 clases y esas 8 clases hacen el puntaje de 10 puntos sobre la nota final, tomando en cuenta que la nota mínima de asistencia es de 8 puntos.
 
-Pregunta ¿Qué pasa si NO cumplo con la nota mínima de asistencia?
+Pregunta: ¿Qué pasa si no cumplo con la nota mínima de asistencia?
 Respuesta: Si no tiene respaldo de las faltas, pierde el módulo por inasistencia, aunque haya presentado y aprobado todas sus actividades en el módulo.
 
-Pregunta: ¿Puedo congelar mi Maestria?
-Respuesta: Puede congelarse con un máximo de 3 meses, para la cual aplican ciertos riesgos.
+Pregunta: ¿Puedo congelar mi Maestría?
+Respuesta: Puede congelarse con un máximo de 3 meses, para lo cual aplican ciertos riesgos.
 
+Pregunta: ¿Cuáles son los riesgos de congelar mi Maestría?
+Respuesta: Los riesgos son que su programa no tenga una nueva edición y tenga que migrar a una nueva versión, lo que implica que al moverse a una nueva versión no todos los módulos que cursó se podrán convalidar.
 
-Pregunta:¿Cuales son los riesgos de congelar mi Maestria?
-Respuesta: Los riesgos son que su programa no tenga una nueva edición y tenga que migrar a una nueva versión, lo que implica que al moverse a una nueva versión no todos los módulos que curso se podrán convalidar.
+Pregunta: ¿En qué casos se aplica la convalidación de módulos?
+Respuesta: Se aplica en los siguientes casos, cuando la persona cursó un módulo fuera de su programa original:
+- Cuando varía la versión entre programas. Ej.: MCCV2E4 a MCCV3E1.
+- Cuando es en otro programa diferente al original. Ej.: MCC2E4 a MIAV1E1.
 
-Pregunta: ¿En que casos se aplica la convalidación de módulos?
-Respuesta: Se aplica en las siguientes casos que su persona curso un módulo fuera de su programa original:
-- Cuando varia la versión entre programas Eje. MCCV2E4 a MCCV3E1
-- Cuando es en otro programa diferente del de su original Eje. MCC2E4  a MIAV1E1
-
-
-Pregunta: ¿En que caso NO aplica la convalidación?
-Respuesta: Los casos que no aplica son cuando el programa original no varia de Versión y solo cambia de edición. Eje. MCCV3E1 a MCCV3E2
-
+Pregunta: ¿En qué caso no aplica la convalidación?
+Respuesta: No aplica cuando el programa original no varía de versión y solo cambia de edición. Ej.: MCCV3E1 a MCCV3E2.
 
 Pregunta: ¿Cuáles son los pasos para realizar la convalidación?
 Respuesta: Los pasos son:
-1. SOLICITUD DE CONVALIDACIÓN (CODIGO102) (FIRMA DIRECTOR DE POSTGRADO) 
-2. SOLICITUD DE CONVALIDACIÓN DE MÓDULO (FIRMADO POR EL ESTUDIANTE) 
-3. FOTOCOPIA SIMPLE DEL CI DEL ESTUDIANTE
-4. FORMULARIO RESUMEN DE CONVALIDACIÓN (FIRMA DIRECTOR DE POSTGRADO) 2
-5. CERTIFICADO DE NOTAS (PROGRAMA ORIGINAL) EMITIDA POR EPG 18-04-2024
-6. CERTIFICADO DE NOTAS (PROGRAMA DONDE CURSO) EMITIDA POR EPG 
-7. PLAN DE ESTUDIO (EMITIDO POR EL ANSIO) (PROGRAMA ORIGINAL)
-8. PLAN DE ESTUDIO (EMITIDO POR EL ANSIO) (PROGRAMA DONDE CURSÓ)
-9. PROGRAMA ANALITICO (PROGRAMA ORIGINAL)
-10. PROGRAMA ANALITICO (PROGRAMA DONDE CURSO)
-11. SOLICITUD DE INFORME DE CONVALIDACIÓN PARA EL MÓDULO (FIRMA DE COORDINADORA ACADÉMICA) 
-12. INFORME DE DOCENTE (FIRMA EL DOCENTE) 
-13. RESOLUCIÓN DE COMITÉ ACADÉMICO CIENTÍFICO GENERAR NÚMERO DE RESOLUCIÓN
+1. Solicitud de convalidación (CÓDIGO 102), con firma del Director de Postgrado.
+2. Solicitud de convalidación de módulo, firmada por el estudiante.
+3. Fotocopia simple del CI del estudiante.
+4. Formulario resumen de convalidación, con firma del Director de Postgrado.
+5. Certificado de notas del programa original emitido por EPG.
+6. Certificado de notas del programa donde cursó, emitido por EPG.
+7. Plan de estudio del programa original.
+8. Plan de estudio del programa donde cursó.
+9. Programa analítico del programa original.
+10. Programa analítico del programa donde cursó.
+11. Solicitud de informe de convalidación para el módulo, con firma de la Coordinadora Académica.
+12. Informe del docente.
+13. Resolución del Comité Académico Científico con número de resolución.
 
-
-Pregunta:¿Qué pasos implican al estudiante?
+Pregunta: ¿Qué pasos implican al estudiante?
 Respuesta: Los pasos son:
-2. SOLICITUD DE CONVALIDACIÓN DE MÓDULO (FIRMADO POR EL ESTUDIANTE) 
-3. FOTOCOPIA SIMPLE DEL CI DEL ESTUDIANTE
-5. CERTIFICADO DE NOTAS (PROGRAMA ORIGINAL) EMITIDA POR EPG 
-6. CERTIFICADO DE NOTAS (PROGRAMA DONDE CURSO) EMITIDA POR EPG 
+1. Solicitud de convalidación de módulo, firmada por el estudiante.
+2. Fotocopia simple del CI del estudiante.
+3. Certificado de notas del programa original emitido por EPG.
+4. Certificado de notas del programa donde cursó, emitido por EPG.
 
-
-Pregunta ¿Cómo tramita el estudiante los Certificados de Notas Emitida por EPG?
+Pregunta: ¿Cómo tramita el estudiante los certificados de notas emitidos por EPG?
 Respuesta: El estudiante debe seguir los siguientes pasos:
-1.Se solicita el Avance académico por correo apoyoacademico@soe.uagrm.edu.bo  (costo 50 bs  lo emite UNIDAD DE POSTGRADO SOE FICCT)(dicho cobro de 50 bs la encargada de caja se comunicara de forma interna para realizar el cobro del mismo). 
-2.Se cancela en Caja de la UAGRM (Campus Universitario) se cancela Bs. 40 | Certificado de Calificaciones
-3.Con los Recibo original emitido por Caja de la UAGRM de los anteriores mencionado + El Avance Académico se dirige a la Escuela de Postgrado (Campus Universitario Pabellón N°126 Aula 4), donde le entregarán el Certificación de Notas.
+1. Solicitar el avance académico por correo a apoyoacademico@soe.uagrm.edu.bo.
+2. Cancelar en Caja de la UAGRM Bs. 40 por el Certificado de Calificaciones.
+3. Presentar el recibo original emitido por Caja junto con el avance académico en la Escuela de Postgrado (Campus Universitario, Pabellón N.° 126, Aula 4), donde le entregarán la certificación de notas.
 
-Pregunta:¿Cuando se aplica una tutoría?
+Pregunta: ¿Cuándo se aplica una tutoría?
 Respuesta: La tutoría se aplica en los siguientes casos:
-- Su programa original ya finalizó hace más de 2 años
-- No existe un módulo que tenga el mismo contenido mínimo
+- Su programa original ya finalizó hace más de 2 años.
+- No existe un módulo que tenga el mismo contenido mínimo.
 
-Pregunta:¿Cuáles son los pasos para acceder a la tutoría?
-1.Carta de Solicitud de tutoría
-2.Certificado de Notas Emitido por EPG
-Cómo obtener el Certificado de notas Emitido por EPG
-- Se solicita el avance académico a apoyoacademico@soe.uagrm.edu.bo  (costo 50 bs  lo emite UNIDAD DE POSTGRADO SOE FICCT)(dicho cobro de 50 bs la encargada de caja se comunicará de forma interna para realizar el cobro del mismo).
-- Se cancela en Caja de la UAGRM (Campus Universitario) se cancela Bs. 40 | Certificado de Calificaciones
-- Posterior a dicho pago con los Recibo original emitido por Caja de la UAGRM de los anteriores mencionado + El Avance Académico se dirige a la Escuela de Postgrado (Campus Universitario Pabellón N°126 Aula 4), donde le entregarán el Certificación de Notas.
+Pregunta: ¿Cuáles son los pasos para acceder a la tutoría?
+Respuesta:
+1. Presentar una carta de solicitud de tutoría.
+2. Presentar el certificado de notas emitido por EPG.
+
+Cómo obtener el Certificado de Notas emitido por EPG:
+- Se solicita el avance académico a apoyoacademico@soe.uagrm.edu.bo.
+- Se cancela en Caja de la UAGRM Bs. 40 por el Certificado de Calificaciones.
+- Posterior a dicho pago, con el recibo original y el avance académico, se dirige a la Escuela de Postgrado (Campus Universitario, Pabellón N.° 126, Aula 4), donde le entregarán la certificación de notas.
 Nota: el paso 1 y 2 debe traerlo a oficinas para que la Coordinadora Académica empiece a realizar la gestiones para conseguir el docente para la tutoría.
 
-Pregunta:¿Si realiza tutoría, debe realizar Convalidación?
-Respuesta: No
+Pregunta: Si realizo una tutoría, ¿debo hacer convalidación?
+Respuesta: No.
 
-Pregunta:¿Cuántas tutorías puedo acceder en todo mi programa ?
-Respuesta: Solo se Puede 2
+Pregunta: ¿A cuántas tutorías puedo acceder en todo mi programa?
+Respuesta: Puede acceder como máximo a 2 tutorías durante todo el programa.
 
+Pregunta: ¿Cuánto tiempo tarda el proceso de certificación intermedia?
+Respuesta: El tiempo del proceso puede variar según la revisión de documentos y la disponibilidad del tribunal académico. Una vez que el estudiante envía la monografía final, la defensa se programa en modalidad virtual y la fecha es comunicada únicamente por correo electrónico. Es importante revisar constantemente su bandeja de entrada.
 
+Pregunta: ¿Puedo iniciar el trámite de certificación si aún debo módulos?
+Respuesta: No. Para iniciar cualquier trámite de certificación intermedia es obligatorio haber aprobado todos los módulos habilitantes. Además, debe haber cancelado el costo total del programa y contar con su documentación física completa; caso contrario, no podrá iniciar ningún proceso.
 
+Pregunta: ¿Qué sucede si mi documentación de inscripción está incompleta?
+Respuesta: No podrá iniciar ningún trámite relacionado con certificaciones. Es requisito indispensable contar con toda la documentación en formato físico completo en oficinas. Sin este requisito, el proceso queda automáticamente observado.
 
+Pregunta: ¿Es obligatorio enviar la monografía en formato digital?
+Respuesta: Sí. El envío de la monografía final en formato digital al correo oficial es un requisito obligatorio previo a la defensa. Sin este paso no se programará la defensa, la cual se realiza de manera virtual.
 
+Pregunta: ¿Puedo modificar mi monografía después de enviarla?
+Respuesta: Solo si el tribunal o la coordinación académica realizan observaciones. En ese caso, deberá corregir y reenviar la versión final antes de que se confirme la defensa virtual.
 
+Pregunta: ¿Qué pasa si no asisto a la defensa programada?
+Respuesta: Al ser una defensa virtual programada oficialmente, su inasistencia deberá ser justificada. Caso contrario, deberá iniciar un proceso de reprogramación sujeto a evaluación, lo cual puede retrasar su certificación.
 
+Pregunta: ¿Quién evalúa la monografía en la defensa?
+Respuesta: La evaluación está a cargo de un tribunal académico designado por la unidad de postgrado. La defensa se realiza de forma virtual, donde el estudiante expone su trabajo ante los evaluadores.
 
+Pregunta: ¿Puedo solicitar el avance académico de forma presencial?
+Respuesta: El procedimiento oficial es por correo electrónico. Sin embargo, también puede apersonarse a la unidad. Este documento es obligatorio para continuar con trámites posteriores, como certificaciones.
+
+Pregunta: ¿Qué hago si cometí un error en los datos enviados para el avance académico?
+Respuesta: Debe enviar un nuevo correo corrigiendo la información o comunicarse con apoyo académico lo antes posible. Datos incorrectos pueden retrasar la emisión del documento.
+
+Pregunta: ¿Es necesario guardar los recibos de pago?
+Respuesta: Sí. Los recibos originales emitidos por Caja de la UAGRM son obligatorios para continuar con los trámites. Sin estos comprobantes no podrá obtener certificaciones ni avanzar en el proceso.
+
+Pregunta: ¿Puedo enviar a otra persona a realizar mis trámites?
+Respuesta: Sí, puede autorizar a un tercero o utilizar el servicio de mensajería. Sin embargo, todos los documentos deben estar completos y en físico para que el trámite sea válido.
+
+Pregunta: ¿Qué ocurre si pierdo mis certificados originales?
+Respuesta: Deberá solicitar la reposición mediante los canales oficiales, lo cual puede implicar costos adicionales y retrasos en sus trámites de certificación.
+
+Pregunta: ¿Puedo reprobar el mismo módulo más de una vez?
+Respuesta: Reprobar módulos afecta directamente su permanencia en el programa. Según normativa, solo puede reprobar hasta 2 módulos; exceder este límite implica la pérdida del derecho a defensa de tesis.
+
+Pregunta: ¿Cómo se calcula la nota final de un módulo?
+Respuesta: La nota final se compone de actividades evaluativas, trabajos y asistencia. La asistencia tiene un peso importante, ya que forma parte del puntaje final del módulo.
+
+Pregunta: ¿Qué sucede si tengo justificativo por inasistencia?
+Respuesta: Si cuenta con respaldo válido, la coordinación académica puede evaluar su caso. De lo contrario, podría perder el módulo por inasistencia, incluso si aprobó las actividades.
+
+Pregunta: ¿Puedo cambiar de programa dentro de la misma área?
+Respuesta: Sí, pero implica un proceso formal que puede incluir convalidación de módulos. No todos los módulos cursados serán necesariamente reconocidos.
+
+Pregunta: ¿Qué pasa si cambio de versión del programa?
+Respuesta: Al cambiar de versión, algunos módulos pueden no ser convalidados, lo que podría implicar que deba cursarlos nuevamente.
+
+Pregunta: ¿Cuánto tiempo tengo para solicitar convalidación?
+Respuesta: Debe realizar la solicitud dentro de los plazos establecidos por la unidad de postgrado. Fuera de ese tiempo, el trámite puede no ser aceptado.
+
+Pregunta: ¿Puedo convalidar módulos de otra universidad?
+Respuesta: Está sujeto a evaluación académica. Se revisa la equivalencia de contenidos, carga horaria y programa analítico.
+
+Pregunta: ¿Qué ocurre si no entrego todos los requisitos de convalidación?
+Respuesta: El trámite no será procesado hasta completar todos los documentos requeridos, incluyendo certificados, planes de estudio y formularios firmados.
+
+Pregunta: ¿Puedo solicitar tutoría sin haber terminado todos los módulos?
+Respuesta: No. La tutoría aplica generalmente cuando el programa ya fue finalizado y existen condiciones especiales como antigüedad o falta de módulos equivalentes.
+
+Pregunta: ¿Cuánto tiempo dura una tutoría?
+Respuesta: La duración depende del docente asignado y la complejidad del contenido, pero está sujeta a planificación académica.
+
+Pregunta: ¿Puedo solicitar más de dos tutorías?
+Respuesta: No. El reglamento establece un máximo de 2 tutorías durante todo el programa.
+
+Pregunta: ¿Cómo puedo resetear mi contraseña de Moodle?
+Respuesta: En el asistente de inicio de sesión tiene la opción “¿Olvidó su contraseña?”. Haga clic ahí y el sistema le consultará si desea buscar por nombre de usuario o correo electrónico. Puede elegir cualquiera de las dos opciones para resetear su contraseña.
+
+Pregunta: ¿Dónde encuentro el link del canal oficial de comunicación?
+Respuesta: Se encuentra en la sección de “sesiones síncronas” del aula virtual.
+
+Pregunta: ¿Dónde encuentro los videos de las clases grabadas del módulo?
+Respuesta: Se encuentran en la sección de “sesiones síncronas”, en el apartado de grabación de sesiones síncronas del aula virtual.
+
+Pregunta: ¿Cómo puedo subir una tarea a Moodle?
+Respuesta: Ingrese al módulo correspondiente en Moodle, busque la actividad con el ícono de tarea, haga clic en “Agregar entrega”, adjunte o arrastre su archivo y luego presione “Guardar cambios” o “Enviar tarea”. Verifique que el estado quede como entregado.
+
+Pregunta: ¿Dónde puedo ver las calificaciones de mis tareas y exámenes?
+Respuesta: En el menú lateral izquierdo de su curso en Moodle, busque la opción “Calificaciones”. Ahí verá el desglose de sus notas y la retroalimentación del docente.
+
+Pregunta: No alcancé a subir mi tarea a tiempo, ¿cómo solicito una prórroga?
+Respuesta: Debe comunicarse directamente con el docente a cargo del módulo a través de la mensajería interna de Moodle o el canal oficial de comunicación para exponer su caso.
+
+Pregunta: ¿Cómo le envío un mensaje privado a mi profesor en Moodle?
+Respuesta: En la esquina superior derecha de Moodle, haga clic en el ícono de la burbuja de diálogo (Mensajes). Busque el nombre de su profesor y escríbale directamente. También puede ingresar al canal oficial del programa mediante el link que se encuentra en la sección de sesiones síncronas del aula virtual.
 

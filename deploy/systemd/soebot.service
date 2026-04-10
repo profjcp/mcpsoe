@@ -1,0 +1,17 @@
+[Unit]
+Description=SoEBOT Stack (MCP + Cliente principal + Admin)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=aisoe
+WorkingDirectory=/home/aisoe/mcpsoe
+ExecStart=/bin/bash -lc './run_clean.sh --admin'
+Restart=always
+RestartSec=10
+TimeoutStartSec=900
+KillMode=control-group
+
+[Install]
+WantedBy=multi-user.target

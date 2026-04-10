@@ -116,6 +116,46 @@ def apply_styles():
         .stSelectbox>div>div>div {
             border-radius: 10px;
         }
+
+        .history-card {
+            background: #fffdf8;
+            border: 1px solid #ead7c0;
+            border-radius: 12px;
+            padding: 10px 12px;
+            margin: 8px 0 6px 0;
+        }
+
+        .history-card.active {
+            border-left: 4px solid var(--accent);
+            background: #fef6ed;
+        }
+
+        .history-title {
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .history-preview {
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.35;
+        }
+
+        .history-meta {
+            color: var(--muted);
+            font-size: 12px;
+            margin-bottom: 4px;
+        }
+
+        .helper-box {
+            background: #fffaf1;
+            border: 1px dashed #ddb892;
+            border-radius: 12px;
+            padding: 12px 14px;
+            margin-bottom: 14px;
+            color: var(--accent-2);
+            line-height: 1.45;
+        }
         </style>
         """,
         unsafe_allow_html=True
@@ -197,6 +237,16 @@ def get_active_conversation(conversations, active_id):
             return conv
     return conversations[0] if conversations else None
 
+def get_conversation_preview(conversation, max_len=80):
+    messages = conversation.get("messages", [])
+    if not messages:
+        return "Sin mensajes todavía."
+
+    latest = messages[-1]
+    latest_question = latest[0] if isinstance(latest, (list, tuple)) and len(latest) > 0 else ""
+    preview = str(latest_question).replace("\n", " ").strip()
+    return preview[:max_len] + ("..." if len(preview) > max_len else "")
+
 def render_message(role, text, response_time=None):
     safe_text = safe_html_text(text).replace("\n", "<br>")
     css_class = "user" if role == "user" else "bot"
@@ -265,7 +315,7 @@ else:
         st.markdown("<div class='panel'>", unsafe_allow_html=True)
         st.markdown("<div class='panel-header'><span class='panel-title'>Historial</span><span class='badge'>Chats</span></div>", unsafe_allow_html=True)
 
-        new_chat_clicked = st.button("Nuevo chat", key="new_chat_btn")
+        new_chat_clicked = st.button("Nuevo chat", key="new_chat_btn", use_container_width=True)
 
         if st.session_state.user_id and st.session_state.user_id in user_histories and not st.session_state.conversations:
             normalized = normalize_user_history(user_histories.get(st.session_state.user_id, []))
@@ -281,17 +331,39 @@ else:
             st.session_state.conversations.append({"id": new_id, "title": "Chat 1", "messages": []})
             st.session_state.active_conversation_id = new_id
 
-        titles = [c["title"] for c in st.session_state.conversations]
-        current_index = 0
-        for idx, conv in enumerate(st.session_state.conversations):
-            if conv["id"] == st.session_state.active_conversation_id:
-                current_index = idx
-                break
+        if st.session_state.conversations:
+            st.caption("Selecciona un chat y revisa su contexto antes de continuar.")
+            for conv in reversed(st.session_state.conversations):
+                is_active = conv["id"] == st.session_state.active_conversation_id
+                card_class = "history-card active" if is_active else "history-card"
+                preview = safe_html_text(get_conversation_preview(conv))
+                title = safe_html_text(conv["title"])
+                count = len(conv.get("messages", []))
 
-        if titles:
-            selected_title = st.selectbox("Conversaciones", titles, index=current_index)
-            selected_index = titles.index(selected_title)
-            st.session_state.active_conversation_id = st.session_state.conversations[selected_index]["id"]
+                st.markdown(
+                    f"""
+                    <div class='{card_class}'>
+                        <div class='history-title'>{title}</div>
+                        <div class='history-meta'>{count} mensaje(s)</div>
+                        <div class='history-preview'>{preview}</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+
+                if st.button(
+                    "Abrir este chat" if not is_active else "Chat actual",
+                    key=f"open_{conv['id']}",
+                    use_container_width=True,
+                    disabled=is_active
+                ):
+                    st.session_state.active_conversation_id = conv["id"]
+                    save_user_state(
+                        st.session_state.user_id,
+                        st.session_state.conversations,
+                        st.session_state.active_conversation_id
+                    )
+                    st.rerun()
 
         if new_chat_clicked:
             new_id = f"chat_{int(time.time())}"
@@ -325,6 +397,20 @@ else:
             st.session_state.active_conversation_id
         )
 
+        if active_conversation and not active_conversation.get("messages"):
+            st.markdown(
+                """
+                <div class='helper-box'>
+                    <strong>Puedes preguntarme sobre:</strong> inscripciones, certificados, Moodle, programas, horarios, docentes, tutorías e investigación.<br><br>
+                    <strong>Ejemplos:</strong><br>
+                    • ¿Cómo puedo subir una tarea a Moodle?<br>
+                    • ¿Cuáles son los horarios de Ciberseguridad?<br>
+                    • ¿Cómo puedo obtener mi tutor?
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
         if active_conversation:
             for idx, item in enumerate(active_conversation["messages"]):
                 if len(item) == 3:
@@ -353,6 +439,7 @@ else:
                                     json={
                                         "question": q,
                                         "response": a,
+                                        "user_id": st.session_state.user_id,
                                         "satisfaction": satisfaction,
                                         "clarity": clarity,
                                         "completeness": completeness,
@@ -371,7 +458,11 @@ else:
                     render_message("user", q)
                     render_message("bot", a)
 
-        question = st.text_input("Escribe tu pregunta", key="input_box")
+        question = st.text_input(
+            "Escribe tu pregunta",
+            key="input_box",
+            placeholder="Ej.: ¿Cómo puedo subir una tarea a Moodle?"
+        )
 
         if st.button("Enviar") and question.strip():
             answer_placeholder = st.empty()

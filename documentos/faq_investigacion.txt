@@ -1,7 +1,6 @@
 Pregunta: ¿Cómo puedo obtener mi tutor?
 Respuesta: Debe mandar un correo a: investigacion@soe.uagrm.edu.bo para que nuestra Coordinadora de Investigación pueda proveerle el banco de tutores oficial de su programa.
 
-
 Pregunta: ¿Puedo tener un tutor externo al listado provisto por la unidad de postgrado?
 Respuesta: Es posible el poder solicitar un profesional externo al listado presentado por la UPG para que sea su tutor, pero el postgraduante deberá proporcionar estos requisitos complementarios:
 Hoja de vida del profesional.
@@ -38,14 +37,14 @@ Respuesta: El coste de por módulo es de 1.400 bs. siendo 2.800 bs el costo tota
 Pregunta: ¿Cuáles son los horarios de los Cursos de Actualización?
 Respuesta: El horario de las clases es en la noche, los días en específico se informan de acuerdo a la versión que se este dando actualmente.
 
-
 Pregunta: ¿Cuántos módulos puedo reprobar en un Curso de Actualización?
 Respuesta: Ninguno, porque al reprobar un módulo ya pierde todo lo invertido para el Curso de Actualización.
-
 
 Pregunta: ¿Los módulos son convalidables?
 Respuesta: No, el Curso de Actualización solo es válido para la versión y edición publicada a la fecha, no pueden ser convalidados a futuro.
 
-
 Pregunta: ¿Realizar un Curso de Actualización me sirve para más de un programa de maestría cursado en la Unidad de Postgrado?
 Respuesta: No, un Curso de Actualización solo es válido para un programa, dado que el fin es reacondicionar el perfil del postgraduante para poder presentarlo cómo su Trabajo Final de Grado; si el postgraduante cuenta con mas de un programa cursado debe pasar un Curso de Actualización por cada uno.
+
+
+

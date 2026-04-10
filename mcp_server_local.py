@@ -17,6 +17,7 @@ from prometheus_client import Counter, Histogram, Gauge, generate_latest
 from datetime import datetime
 import logging
 import unicodedata
+import re
 
 # Lazy import de NLTK para evitar errores de inicialización
 def get_sentiment_analyzer():
@@ -55,6 +56,7 @@ FAISS_INDEX_PATH = "faiss_index.bin"
 CHUNKS_PATH = "chunks.pkl"
 QA_FAISS_INDEX_PATH = "qa_faiss_index.bin"
 QA_CACHE_PATH = "qa_cache.pkl"
+INTERACTION_LOG_PATH = "interaction_logs.jsonl"
 
 # Redis connection will be initialized after app creation
 r = None
@@ -89,6 +91,110 @@ qualitative_metrics = {
     "error_types": {},
     "response_times": []
 }
+
+# --- Métricas por usuario (en memoria desde el último reinicio) ---
+per_user_metrics = {}
+
+
+def ensure_user_metrics(user_id: str):
+    """Inicializa y retorna la estructura de métricas por usuario."""
+    user_key = user_id or "anonymous"
+    if user_key not in per_user_metrics:
+        per_user_metrics[user_key] = {
+            "queries_total": 0,
+            "faq_hits_total": 0,
+            "cache_hits_total": 0,
+            "guidance_total": 0,
+            "rag_total": 0,
+            "errors_total": 0,
+            "hallucinations_total": 0,
+            "response_times": [],
+            "satisfaction": [],
+            "clarity": [],
+            "completeness": [],
+            "query_categories": {},
+            "error_types": {}
+        }
+    return per_user_metrics[user_key], user_key
+
+
+def append_jsonl_record(path: str, payload: dict):
+    """Guarda un registro JSONL sin sobrescribir el histórico existente."""
+    try:
+        with open(path, "a", encoding="utf-8") as f:
+            json.dump(payload, f, ensure_ascii=False)
+            f.write("\n")
+    except Exception as e:
+        logging.warning(f"Error guardando registro en {path}: {e}")
+
+
+def record_interaction_metrics(user_id: str, question: str, categories: list, source: str, response_text: str, response_time_val: float, is_hallucinated: bool = False):
+    """Registra métricas por usuario y persiste interacciones para análisis posteriores."""
+    bucket, user_key = ensure_user_metrics(user_id)
+    bucket["queries_total"] += 1
+    bucket["response_times"].append(response_time_val)
+
+    for category in categories or []:
+        bucket["query_categories"][category] = bucket["query_categories"].get(category, 0) + 1
+
+    if source == "FAQ":
+        bucket["faq_hits_total"] += 1
+    elif source == "CACHE":
+        bucket["cache_hits_total"] += 1
+    elif source == "GUIDANCE":
+        bucket["guidance_total"] += 1
+    elif source == "RAG":
+        bucket["rag_total"] += 1
+
+    if is_hallucinated:
+        bucket["hallucinations_total"] += 1
+
+    append_jsonl_record(
+        INTERACTION_LOG_PATH,
+        {
+            "timestamp": datetime.now().isoformat(),
+            "user_id": user_key,
+            "question": question,
+            "categories": categories,
+            "source": source,
+            "response_time_s": round(response_time_val, 4),
+            "hallucinated": bool(is_hallucinated),
+            "response_preview": response_text[:500]
+        }
+    )
+
+
+def record_feedback_metrics(user_id: str, satisfaction: int, clarity: int, completeness: int, error_type: str):
+    """Actualiza las métricas cualitativas por usuario."""
+    bucket, _ = ensure_user_metrics(user_id)
+    bucket["satisfaction"].append(satisfaction)
+    bucket["clarity"].append(clarity)
+    bucket["completeness"].append(completeness)
+    if error_type:
+        bucket["errors_total"] += 1
+        bucket["error_types"][error_type] = bucket["error_types"].get(error_type, 0) + 1
+
+
+def build_per_user_summary():
+    """Resume las métricas por usuario para exponerlas en /metrics."""
+    summary = {}
+    for user_id, data in per_user_metrics.items():
+        summary[user_id] = {
+            "queries_total": data["queries_total"],
+            "faq_hits_total": data["faq_hits_total"],
+            "cache_hits_total": data["cache_hits_total"],
+            "guidance_total": data["guidance_total"],
+            "rag_total": data["rag_total"],
+            "errors_total": data["errors_total"],
+            "hallucinations_total": data["hallucinations_total"],
+            "avg_response_time": round(np.mean(data["response_times"]), 2) if data["response_times"] else 0,
+            "avg_satisfaction": round(np.mean(data["satisfaction"]), 2) if data["satisfaction"] else 0,
+            "avg_clarity": round(np.mean(data["clarity"]), 2) if data["clarity"] else 0,
+            "avg_completeness": round(np.mean(data["completeness"]), 2) if data["completeness"] else 0,
+            "query_categories": data["query_categories"],
+            "error_types": data["error_types"]
+        }
+    return summary
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -177,6 +283,7 @@ class AskRequest(BaseModel):
 class FeedbackRequest(BaseModel):
     question: str
     response: str
+    user_id: str = "anonymous"
     satisfaction: int  # 1-5
     clarity: int  # 1-5
     completeness: int  # 1-5
@@ -223,13 +330,16 @@ def categorize_query_multi(question: str) -> list:
                 "avance academico", "certificado de calificaciones", "vencimiento de plan",
                 "caja", "mensajero", "atencion", "horario de atencion", "donde queda",
                 "ubicado", "correo", "apoyoacademico", "reprobar", "modulos puedo reprobar",
-                "tutor", "tutoria", "tutorias", "tutoría", "tutorías",
+                "tutoria", "tutorias", "tutoría", "tutorías",
                 "asesoria", "asesoría", "asesorias", "asesorías",
                 "congelar", "congelarse", "congelacion",
                 "fotocopia", "fotocopias", "titulo", "título", "cedula", "cédula",
                 "fotografía", "fotografias", "inasistencia", "falta", "faltas", "asistencia",
                 "nota", "aprobacion", "aprobación", "nota minima", "nota mínima",
-                "certificado de notas", "certificado", "certificados"
+                "certificado de notas", "certificado", "certificados",
+                "moodle", "aula virtual", "tarea", "tareas", "calificaciones", "prorroga", "prórroga",
+                "mensaje privado", "contrasena", "contraseña", "sesiones sincronas", "sesiones síncronas",
+                "grabaciones", "videos de clases", "video de clases"
             ],
         "Academica": [
             "malla", "plan de estudio", "materia", "asignatura", "contenido", "programa",
@@ -238,8 +348,9 @@ def categorize_query_multi(question: str) -> list:
             "convalidacion", "convalidar", "convalidación", "convalidaciones"
         ],
         "Investigacion": [
-            "linea de investigacion", "perfil", "tutor", "asesor", "tesis", "investigacion",
-            "metodologia", "monografia"
+            "linea de investigacion", "perfil", "asesor", "tesis", "investigacion",
+            "metodologia", "monografia", "trabajo final de grado", "predefensa",
+            "director de trabajo final", "tema de investigacion", "titulo del trabajo"
         ]
     }
     matched = []
@@ -247,6 +358,54 @@ def categorize_query_multi(question: str) -> list:
         if any(kw in question_lower for kw in keywords):
             matched.append(category)
     return matched if matched else ["Otro"]
+
+def needs_guidance(question: str, categories: list) -> bool:
+    """Detecta preguntas demasiado vagas para guiar al usuario antes de responder."""
+    normalized = normalize_text(question)
+    cleaned = re.sub(r"[^a-z0-9\s]", " ", normalized)
+    cleaned = " ".join(cleaned.split())
+
+    if not cleaned:
+        return True
+
+    vague_exact = {
+        "hola", "buenas", "buenos dias", "buenas tardes", "buenas noches",
+        "ayuda", "necesito ayuda", "quiero ayuda", "quiero informacion",
+        "informacion", "mas informacion", "tengo una duda", "consulta",
+        "quiero consultar", "quiero saber", "como hago", "que hago",
+        "ayudame", "me ayudas", "no entiendo"
+    }
+
+    vague_starts = [
+        "necesito", "quiero informacion", "quiero saber", "como hago",
+        "que hago", "me ayudas", "ayudame", "no entiendo"
+    ]
+
+    if cleaned in vague_exact:
+        return True
+
+    if any(cleaned.startswith(prefix) for prefix in vague_starts) and len(cleaned.split()) <= 6:
+        return True
+
+    if categories == ["Otro"] and len(cleaned.split()) <= 5:
+        return True
+
+    return False
+
+def build_guidance_message() -> str:
+    """Mensaje guía para ayudar al usuario a formular preguntas más concretas."""
+    return (
+        "Puedo ayudarte mejor si escribes una pregunta concreta dentro del contexto de SoeBOT.\n\n"
+        "Áreas que manejo:\n"
+        "1. Atención al cliente: inscripciones, certificados, pagos, Moodle y trámites.\n"
+        "2. Académica: programas, módulos, horarios y docentes.\n"
+        "3. Investigación: tutor, monografía, defensa y curso de actualización.\n\n"
+        "Ejemplos de preguntas útiles:\n"
+        "- ¿Cómo puedo subir una tarea a Moodle?\n"
+        "- ¿Cuáles son los horarios de Ciberseguridad?\n"
+        "- ¿Cómo puedo obtener mi tutor?\n"
+        "- ¿Cuáles son los documentos de inscripción?"
+    )
 
 def cargar_faqs_con_embeddings(faq_path: str, embed_fn):
     """Carga preguntas/respuestas del FAQ con cache por mtime y embeddings precalculados."""
@@ -337,11 +496,25 @@ async def ask(request: AskRequest):
     """
     print(f"Recibida pregunta: {request.question}")
     query_counter.inc()
+    request_start = time.time()
     
     # Categorizar consulta (multi-categoría)
     categories = categorize_query_multi(request.question)
     qualitative_metrics["query_categories"][str(categories)] = qualitative_metrics["query_categories"].get(str(categories), 0) + 1
     print(f"Categorías detectadas: {categories}")
+
+    if needs_guidance(request.question, categories):
+        print("Consulta vaga detectada. Enviando guía de uso del chatbot.")
+        guidance_message = build_guidance_message()
+        response_time_val = time.time() - request_start
+        response_time.observe(response_time_val)
+        qualitative_metrics["response_times"].append(response_time_val)
+        qualitative_metrics["hallucination_rate"].append(0)
+        record_interaction_metrics(request.user_id, request.question, categories, "GUIDANCE", guidance_message, response_time_val, False)
+
+        async def stream_guidance_response():
+            yield guidance_message
+        return StreamingResponse(stream_guidance_response(), media_type="text/event-stream")
 
     # 0. Buscar en FAQs por dominio ANTES que en RAG
     faq_files = {
@@ -350,19 +523,41 @@ async def ask(request: AskRequest):
         "Investigacion": "documentos/faq_investigacion.txt"
     }
     faq_responses = []
+    searched_categories = set()
     for cat in categories:
         if cat in faq_files:
+            searched_categories.add(cat)
             print(f"Buscando en FAQ de {cat}...")
             faqs = cargar_faqs_con_embeddings(faq_files[cat], embeddings.embed_query)
             faq_response = buscar_faq_semantico(request.question, faqs, embeddings.embed_query, threshold=0.75)
             if faq_response:
                 faq_responses.append(f"Respuesta ({cat}):\n{faq_response}")
                 print(f"Encontrada respuesta en FAQ de {cat}")
-    
+
+    # Fallback: si la categorización no encontró nada, revisar el resto de FAQs
+    if not faq_responses:
+        for cat, faq_path in faq_files.items():
+            if cat in searched_categories:
+                continue
+            print(f"Sin match por categoría, probando FAQ de {cat}...")
+            faqs = cargar_faqs_con_embeddings(faq_path, embeddings.embed_query)
+            faq_response = buscar_faq_semantico(request.question, faqs, embeddings.embed_query, threshold=0.75)
+            if faq_response:
+                faq_responses.append(f"Respuesta ({cat}):\n{faq_response}")
+                print(f"Encontrada respuesta en FAQ de {cat} por fallback")
+                break
+
     if faq_responses:
         print(f"Devolviendo {len(faq_responses)} respuesta(s) de FAQ")
+        combined_response = "\n\n".join(faq_responses)
+
         async def stream_faq_response():
-            combined_response = "\n\n".join(faq_responses)
+            response_time_val = time.time() - request_start
+            response_time.observe(response_time_val)
+            qualitative_metrics["response_times"].append(response_time_val)
+            qualitative_metrics["hallucination_rate"].append(0)
+            record_interaction_metrics(request.user_id, request.question, categories, "FAQ", combined_response, response_time_val, False)
+
             # Guardar en caché también
             qa_cache[request.question] = combined_response
             qa_faiss_index.add(np.array([embeddings.embed_query(request.question)], dtype="float32"))
@@ -379,8 +574,15 @@ async def ask(request: AskRequest):
     if request.question in qa_cache:
         print("Respuesta encontrada en caché de Q&A (coincidencia exacta).")
         cache_hit_counter.inc()
+        cached_response = qa_cache[request.question]
+
         async def stream_cached_response():
-            yield qa_cache[request.question]
+            response_time_val = time.time() - request_start
+            response_time.observe(response_time_val)
+            qualitative_metrics["response_times"].append(response_time_val)
+            qualitative_metrics["hallucination_rate"].append(0)
+            record_interaction_metrics(request.user_id, request.question, categories, "CACHE", cached_response, response_time_val, False)
+            yield cached_response
         return StreamingResponse(stream_cached_response(), media_type="text/event-stream")
 
     # 2. Embed the question
@@ -391,15 +593,18 @@ async def ask(request: AskRequest):
 
     # 3. Find similar Q&A pairs (Few-shot learning)
     similar_qa_examples = ""
-    if qa_faiss_index.ntotal > 0:
+    qa_keys = list(qa_cache.keys())
+    if qa_faiss_index.ntotal > 0 and len(qa_keys) > 0:
         print("Buscando preguntas similares en el índice de Q&A...")
-        distances, indices = qa_faiss_index.search(question_embedding_np, k=min(3, qa_faiss_index.ntotal))
-        similar_questions = [list(qa_cache.keys())[i] for i in indices[0]]
+        k = min(3, qa_faiss_index.ntotal, len(qa_keys))
+        distances, indices = qa_faiss_index.search(question_embedding_np, k=k)
         
         example_list = []
-        for q in similar_questions:
-            if q in qa_cache:
-                example_list.append(f"Pregunta: {q}\nRespuesta: {qa_cache[q]}")
+        for i in indices[0]:
+            if 0 <= i < len(qa_keys):
+                q = qa_keys[i]
+                if q in qa_cache:
+                    example_list.append(f"Pregunta: {q}\nRespuesta: {qa_cache[q]}")
         
         if example_list:
             similar_qa_examples = "\n\n---\n\nEjemplos de preguntas y respuestas anteriores:\n\n" + "\n\n".join(example_list)
@@ -497,7 +702,8 @@ Respuesta:
             logging.error(f"Error guardando caché: {e}")
             error_counter.inc()
 
-        logging.info(f"Respuesta completada en {response_time_val:.2f}s | Categorías: {categories} | Hallucination: {is_hallucinated} | Sentiment: {sentiment:.2f}")
+        record_interaction_metrics(request.user_id, request.question, categories, "RAG", full_response, response_time_val, is_hallucinated)
+        logging.info(f"Respuesta completada en {response_time_val:.2f}s | Usuario: {request.user_id} | Categorías: {categories} | Hallucination: {is_hallucinated} | Sentiment: {sentiment:.2f}")
 
     return StreamingResponse(stream_generator(), media_type="text/event-stream")
 
@@ -506,6 +712,7 @@ async def feedback(request: FeedbackRequest):
     """Recopilar feedback cualitativo del usuario."""
     feedback_data = {
         "timestamp": datetime.now().isoformat(),
+        "user_id": request.user_id,
         "question": request.question,
         "response": request.response,
         "satisfaction": request.satisfaction,
@@ -515,10 +722,8 @@ async def feedback(request: FeedbackRequest):
         "comments": request.comments
     }
     
-    # Guardar feedback
-    with open("feedback.jsonl", "a") as f:
-        json.dump(feedback_data, f)
-        f.write("\n")
+    # Guardar feedback sin perder histórico previo
+    append_jsonl_record("feedback.jsonl", feedback_data)
 
     # Actualizar métricas globales
     qualitative_metrics["avg_satisfaction"].append(request.satisfaction)
@@ -528,7 +733,9 @@ async def feedback(request: FeedbackRequest):
     if request.error_type:
         qualitative_metrics["error_types"][request.error_type] = qualitative_metrics["error_types"].get(request.error_type, 0) + 1
 
-    logging.info(f"Feedback recibido: Satisfacción={request.satisfaction}, Claridad={request.clarity}, Completitud={request.completeness}")
+    record_feedback_metrics(request.user_id, request.satisfaction, request.clarity, request.completeness, request.error_type)
+
+    logging.info(f"Feedback recibido de {request.user_id}: Satisfacción={request.satisfaction}, Claridad={request.clarity}, Completitud={request.completeness}")
     
     return {"message": "Feedback guardado", "status": "success"}
 
@@ -557,8 +764,9 @@ async def metrics():
             "avg_response_time": round(np.mean(qualitative_metrics["response_times"]), 2) if qualitative_metrics["response_times"] else 0,
             "query_categories": qualitative_metrics["query_categories"],
             "error_types": qualitative_metrics["error_types"],
-            "total_queries_tracked": len(qualitative_metrics["hallucination_rate"])
-        }
+            "total_queries_tracked": len(qualitative_metrics["response_times"])
+        },
+        "per_user": build_per_user_summary()
     }
     
     return metrics_summary
