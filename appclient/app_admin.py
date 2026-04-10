@@ -1,3 +1,4 @@
+import ast
 import streamlit as st
 import requests
 import json
@@ -158,6 +159,26 @@ def summarize_user_histories(user_histories):
     return summary
 
 
+def parse_category_values(value):
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item).strip()]
+    if value is None:
+        return []
+    if isinstance(value, str):
+        text = value.strip()
+        if not text:
+            return []
+        if text.startswith("[") and text.endswith("]"):
+            try:
+                parsed = ast.literal_eval(text)
+                if isinstance(parsed, list):
+                    return [str(item).strip() for item in parsed if str(item).strip()]
+            except (ValueError, SyntaxError):
+                pass
+        return [text]
+    return [str(value).strip()]
+
+
 def download_dataframe(df, label, file_name):
     if df.empty:
         return
@@ -185,6 +206,11 @@ if metrics:
             df_feedbacks["user_id"] = "legacy"
         else:
             df_feedbacks["user_id"] = df_feedbacks["user_id"].fillna("legacy")
+        if "timestamp" in df_feedbacks.columns:
+            df_feedbacks["timestamp"] = pd.to_datetime(df_feedbacks["timestamp"], errors="coerce")
+        for col in ["satisfaction", "clarity", "completeness"]:
+            if col in df_feedbacks.columns:
+                df_feedbacks[col] = pd.to_numeric(df_feedbacks[col], errors="coerce")
 
     if not df_interactions.empty:
         if "user_id" not in df_interactions.columns:
@@ -195,367 +221,477 @@ if metrics:
             df_interactions["response_time_s"] = pd.to_numeric(df_interactions["response_time_s"], errors="coerce")
         if "timestamp" in df_interactions.columns:
             df_interactions["timestamp"] = pd.to_datetime(df_interactions["timestamp"], errors="coerce")
-
-    df_filtered = df_feedbacks.copy()
-    df_interactions_filtered = df_interactions.copy()
-
-    if not df_feedbacks.empty and "timestamp" in df_feedbacks.columns:
-        df_filtered["timestamp"] = pd.to_datetime(df_filtered["timestamp"], errors="coerce")
-        df_filtered = df_filtered.dropna(subset=["timestamp"]).sort_values("timestamp")
-        if not df_filtered.empty:
-            min_date = df_filtered["timestamp"].min().date()
-            max_date = df_filtered["timestamp"].max().date()
-            with st.expander("Filtros de analisis", expanded=False):
-                date_range = st.date_input("Rango de fechas", (min_date, max_date))
-                if isinstance(date_range, (list, tuple)) and len(date_range) == 2:
-                    start_date, end_date = date_range
-                    df_filtered = df_filtered[(df_filtered["timestamp"].dt.date >= start_date) & (df_filtered["timestamp"].dt.date <= end_date)]
-                    if not df_interactions_filtered.empty and "timestamp" in df_interactions_filtered.columns:
-                        df_interactions_filtered = df_interactions_filtered.dropna(subset=["timestamp"])
-                        df_interactions_filtered = df_interactions_filtered[(df_interactions_filtered["timestamp"].dt.date >= start_date) & (df_interactions_filtered["timestamp"].dt.date <= end_date)]
-
-    total_queries = int(quant.get("queries_total", 0))
-    cache_hits = int(quant.get("cache_hits_total", 0))
-    cache_rate = (cache_hits / total_queries * 100) if total_queries > 0 else 0
-    avg_response = float(qual.get("avg_response_time", 0) or 0)
-    avg_clarity = float(qual.get("avg_clarity", 0) or 0)
-    avg_satisfaction = float(qual.get("avg_satisfaction", 0) or 0)
-    avg_completeness = float(qual.get("avg_completeness", 0) or 0)
-    halluc_rate = float(qual.get("hallucination_rate", 0) or 0) * 100
-    veracity_score = max(0.0, 100.0 - halluc_rate)
-
-    st.header("Resultados para validacion de tesis")
-
-    st.subheader("Eficiencia")
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Consultas", total_queries)
-    col2.metric("Cache Hits", cache_hits)
-    col3.metric("Cache Rate", f"{cache_rate:.1f}%")
-    col4.metric("Tiempo medio (s)", f"{avg_response:.2f}")
-
-    fig, ax = plt.subplots(figsize=(7, 3))
-    ax.bar(["Cache", "No Cache"], [cache_hits, max(total_queries - cache_hits, 0)], color=["#3d405b", "#e07a5f"])
-    ax.set_title("Distribucion de respuestas cache vs no cache")
-    ax.set_ylabel("Consultas")
-    st.pyplot(fig)
-
-    df_eff = pd.DataFrame([
-        {"Indicador": "Consultas totales", "Valor": total_queries},
-        {"Indicador": "Cache hits", "Valor": cache_hits},
-        {"Indicador": "Cache rate (%)", "Valor": round(cache_rate, 2)},
-        {"Indicador": "Tiempo promedio (s)", "Valor": round(avg_response, 2)}
-    ])
-    st.dataframe(df_eff, use_container_width=True)
-    download_dataframe(df_eff, "Descargar eficiencia (CSV)", "eficiencia.csv")
-
-    st.subheader("Claridad")
-    col1, col2 = st.columns(2)
-    col1.metric("Claridad promedio", f"{avg_clarity:.2f}/5")
-    col2.metric("Completitud promedio", f"{avg_completeness:.2f}/5")
-
-    if not df_filtered.empty and "clarity" in df_filtered.columns:
-        clarity_counts = df_filtered["clarity"].value_counts().sort_index()
-        fig, ax = plt.subplots(figsize=(7, 3))
-        ax.bar(clarity_counts.index.astype(str), clarity_counts.values, color="#3d405b")
-        ax.set_title("Distribucion de claridad (1-5)")
-        ax.set_xlabel("Puntaje")
-        ax.set_ylabel("Respuestas")
-        st.pyplot(fig)
-
-        df_low_clarity = df_filtered[df_filtered["clarity"] <= 2][["timestamp", "question", "clarity", "comments"]].copy()
-        if not df_low_clarity.empty:
-            st.markdown("Casos con claridad baja (<=2)")
-            st.dataframe(df_low_clarity, use_container_width=True)
-            download_dataframe(df_low_clarity, "Descargar casos claridad baja", "claridad_baja.csv")
-
-    st.subheader("Veracidad")
-    col1, col2 = st.columns(2)
-    col1.metric("Sin alucinaciones", f"{veracity_score:.1f}%")
-    col2.metric("Errores totales", int(quant.get("errors_total", 0)))
-
-    if qual.get("error_types"):
-        df_errors = pd.DataFrame({
-            "Tipo": list(qual["error_types"].keys()),
-            "Frecuencia": list(qual["error_types"].values())
-        })
-        fig, ax = plt.subplots(figsize=(7, 3))
-        ax.bar(df_errors["Tipo"], df_errors["Frecuencia"], color="#e07a5f")
-        ax.set_title("Errores detectados por tipo")
-        ax.set_ylabel("Frecuencia")
-        plt.xticks(rotation=30, ha="right")
-        st.pyplot(fig)
-        st.dataframe(df_errors, use_container_width=True)
-        download_dataframe(df_errors, "Descargar errores", "errores.csv")
-
-    st.subheader("Satisfaccion")
-    col1, col2 = st.columns(2)
-    col1.metric("Satisfaccion promedio", f"{avg_satisfaction:.2f}/5")
-    col2.metric("Sentimiento promedio", f"{qual.get('avg_sentiment', 0):.2f}")
-
-    if not df_filtered.empty and "satisfaction" in df_filtered.columns:
-        df_trend = df_filtered.sort_values("timestamp")
-        fig, ax = plt.subplots(figsize=(10, 3))
-        ax.plot(df_trend["timestamp"], df_trend["satisfaction"], marker="o", linestyle="-", color="#3d405b")
-        ax.axhline(y=3, color="#e07a5f", linestyle="--", label="Neutral (3)")
-        ax.set_title("Tendencia de satisfaccion")
-        ax.set_ylabel("Satisfaccion (1-5)")
-        ax.set_xlabel("Fecha")
-        ax.legend()
-        st.pyplot(fig)
-
-        df_low_sat = df_filtered[df_filtered["satisfaction"] <= 2][["timestamp", "question", "satisfaction", "comments"]].copy()
-        if not df_low_sat.empty:
-            st.markdown("Casos con satisfaccion baja (<=2)")
-            st.dataframe(df_low_sat, use_container_width=True)
-            download_dataframe(df_low_sat, "Descargar casos satisfaccion baja", "satisfaccion_baja.csv")
-    
-    # --- MÉTRICAS CUANTITATIVAS ---
-    st.header("📈 Métricas Cuantitativas (Prometheus)")
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("🔍 Consultas Totales", int(quant.get("queries_total", 0)))
-    col2.metric("✅ Cache Hits", int(quant.get("cache_hits_total", 0)))
-    col3.metric("❌ Errores", int(quant.get("errors_total", 0)))
-    col4.metric("⚠️ Alucinaciones", int(quant.get("hallucinations_total", 0)))
-    
-    st.subheader("Recursos del Sistema")
-    col1, col2 = st.columns(2)
-    col1.metric("💻 CPU (%)", round(quant.get("cpu_usage_percent", 0), 1))
-    col2.metric("🧠 Memoria (%)", round(quant.get("memory_usage_percent", 0), 1))
-    
-    # Visualización de recursos
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))
-    ax1.bar(['CPU'], [quant.get("cpu_usage_percent", 0)], color='#1f77b4', alpha=0.7)
-    ax1.set_ylim([0, 100])
-    ax1.set_title("Uso de CPU (%)")
-    ax1.axhline(y=80, color='r', linestyle='--', label='Alerta')
-    
-    ax2.bar(['Memoria'], [quant.get("memory_usage_percent", 0)], color='#ff7f0e', alpha=0.7)
-    ax2.set_ylim([0, 100])
-    ax2.set_title("Uso de Memoria (%)")
-    ax2.axhline(y=80, color='r', linestyle='--', label='Alerta')
-    st.pyplot(fig)
-    
-    # --- MÉTRICAS CUALITATIVAS ---
-    st.header("✨ Métricas Cualitativas (Evaluación de Calidad)")
-    
-    col1, col2, col3 = st.columns(3)
-    col1.metric("😊 Satisfacción (1-5)", qual.get("avg_satisfaction", 0))
-    col2.metric("💬 Claridad (1-5)", qual.get("avg_clarity", 0))
-    col3.metric("✔️ Completitud (1-5)", qual.get("avg_completeness", 0))
-    
-    col1, col2, col3 = st.columns(3)
-    halluc_rate = qual.get("hallucination_rate", 0) * 100
-    col1.metric("🎯 Sin Alucinaciones (%)", f"{100 - halluc_rate:.1f}%")
-    col2.metric("😌 Sentimiento Promedio", f"{qual.get('avg_sentiment', 0):.2f}", help="-1=Negativo, +1=Positivo")
-    col3.metric("⏱️ Tiempo Respuesta Promedio (s)", qual.get("avg_response_time", 0))
-    
-    # --- DISTRIBUCIÓN DE PREGUNTAS POR CATEGORÍA ---
-    st.subheader("📂 Distribución de Preguntas por Categoría")
-    if qual.get("query_categories"):
-        categories = list(qual["query_categories"].keys())
-        counts = list(qual["query_categories"].values())
-        fig, ax = plt.subplots(figsize=(10, 5))
-        ax.barh(categories, counts, color='#2ca02c')
-        ax.set_xlabel("Número de Preguntas")
-        st.pyplot(fig)
-        
-        # Tabla de categorías
-        df_categories = pd.DataFrame({
-            "Categoría": categories,
-            "Preguntas": counts,
-            "Porcentaje (%)": [f"{(c/sum(counts)*100):.1f}%" for c in counts]
-        })
-        st.dataframe(df_categories, use_container_width=True)
-    else:
-        st.info("Sin categorías aún. Las consultas aparecerán después de las primeras interacciones.")
-    
-    # --- TIPOS DE ERROR ---
-    st.subheader("⚠️ Tipos de Error Detectados")
-    if qual.get("error_types"):
-        errors = list(qual["error_types"].keys())
-        error_counts = list(qual["error_types"].values())
-        fig, ax = plt.subplots(figsize=(10, 5))
-        ax.bar(errors, error_counts, color='#d62728')
-        plt.xticks(rotation=45, ha='right')
-        ax.set_ylabel("Frecuencia")
-        st.pyplot(fig)
-        
-        df_errors = pd.DataFrame({
-            "Tipo de Error": errors,
-            "Frecuencia": error_counts
-        })
-        st.dataframe(df_errors, use_container_width=True)
-    else:
-        st.info("Sin errores reportados aún.")
-    
-    # --- REPORTE GLOBAL Y POR USUARIO ---
-    st.header("👥 Reporte Global y por Usuario")
+        if "categories" not in df_interactions.columns:
+            df_interactions["categories"] = [[] for _ in range(len(df_interactions))]
+        df_interactions["categories_list"] = df_interactions["categories"].apply(parse_category_values)
+        df_interactions["category_label"] = df_interactions["categories_list"].apply(lambda values: ", ".join(values) if values else "Sin categoría")
 
     users_from_data = set(registered_users)
     users_from_data.update(history_summary.keys())
-    persisted_user_ids = set()
+    if not df_interactions.empty and "user_id" in df_interactions.columns:
+        users_from_data.update(df_interactions["user_id"].dropna().astype(str).tolist())
+    if not df_feedbacks.empty and "user_id" in df_feedbacks.columns:
+        users_from_data.update(df_feedbacks["user_id"].dropna().astype(str).tolist())
 
-    if not df_interactions_filtered.empty and "user_id" in df_interactions_filtered.columns:
-        interaction_user_ids = set(df_interactions_filtered["user_id"].dropna().astype(str).tolist())
-        users_from_data.update(interaction_user_ids)
-        persisted_user_ids.update(interaction_user_ids)
-    if not df_filtered.empty and "user_id" in df_filtered.columns:
-        feedback_user_ids = set(df_filtered["user_id"].dropna().astype(str).tolist())
-        users_from_data.update(feedback_user_ids)
-        persisted_user_ids.update(feedback_user_ids)
+    all_dates = []
+    if not df_interactions.empty and "timestamp" in df_interactions.columns:
+        valid_dates = df_interactions["timestamp"].dropna()
+        if not valid_dates.empty:
+            all_dates.extend(valid_dates.dt.date.tolist())
+    if not df_feedbacks.empty and "timestamp" in df_feedbacks.columns:
+        valid_dates = df_feedbacks["timestamp"].dropna()
+        if not valid_dates.empty:
+            all_dates.extend(valid_dates.dt.date.tolist())
 
-    if users_from_data:
-        selected_user = st.selectbox("Vista analítica", ["Global"] + sorted(users_from_data, key=lambda x: str(x).lower()))
+    if all_dates:
+        default_start = min(all_dates)
+        default_end = max(all_dates)
+    else:
+        default_start = datetime.now().date()
+        default_end = datetime.now().date()
 
-        if selected_user == "Global":
-            total_interactions = len(df_interactions_filtered) if not df_interactions_filtered.empty else 0
-            avg_rt_global = round(df_interactions_filtered["response_time_s"].mean(), 2) if not df_interactions_filtered.empty and "response_time_s" in df_interactions_filtered.columns else 0
+    user_options = sorted(users_from_data, key=lambda x: str(x).lower())
+    source_options = sorted(df_interactions["source"].dropna().astype(str).unique().tolist()) if not df_interactions.empty and "source" in df_interactions.columns else []
+    category_options = sorted({category for values in (df_interactions["categories_list"] if not df_interactions.empty and "categories_list" in df_interactions.columns else []) for category in values})
 
-            col1, col2, col3, col4 = st.columns(4)
-            col1.metric("Usuarios registrados", len([u for u in registered_users if u != "legacy"]))
-            col2.metric("Usuarios con historial", len([u for u in history_summary.keys() if u != "legacy"]))
-            col3.metric("Interacciones persistidas", total_interactions)
-            col4.metric("Tiempo medio global (s)", avg_rt_global)
+    st.sidebar.header("Filtros de análisis")
+    st.sidebar.caption("Reduce el ruido visual y analiza solo el subconjunto que te interesa.")
+    date_range = st.sidebar.date_input("Rango de fechas", (default_start, default_end))
+    selected_users = st.sidebar.multiselect("Usuarios", user_options, default=user_options)
+    selected_sources = st.sidebar.multiselect("Fuentes de respuesta", source_options, default=source_options)
+    selected_categories = st.sidebar.multiselect("Categorías", category_options, default=category_options)
+    feedback_scope = st.sidebar.selectbox("Estado de feedback", ["Todos", "Solo con feedback", "Solo sin feedback"])
+    keyword = st.sidebar.text_input("Buscar texto", placeholder="Ej.: tutor, Moodle, defensa")
 
-            user_rows = []
-            for user_id in sorted(users_from_data, key=lambda x: str(x).lower()):
-                history_meta = history_summary.get(user_id, {})
-                user_interactions = df_interactions_filtered[df_interactions_filtered["user_id"] == user_id] if not df_interactions_filtered.empty else pd.DataFrame()
-                user_feedback = df_filtered[df_filtered["user_id"] == user_id] if not df_filtered.empty else pd.DataFrame()
+    df_feedbacks_view = df_feedbacks.copy()
+    df_interactions_view = df_interactions.copy()
 
-                row = {
-                    "user_id": user_id,
-                    "registrado": "Sí" if user_id in registered_users else "No",
-                    "conversaciones_guardadas": history_meta.get("conversations", 0),
-                    "preguntas_historicas": history_meta.get("historical_questions", 0),
-                    "interacciones_persistidas": len(user_interactions),
-                    "feedbacks": len(user_feedback),
-                    "tiempo_promedio_s": round(user_interactions["response_time_s"].mean(), 2) if not user_interactions.empty and "response_time_s" in user_interactions.columns else 0,
-                    "chat_activo": history_meta.get("active_chat", "-"),
-                }
+    if isinstance(date_range, (list, tuple)) and len(date_range) == 2:
+        start_date, end_date = date_range
+        if not df_feedbacks_view.empty and "timestamp" in df_feedbacks_view.columns:
+            df_feedbacks_view = df_feedbacks_view.dropna(subset=["timestamp"])
+            df_feedbacks_view = df_feedbacks_view[(df_feedbacks_view["timestamp"].dt.date >= start_date) & (df_feedbacks_view["timestamp"].dt.date <= end_date)]
+        if not df_interactions_view.empty and "timestamp" in df_interactions_view.columns:
+            df_interactions_view = df_interactions_view.dropna(subset=["timestamp"])
+            df_interactions_view = df_interactions_view[(df_interactions_view["timestamp"].dt.date >= start_date) & (df_interactions_view["timestamp"].dt.date <= end_date)]
 
-                if not user_feedback.empty:
-                    row["satisfaccion_promedio"] = round(user_feedback["satisfaction"].mean(), 2) if "satisfaction" in user_feedback.columns else 0
-                    row["claridad_promedio"] = round(user_feedback["clarity"].mean(), 2) if "clarity" in user_feedback.columns else 0
-                    row["completitud_promedio"] = round(user_feedback["completeness"].mean(), 2) if "completeness" in user_feedback.columns else 0
+    if user_options and len(selected_users) != len(user_options):
+        selected_user_set = set(selected_users)
+        if not df_feedbacks_view.empty and "user_id" in df_feedbacks_view.columns:
+            df_feedbacks_view = df_feedbacks_view[df_feedbacks_view["user_id"].isin(selected_user_set)]
+        if not df_interactions_view.empty and "user_id" in df_interactions_view.columns:
+            df_interactions_view = df_interactions_view[df_interactions_view["user_id"].isin(selected_user_set)]
 
-                user_rows.append(row)
+    if source_options and len(selected_sources) != len(source_options) and not df_interactions_view.empty:
+        df_interactions_view = df_interactions_view[df_interactions_view["source"].isin(selected_sources)]
 
-            df_user_summary = pd.DataFrame(user_rows)
-            st.dataframe(df_user_summary.fillna("-"), use_container_width=True)
-            download_dataframe(df_user_summary.fillna(""), "Descargar reporte global por usuario", "reporte_global_por_usuario.csv")
+    if category_options and len(selected_categories) != len(category_options) and not df_interactions_view.empty:
+        selected_category_set = set(selected_categories)
+        df_interactions_view = df_interactions_view[df_interactions_view["categories_list"].apply(lambda values: any(category in selected_category_set for category in values))]
 
-            if "Direccion" in users_from_data:
-                st.info("El perfil del director figura registrado como `Direccion` dentro del sistema.")
-            if "legacy" in users_from_data:
-                st.info("Los registros históricos previos sin user_id se muestran como 'legacy' y siguen contando para el análisis global.")
+    if keyword.strip():
+        term = keyword.strip().lower()
+        if not df_interactions_view.empty:
+            interaction_mask = df_interactions_view["question"].astype(str).str.lower().str.contains(term, na=False)
+            if "response_preview" in df_interactions_view.columns:
+                interaction_mask = interaction_mask | df_interactions_view["response_preview"].astype(str).str.lower().str.contains(term, na=False)
+            df_interactions_view = df_interactions_view[interaction_mask]
+        if not df_feedbacks_view.empty:
+            feedback_mask = df_feedbacks_view["question"].astype(str).str.lower().str.contains(term, na=False)
+            if "comments" in df_feedbacks_view.columns:
+                feedback_mask = feedback_mask | df_feedbacks_view["comments"].astype(str).str.lower().str.contains(term, na=False)
+            df_feedbacks_view = df_feedbacks_view[feedback_mask]
+
+    if feedback_scope != "Todos":
+        users_with_feedback = set(df_feedbacks_view["user_id"].dropna().astype(str).tolist()) if not df_feedbacks_view.empty else set()
+        if feedback_scope == "Solo con feedback":
+            if not df_interactions_view.empty:
+                df_interactions_view = df_interactions_view[df_interactions_view["user_id"].isin(users_with_feedback)]
         else:
-            history_meta = history_summary.get(selected_user, {"conversations": 0, "historical_questions": 0, "active_chat": "-"})
-            user_interactions = df_interactions_filtered[df_interactions_filtered["user_id"] == selected_user] if not df_interactions_filtered.empty else pd.DataFrame()
-            user_feedback = df_filtered[df_filtered["user_id"] == selected_user] if not df_filtered.empty else pd.DataFrame()
+            if not df_interactions_view.empty:
+                df_interactions_view = df_interactions_view[~df_interactions_view["user_id"].isin(users_with_feedback)]
+
+    filtered_user_options = sorted(set(df_interactions_view["user_id"].dropna().astype(str).tolist()) | set(df_feedbacks_view["user_id"].dropna().astype(str).tolist()) | set(selected_users or []), key=lambda x: str(x).lower())
+    if not filtered_user_options:
+        filtered_user_options = user_options
+
+    view_total_queries = len(df_interactions_view) if not df_interactions_view.empty else 0
+    history_total_queries = sum(history_summary.get(user_id, {}).get("historical_questions", 0) for user_id in filtered_user_options)
+    visible_users = len(set(df_interactions_view["user_id"].dropna().astype(str).tolist())) if not df_interactions_view.empty else 0
+    feedback_count = len(df_feedbacks_view) if not df_feedbacks_view.empty else 0
+    avg_response = round(df_interactions_view["response_time_s"].dropna().mean(), 2) if not df_interactions_view.empty and "response_time_s" in df_interactions_view.columns and not df_interactions_view["response_time_s"].dropna().empty else 0
+    avg_satisfaction = round(df_feedbacks_view["satisfaction"].dropna().mean(), 2) if not df_feedbacks_view.empty and "satisfaction" in df_feedbacks_view.columns and not df_feedbacks_view["satisfaction"].dropna().empty else 0
+    avg_clarity = round(df_feedbacks_view["clarity"].dropna().mean(), 2) if not df_feedbacks_view.empty and "clarity" in df_feedbacks_view.columns and not df_feedbacks_view["clarity"].dropna().empty else 0
+    avg_completeness = round(df_feedbacks_view["completeness"].dropna().mean(), 2) if not df_feedbacks_view.empty and "completeness" in df_feedbacks_view.columns and not df_feedbacks_view["completeness"].dropna().empty else 0
+    cache_hits = int((df_interactions_view["source"] == "CACHE").sum()) if not df_interactions_view.empty and "source" in df_interactions_view.columns else 0
+    faq_hits = int((df_interactions_view["source"] == "FAQ").sum()) if not df_interactions_view.empty and "source" in df_interactions_view.columns else 0
+    guidance_hits = int((df_interactions_view["source"] == "GUIDANCE").sum()) if not df_interactions_view.empty and "source" in df_interactions_view.columns else 0
+    cache_rate = round((cache_hits / view_total_queries) * 100, 1) if view_total_queries else 0
+    hallucination_rate = round((df_interactions_view["hallucinated"].fillna(False).astype(bool).sum() / view_total_queries) * 100, 1) if not df_interactions_view.empty and "hallucinated" in df_interactions_view.columns and view_total_queries else 0
+    source_counts = df_interactions_view["source"].value_counts() if not df_interactions_view.empty and "source" in df_interactions_view.columns else pd.Series(dtype="int64")
+    top_source = source_counts.idxmax() if not source_counts.empty else "Sin datos"
+
+    user_rows = []
+    for user_id in filtered_user_options:
+        history_meta = history_summary.get(user_id, {})
+        user_interactions = df_interactions_view[df_interactions_view["user_id"] == user_id] if not df_interactions_view.empty else pd.DataFrame()
+        user_feedback = df_feedbacks_view[df_feedbacks_view["user_id"] == user_id] if not df_feedbacks_view.empty else pd.DataFrame()
+        user_rows.append({
+            "user_id": user_id,
+            "registrado": "Sí" if user_id in registered_users else "No",
+            "consultas_en_vista": len(user_interactions),
+            "preguntas_historicas_totales": history_meta.get("historical_questions", 0),
+            "conversaciones_guardadas": history_meta.get("conversations", 0),
+            "feedbacks": len(user_feedback),
+            "tiempo_promedio_s": round(user_interactions["response_time_s"].dropna().mean(), 2) if not user_interactions.empty and "response_time_s" in user_interactions.columns and not user_interactions["response_time_s"].dropna().empty else 0,
+            "satisfaccion_promedio": round(user_feedback["satisfaction"].dropna().mean(), 2) if not user_feedback.empty and "satisfaction" in user_feedback.columns and not user_feedback["satisfaction"].dropna().empty else 0,
+            "claridad_promedio": round(user_feedback["clarity"].dropna().mean(), 2) if not user_feedback.empty and "clarity" in user_feedback.columns and not user_feedback["clarity"].dropna().empty else 0,
+            "completitud_promedio": round(user_feedback["completeness"].dropna().mean(), 2) if not user_feedback.empty and "completeness" in user_feedback.columns and not user_feedback["completeness"].dropna().empty else 0,
+            "chat_activo": history_meta.get("active_chat", "-")
+        })
+
+    df_user_summary = pd.DataFrame(user_rows).sort_values(["consultas_en_vista", "preguntas_historicas_totales"], ascending=False) if user_rows else pd.DataFrame()
+
+    st.header("Dashboard analítico para tesis")
+    st.caption("Vista reorganizada para explorar métricas cuantitativas y cualitativas sin saturar la pantalla.")
+
+    with st.expander("Criterios activos", expanded=False):
+        st.markdown(f"""
+        - **Fechas:** {default_start if not isinstance(date_range, (list, tuple)) or len(date_range) != 2 else date_range[0]} a {default_end if not isinstance(date_range, (list, tuple)) or len(date_range) != 2 else date_range[1]}
+        - **Usuarios seleccionados:** {', '.join(selected_users) if selected_users else 'Ninguno'}
+        - **Fuentes:** {', '.join(selected_sources) if selected_sources else 'Todas'}
+        - **Categorías:** {', '.join(selected_categories) if selected_categories else 'Todas'}
+        - **Estado de feedback:** {feedback_scope}
+        - **Búsqueda por texto:** {keyword if keyword.strip() else 'Sin filtro'}
+        """)
+
+    tab_resumen, tab_quant, tab_qual, tab_users, tab_method, tab_data = st.tabs([
+        "📌 Resumen",
+        "📈 Cuantitativas",
+        "✨ Cualitativas",
+        "👤 Usuarios",
+        "🧮 Metodología",
+        "🗂️ Datos"
+    ])
+
+    with tab_resumen:
+        st.subheader("Resumen ejecutivo")
+        col1, col2, col3, col4 = st.columns(4)
+        col1.metric("Consultas en vista", view_total_queries)
+        col2.metric("Usuarios visibles", visible_users)
+        col3.metric("Tiempo medio (s)", avg_response)
+        col4.metric("Feedbacks", feedback_count)
+
+        col1, col2, col3, col4 = st.columns(4)
+        col1.metric("Satisfacción media", f"{avg_satisfaction}/5")
+        col2.metric("Claridad media", f"{avg_clarity}/5")
+        col3.metric("Completitud media", f"{avg_completeness}/5")
+        col4.metric("Sin alucinaciones", f"{100 - hallucination_rate:.1f}%")
+
+        narrative = (
+            f"Con los filtros actuales se observan **{view_total_queries} interacciones** y **{visible_users} usuarios** en la vista analítica. "
+            f"La fuente predominante es **{top_source}** y el tiempo promedio de respuesta es **{avg_response} s**. "
+            f"Además, el histórico acumulado de los usuarios visibles alcanza **{history_total_queries} consultas**, útil para el análisis longitudinal de la tesis."
+        )
+        st.info(narrative)
+
+        col1, col2 = st.columns(2)
+        with col1:
+            if not source_counts.empty:
+                fig, ax = plt.subplots(figsize=(7, 3.5))
+                ax.bar(source_counts.index.astype(str), source_counts.values, color=["#3d405b", "#e07a5f", "#81b29a", "#f2cc8f", "#6d597a"][:len(source_counts)])
+                ax.set_title("Distribución por fuente de respuesta")
+                ax.set_ylabel("Interacciones")
+                plt.xticks(rotation=25, ha="right")
+                st.pyplot(fig)
+            else:
+                st.info("No hay interacciones suficientes para mostrar la distribución por fuente.")
+
+        with col2:
+            if not df_interactions_view.empty and "timestamp" in df_interactions_view.columns:
+                df_daily = df_interactions_view.groupby(df_interactions_view["timestamp"].dt.date).size().reset_index(name="consultas")
+                fig, ax = plt.subplots(figsize=(7, 3.5))
+                ax.plot(df_daily["timestamp"], df_daily["consultas"], marker="o", color="#3d405b")
+                ax.set_title("Tendencia temporal de interacciones")
+                ax.set_ylabel("Consultas")
+                ax.set_xlabel("Fecha")
+                plt.xticks(rotation=30, ha="right")
+                st.pyplot(fig)
+            else:
+                st.info("No hay fechas suficientes para mostrar la tendencia temporal.")
+
+    with tab_quant:
+        st.subheader("Métricas cuantitativas")
+        quant_choice = st.selectbox(
+            "Selecciona la vista cuantitativa",
+            ["Tiempo de respuesta", "Volumen por día", "Fuentes de respuesta", "Actividad por usuario", "Recursos del sistema"]
+        )
+
+        if quant_choice == "Tiempo de respuesta":
+            if not df_interactions_view.empty and "response_time_s" in df_interactions_view.columns and not df_interactions_view["response_time_s"].dropna().empty:
+                response_series = df_interactions_view["response_time_s"].dropna()
+                fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4))
+                ax1.hist(response_series, bins=min(12, max(5, len(response_series))), color="#3d405b", alpha=0.85)
+                ax1.set_title("Histograma de tiempos")
+                ax1.set_xlabel("Segundos")
+                ax1.set_ylabel("Frecuencia")
+                ax2.boxplot(response_series, vert=True)
+                ax2.set_title("Boxplot de tiempos")
+                ax2.set_ylabel("Segundos")
+                st.pyplot(fig)
+
+                df_stats = pd.DataFrame([{
+                    "media": round(response_series.mean(), 2),
+                    "mediana": round(response_series.median(), 2),
+                    "mínimo": round(response_series.min(), 2),
+                    "máximo": round(response_series.max(), 2),
+                    "desv_std": round(response_series.std(ddof=0), 2)
+                }])
+                st.dataframe(df_stats, use_container_width=True)
+                st.markdown("**Fórmula:** tiempo promedio = `Σ tiempo_respuesta / n`.")
+            else:
+                st.info("No hay tiempos de respuesta suficientes con los filtros actuales.")
+
+        elif quant_choice == "Volumen por día":
+            if not df_interactions_view.empty and "timestamp" in df_interactions_view.columns:
+                df_daily = df_interactions_view.groupby(df_interactions_view["timestamp"].dt.date).size().reset_index(name="consultas")
+                fig, ax = plt.subplots(figsize=(10, 4))
+                ax.bar(df_daily["timestamp"].astype(str), df_daily["consultas"], color="#81b29a")
+                ax.set_title("Consultas por día")
+                ax.set_ylabel("Número de interacciones")
+                plt.xticks(rotation=35, ha="right")
+                st.pyplot(fig)
+                st.dataframe(df_daily, use_container_width=True)
+                st.markdown("**Método:** conteo de frecuencias por fecha para observar estacionalidad y picos de uso.")
+            else:
+                st.info("No hay datos temporales suficientes para esta vista.")
+
+        elif quant_choice == "Fuentes de respuesta":
+            if not source_counts.empty:
+                df_sources = source_counts.reset_index()
+                df_sources.columns = ["fuente", "interacciones"]
+                df_sources["porcentaje"] = (df_sources["interacciones"] / max(1, df_sources["interacciones"].sum()) * 100).round(2)
+                fig, ax = plt.subplots(figsize=(8, 4))
+                ax.bar(df_sources["fuente"], df_sources["interacciones"], color="#e07a5f")
+                ax.set_title("Composición por fuente")
+                ax.set_ylabel("Interacciones")
+                plt.xticks(rotation=25, ha="right")
+                st.pyplot(fig)
+                st.dataframe(df_sources, use_container_width=True)
+                st.markdown("**Fórmula:** tasa por fuente = `(interacciones_fuente / interacciones_totales) * 100`.")
+            else:
+                st.info("No hay datos suficientes para mostrar la composición por fuente.")
+
+        elif quant_choice == "Actividad por usuario":
+            if not df_user_summary.empty:
+                top_users = df_user_summary.head(10)
+                fig, ax = plt.subplots(figsize=(9, 4))
+                ax.bar(top_users["user_id"], top_users["consultas_en_vista"], color="#3d405b")
+                ax.set_title("Usuarios con mayor actividad")
+                ax.set_ylabel("Consultas en vista")
+                plt.xticks(rotation=35, ha="right")
+                st.pyplot(fig)
+                st.dataframe(df_user_summary, use_container_width=True)
+            else:
+                st.info("No hay usuarios suficientes para construir el ranking.")
+
+        else:
+            col1, col2, col3, col4 = st.columns(4)
+            col1.metric("CPU (%)", round(quant.get("cpu_usage_percent", 0), 1))
+            col2.metric("Memoria (%)", round(quant.get("memory_usage_percent", 0), 1))
+            col3.metric("Errores", int(quant.get("errors_total", 0)))
+            col4.metric("Alucinaciones", int(quant.get("hallucinations_total", 0)))
+            st.markdown("**Método:** observabilidad operativa usando métricas del proceso y del sistema operativo.")
+
+    with tab_qual:
+        st.subheader("Métricas cualitativas")
+        qual_choice = st.selectbox(
+            "Selecciona la vista cualitativa",
+            ["Satisfacción", "Claridad", "Completitud", "Errores reportados", "Comentarios recientes"]
+        )
+
+        if df_feedbacks_view.empty:
+            st.info("No hay feedback disponible con los filtros actuales.")
+        elif qual_choice in ["Satisfacción", "Claridad", "Completitud"]:
+            metric_map = {
+                "Satisfacción": "satisfaction",
+                "Claridad": "clarity",
+                "Completitud": "completeness"
+            }
+            column = metric_map[qual_choice]
+            series = df_feedbacks_view[column].dropna()
+            if not series.empty:
+                counts = series.value_counts().sort_index()
+                fig, ax = plt.subplots(figsize=(8, 4))
+                ax.bar(counts.index.astype(str), counts.values, color="#81b29a")
+                ax.set_title(f"Distribución de {qual_choice.lower()}")
+                ax.set_xlabel("Puntaje")
+                ax.set_ylabel("Frecuencia")
+                st.pyplot(fig)
+
+                df_stats = pd.DataFrame([{
+                    "media": round(series.mean(), 2),
+                    "mediana": round(series.median(), 2),
+                    "mínimo": round(series.min(), 2),
+                    "máximo": round(series.max(), 2),
+                    "desv_std": round(series.std(ddof=0), 2)
+                }])
+                st.dataframe(df_stats, use_container_width=True)
+                st.markdown(f"**Fórmula:** promedio de {qual_choice.lower()} = `Σ puntuación / n`.")
+                st.info(f"Interpretación: valores cercanos a 5 indican mejor percepción del usuario en el criterio de **{qual_choice.lower()}**.")
+            else:
+                st.info("No hay puntajes válidos para esta métrica en la vista actual.")
+
+        elif qual_choice == "Errores reportados":
+            df_errors = df_feedbacks_view[df_feedbacks_view["error_type"].astype(str).str.strip() != ""] if "error_type" in df_feedbacks_view.columns else pd.DataFrame()
+            if not df_errors.empty:
+                error_counts = df_errors["error_type"].value_counts().reset_index()
+                error_counts.columns = ["tipo_error", "frecuencia"]
+                fig, ax = plt.subplots(figsize=(8, 4))
+                ax.bar(error_counts["tipo_error"], error_counts["frecuencia"], color="#e07a5f")
+                ax.set_title("Errores reportados por tipo")
+                ax.set_ylabel("Frecuencia")
+                plt.xticks(rotation=30, ha="right")
+                st.pyplot(fig)
+                st.dataframe(error_counts, use_container_width=True)
+            else:
+                st.info("No hay errores reportados en el subconjunto actual.")
+
+        else:
+            comment_cols = [col for col in ["timestamp", "user_id", "question", "comments"] if col in df_feedbacks_view.columns]
+            st.dataframe(df_feedbacks_view[comment_cols].tail(20), use_container_width=True)
+            st.markdown("**Método:** análisis cualitativo manual de comentarios para detectar patrones y oportunidades de mejora.")
+
+    with tab_users:
+        st.subheader("Análisis por usuario")
+        if df_user_summary.empty:
+            st.info("No hay usuarios para mostrar con los filtros actuales.")
+        else:
+            st.markdown("### Ranking y comparación")
+            st.dataframe(df_user_summary, use_container_width=True)
+            download_dataframe(df_user_summary, "Descargar resumen por usuario", "resumen_usuarios_filtrado.csv")
+
+            detail_user = st.selectbox("Selecciona un usuario para detalle", df_user_summary["user_id"].tolist())
+            history_meta = history_summary.get(detail_user, {"conversations": 0, "historical_questions": 0, "active_chat": "-"})
+            user_interactions = df_interactions_view[df_interactions_view["user_id"] == detail_user] if not df_interactions_view.empty else pd.DataFrame()
+            user_feedback = df_feedbacks_view[df_feedbacks_view["user_id"] == detail_user] if not df_feedbacks_view.empty else pd.DataFrame()
 
             col1, col2, col3, col4 = st.columns(4)
             col1.metric("Chats guardados", history_meta.get("conversations", 0))
             col2.metric("Preguntas históricas", history_meta.get("historical_questions", 0))
-            col3.metric("Interacciones persistidas", len(user_interactions))
+            col3.metric("Consultas en vista", len(user_interactions))
             col4.metric("Feedbacks", len(user_feedback))
-
-            col1, col2, col3 = st.columns(3)
-            col1.metric("Tiempo medio (s)", round(user_interactions["response_time_s"].mean(), 2) if not user_interactions.empty and "response_time_s" in user_interactions.columns else 0)
-            col2.metric("Satisfacción promedio", round(user_feedback["satisfaction"].mean(), 2) if not user_feedback.empty and "satisfaction" in user_feedback.columns else 0)
-            col3.metric("Claridad promedio", round(user_feedback["clarity"].mean(), 2) if not user_feedback.empty and "clarity" in user_feedback.columns else 0)
-
             st.caption(f"Chat activo o más reciente: {history_meta.get('active_chat', '-')}")
 
-            if not user_interactions.empty and "source" in user_interactions.columns:
-                source_counts = user_interactions["source"].value_counts()
-                fig, ax = plt.subplots(figsize=(7, 3))
-                ax.bar(source_counts.index.astype(str), source_counts.values, color="#3d405b")
-                ax.set_title(f"Fuentes de respuesta - {selected_user}")
-                ax.set_ylabel("Interacciones")
-                st.pyplot(fig)
+            col1, col2 = st.columns(2)
+            with col1:
+                if not user_interactions.empty and "source" in user_interactions.columns:
+                    source_counts_user = user_interactions["source"].value_counts()
+                    fig, ax = plt.subplots(figsize=(7, 3.5))
+                    ax.bar(source_counts_user.index.astype(str), source_counts_user.values, color="#3d405b")
+                    ax.set_title(f"Fuentes de respuesta - {detail_user}")
+                    ax.set_ylabel("Interacciones")
+                    plt.xticks(rotation=25, ha="right")
+                    st.pyplot(fig)
+                else:
+                    st.info("Sin datos de fuente para este usuario con los filtros actuales.")
+
+            with col2:
+                if not user_interactions.empty and "categories_list" in user_interactions.columns:
+                    category_counts = user_interactions.explode("categories_list")["categories_list"].dropna().value_counts()
+                    if not category_counts.empty:
+                        fig, ax = plt.subplots(figsize=(7, 3.5))
+                        ax.bar(category_counts.index.astype(str), category_counts.values, color="#81b29a")
+                        ax.set_title(f"Categorías dominantes - {detail_user}")
+                        ax.set_ylabel("Interacciones")
+                        plt.xticks(rotation=25, ha="right")
+                        st.pyplot(fig)
+                    else:
+                        st.info("Sin categorías suficientes para este usuario.")
+                else:
+                    st.info("No hay categorías disponibles para este usuario.")
 
             history_rows = []
-            for conv in user_histories.get(selected_user, {}).get("conversations", []):
+            for conv in user_histories.get(detail_user, {}).get("conversations", []):
                 for message in conv.get("messages", []):
-                    if isinstance(message, list) and len(message) >= 2:
+                    if isinstance(message, (list, tuple)) and len(message) >= 2:
                         history_rows.append({
                             "chat": conv.get("title", "-"),
                             "pregunta": message[0],
                             "respuesta": str(message[1])[:180],
-                            "tiempo_s": message[2] if len(message) > 2 else ""
+                            "tiempo_s": message[2] if len(message) > 2 else "",
+                            "timestamp": message[3] if len(message) > 3 else ""
                         })
 
             if history_rows:
                 df_history = pd.DataFrame(history_rows[-20:])
-                st.markdown("Historial reciente del usuario")
+                st.markdown("### Historial reciente")
                 st.dataframe(df_history, use_container_width=True)
-                download_dataframe(df_history, f"Descargar historial de {selected_user}", f"historial_{selected_user}.csv")
+                download_dataframe(df_history, f"Descargar historial de {detail_user}", f"historial_{detail_user}.csv")
 
             if not user_feedback.empty:
-                display_user_columns = ["timestamp", "question", "satisfaction", "clarity", "completeness", "error_type", "comments"]
-                df_user_display = user_feedback[display_user_columns].tail(15) if all(col in user_feedback.columns for col in display_user_columns) else user_feedback.tail(15)
-                st.dataframe(df_user_display, use_container_width=True)
-                download_dataframe(df_user_display, f"Descargar feedback de {selected_user}", f"feedback_{selected_user}.csv")
+                st.markdown("### Feedback del usuario")
+                cols = [col for col in ["timestamp", "question", "satisfaction", "clarity", "completeness", "error_type", "comments"] if col in user_feedback.columns]
+                st.dataframe(user_feedback[cols].tail(15), use_container_width=True)
 
-            if history_meta.get("historical_questions", 0) > 0 and selected_user not in persisted_user_ids:
-                st.info("Este usuario sí tiene historial guardado, pero sus métricas detalladas pertenecen al sistema anterior. Desde ahora las nuevas interacciones ya quedarán segmentadas automáticamente.")
-    else:
-        st.info("Todavía no hay datos persistidos por usuario. Con nuevas pruebas quedarán registrados automáticamente.")
+    with tab_method:
+        st.subheader("Metodología, fórmulas y criterios")
+        st.markdown("""
+        ### Fuentes de datos utilizadas
+        - `interaction_logs.jsonl`: registro central de interacciones del chatbot.
+        - `feedback.jsonl`: evaluación cualitativa realizada por usuarios.
+        - `user_histories.json`: histórico de conversaciones por usuario para análisis longitudinal.
 
-    # --- FEEDBACK DETALLADO ---
-    st.header("💬 Feedback de Usuarios")
-    if not df_filtered.empty:
-        st.subheader("Feedback reciente")
-        display_columns = ["timestamp", "user_id", "question", "satisfaction", "clarity", "completeness", "error_type", "comments"]
-        df_display = df_filtered[display_columns].tail(15) if all(col in df_filtered.columns for col in display_columns) else df_filtered.tail(15)
-        st.dataframe(df_display, use_container_width=True)
-        download_dataframe(df_display, "Descargar feedback reciente", "feedback_reciente.csv")
-    else:
-        st.info("Sin feedback de usuarios aún.")
-    
-    # --- RESUMEN EJECUTIVO ---
-    st.header("📋 Resumen Ejecutivo para Investigación")
-    
-    summary_text = f"""
-    ### Métricas Clave para Tesis de Doctorado:
-    
-    **Eficiencia Administrativa:**
-    - Total de consultas procesadas: **{int(quant.get('queries_total', 0))}**
-    - Consultas resueltas por caché: **{int(quant.get('cache_hits_total', 0))}** (automático, sin latencia)
-    - Porcentaje de automatización: **{round((int(quant.get('cache_hits_total', 0)) / max(1, int(quant.get('queries_total', 0)))) * 100, 1)}%**
-    - Usuarios identificados en el histórico: **{len(set(df_interactions_filtered['user_id'])) if not df_interactions_filtered.empty and 'user_id' in df_interactions_filtered.columns else 0}**
-    
-    **Calidad de Servicio:**
-    - Satisfacción promedio del usuario: **{qual.get('avg_satisfaction', 0)}/5.0**
-    - Claridad de respuestas: **{qual.get('avg_clarity', 0)}/5.0**
-    - Completitud de respuestas: **{qual.get('avg_completeness', 0)}/5.0**
-    - Tiempo de respuesta promedio: **{qual.get('avg_response_time', 0)} segundos**
-    
-    **Confiabilidad del Sistema:**
-    - Porcentaje sin alucinaciones: **{100 - (qual.get('hallucination_rate', 0) * 100):.1f}%**
-    - Sentimiento de respuestas (tono profesional): **{qual.get('avg_sentiment', 0):.2f}/1.0**
-    - Errores detectados: **{int(quant.get('errors_total', 0))}**
-    - Salud del sistema: ✅ **Operativo**
-    
-    **Cobertura de Contenidos:**
-    - Categorías cubiertas: **{len(qual.get('query_categories', {}))}**
-    - Tipos de error identificados: **{len(qual.get('error_types', {}))}**
-    """
-    st.markdown(summary_text)
-    
-    # Auto-refresh
+        ### Métodos empleados
+        - **Estadística descriptiva:** media, mediana, desviación estándar, máximos y mínimos.
+        - **Análisis de frecuencia:** conteos por usuario, categoría y fuente de respuesta.
+        - **Segmentación por filtros:** fecha, usuario, fuente, categoría y presencia de feedback.
+        - **Análisis comparativo:** contraste entre consultas visibles y consultas históricas acumuladas.
+        """)
+
+        formula_df = pd.DataFrame([
+            {"Indicador": "Tiempo promedio de respuesta", "Fórmula": "Σ tiempo_respuesta / n", "Interpretación": "Menor valor implica mayor eficiencia"},
+            {"Indicador": "Tasa de caché", "Fórmula": "(cache_hits / interacciones_totales) * 100", "Interpretación": "Mide automatización y rapidez"},
+            {"Indicador": "Promedio de satisfacción", "Fórmula": "Σ satisfaction / n", "Interpretación": "Mayor valor implica mejor percepción"},
+            {"Indicador": "Promedio de claridad", "Fórmula": "Σ clarity / n", "Interpretación": "Mide comprensión de las respuestas"},
+            {"Indicador": "Promedio de completitud", "Fórmula": "Σ completeness / n", "Interpretación": "Mide cobertura de la respuesta"},
+            {"Indicador": "Tasa de alucinación", "Fórmula": "(hallucinations / interacciones_totales) * 100", "Interpretación": "Menor valor implica mayor confiabilidad"}
+        ])
+        st.dataframe(formula_df, use_container_width=True)
+
+        st.latex(r"\bar{x} = \frac{\sum_{i=1}^{n} x_i}{n}")
+        st.latex(r"\text{Tasa} = \frac{\text{casos de interés}}{\text{total de observaciones}} \times 100")
+
+    with tab_data:
+        st.subheader("Datos filtrados y exportes")
+        with st.expander("Interacciones filtradas", expanded=True):
+            if not df_interactions_view.empty:
+                interaction_cols = [col for col in ["timestamp", "user_id", "source", "category_label", "question", "response_time_s", "hallucinated", "response_preview"] if col in df_interactions_view.columns]
+                st.dataframe(df_interactions_view[interaction_cols].sort_values("timestamp", ascending=False), use_container_width=True)
+                download_dataframe(df_interactions_view[interaction_cols], "Descargar interacciones filtradas", "interacciones_filtradas.csv")
+            else:
+                st.info("No hay interacciones con los filtros actuales.")
+
+        with st.expander("Feedback filtrado", expanded=False):
+            if not df_feedbacks_view.empty:
+                feedback_cols = [col for col in ["timestamp", "user_id", "question", "satisfaction", "clarity", "completeness", "error_type", "comments"] if col in df_feedbacks_view.columns]
+                st.dataframe(df_feedbacks_view[feedback_cols].sort_values("timestamp", ascending=False), use_container_width=True)
+                download_dataframe(df_feedbacks_view[feedback_cols], "Descargar feedback filtrado", "feedback_filtrado.csv")
+            else:
+                st.info("No hay feedback con los filtros actuales.")
+
+        with st.expander("Resumen narrativo para tesis", expanded=False):
+            st.markdown(f"""
+            **Interpretación sugerida:** en el periodo filtrado se registraron **{view_total_queries} interacciones** correspondientes a **{visible_users} usuarios**. 
+            La fuente dominante fue **{top_source}**, mientras que el promedio de satisfacción alcanzó **{avg_satisfaction}/5** y la claridad **{avg_clarity}/5**. 
+            Estos resultados permiten describir el desempeño del asistente desde una perspectiva cuantitativa y cualitativa, apoyando el análisis experimental de la tesis.
+            """)
+
     st.write("---")
     st.write(f"**Última actualización:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    
-    # Botón de refresh manual
     if st.button("🔄 Actualizar Ahora"):
         st.rerun()
-    
-    # Auto-refresh cada 15 segundos (comentado, descomenta si quieres)
-    # time.sleep(15)
-    # st.rerun()
-    
+
 else:
     st.error("❌ No se pudieron obtener las métricas. Verifica que:")
     st.write("1. El servidor FastAPI esté corriendo (`python mcp_server_local.py`)")

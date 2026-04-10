@@ -5,6 +5,7 @@ import json
 import os
 import html
 import re
+from datetime import datetime
 
 st.set_page_config(page_title="SoeBOT WebUI", page_icon="🤖", layout="wide")
 
@@ -413,8 +414,8 @@ else:
 
         if active_conversation:
             for idx, item in enumerate(active_conversation["messages"]):
-                if len(item) == 3:
-                    q, a, t = item
+                if isinstance(item, (list, tuple)) and len(item) >= 3:
+                    q, a, t = item[0], item[1], item[2]
                     render_message("user", q)
                     render_message("bot", a, t)
 
@@ -507,7 +508,7 @@ else:
                     st.session_state.conversations.append(active_conversation)
                     st.session_state.active_conversation_id = new_id
 
-                active_conversation["messages"].append((question, answer_wrapper["text"], response_time))
+                active_conversation["messages"].append((question, answer_wrapper["text"], response_time, datetime.now().isoformat()))
                 save_user_state(
                     st.session_state.user_id,
                     st.session_state.conversations,

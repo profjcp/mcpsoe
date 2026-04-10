@@ -57,6 +57,8 @@ CHUNKS_PATH = "chunks.pkl"
 QA_FAISS_INDEX_PATH = "qa_faiss_index.bin"
 QA_CACHE_PATH = "qa_cache.pkl"
 INTERACTION_LOG_PATH = "interaction_logs.jsonl"
+FEEDBACK_LOG_PATH = "feedback.jsonl"
+USER_HISTORIES_PATH = "user_histories.json"
 
 # Redis connection will be initialized after app creation
 r = None
@@ -106,6 +108,7 @@ def ensure_user_metrics(user_id: str):
             "cache_hits_total": 0,
             "guidance_total": 0,
             "rag_total": 0,
+            "history_import_total": 0,
             "errors_total": 0,
             "hallucinations_total": 0,
             "response_times": [],
@@ -128,6 +131,188 @@ def append_jsonl_record(path: str, payload: dict):
         logging.warning(f"Error guardando registro en {path}: {e}")
 
 
+def read_jsonl_records(path: str) -> list:
+    """Lee un archivo JSONL y devuelve sus registros."""
+    if not os.path.exists(path):
+        return []
+    records = []
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            for line in f:
+                if line.strip():
+                    records.append(json.loads(line))
+    except Exception as e:
+        logging.warning(f"Error leyendo registros de {path}: {e}")
+    return records
+
+
+def safe_float(value, default=0.0):
+    """Convierte a float sin lanzar excepciones."""
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def build_interaction_signature(user_id: str, question: str, response_text: str, response_time_val: float) -> str:
+    """Crea una firma estable para evitar duplicados al importar historial."""
+    normalized_user = (user_id or "anonymous").strip().lower()
+    normalized_question = " ".join(str(question or "").split())
+    normalized_response = " ".join(str(response_text or "").split())[:500]
+    normalized_time = round(safe_float(response_time_val, 0.0), 4)
+    return f"{normalized_user}|{normalized_question}|{normalized_response}|{normalized_time}"
+
+
+def backfill_interaction_logs_from_histories():
+    """Importa al log central las conversaciones históricas guardadas por usuario."""
+    if not os.path.exists(USER_HISTORIES_PATH):
+        return 0
+
+    existing_signatures = set()
+    for record in read_jsonl_records(INTERACTION_LOG_PATH):
+        existing_signatures.add(
+            build_interaction_signature(
+                record.get("user_id", "anonymous"),
+                record.get("question", ""),
+                record.get("response_text") or record.get("response_preview", ""),
+                record.get("response_time_s", 0),
+            )
+        )
+
+    imported = 0
+    imported_at = datetime.now().isoformat()
+    history_mtime = datetime.fromtimestamp(os.path.getmtime(USER_HISTORIES_PATH)).isoformat()
+
+    try:
+        with open(USER_HISTORIES_PATH, "r", encoding="utf-8") as f:
+            user_histories = json.load(f)
+    except Exception as e:
+        logging.warning(f"No se pudo cargar {USER_HISTORIES_PATH} para backfill: {e}")
+        return 0
+
+    for user_id, data in user_histories.items():
+        conversations = data.get("conversations", []) or []
+        for conv in conversations:
+            chat_id = conv.get("id", "")
+            chat_title = conv.get("title", "")
+            for message in conv.get("messages", []) or []:
+                question = ""
+                response_text = ""
+                response_time_val = 0.0
+                message_timestamp = history_mtime
+
+                if isinstance(message, dict):
+                    question = str(message.get("question", "")).strip()
+                    response_text = str(message.get("answer", "")).strip()
+                    response_time_val = safe_float(message.get("response_time"), 0.0)
+                    message_timestamp = message.get("timestamp") or history_mtime
+                elif isinstance(message, (list, tuple)) and len(message) >= 2:
+                    question = str(message[0]).strip()
+                    response_text = str(message[1]).strip()
+                    if len(message) >= 3:
+                        response_time_val = safe_float(message[2], 0.0)
+                    if len(message) >= 4 and message[3]:
+                        message_timestamp = str(message[3])
+
+                if not question and not response_text:
+                    continue
+
+                signature = build_interaction_signature(user_id, question, response_text, response_time_val)
+                if signature in existing_signatures:
+                    continue
+
+                append_jsonl_record(
+                    INTERACTION_LOG_PATH,
+                    {
+                        "timestamp": message_timestamp,
+                        "imported_at": imported_at,
+                        "user_id": user_id or "anonymous",
+                        "question": question,
+                        "categories": categorize_query_multi(question),
+                        "source": "HISTORY_IMPORT",
+                        "response_time_s": round(response_time_val, 4),
+                        "hallucinated": False,
+                        "chat_id": chat_id,
+                        "chat_title": chat_title,
+                        "response_text": response_text,
+                        "response_preview": response_text[:500],
+                        "imported_from_history": True,
+                    }
+                )
+                existing_signatures.add(signature)
+                imported += 1
+
+    logging.info(f"Backfill de historial completado: {imported} interacciones importadas a {INTERACTION_LOG_PATH}")
+    return imported
+
+
+def hydrate_metrics_from_persisted_data():
+    """Reconstruye métricas globales y por usuario desde los archivos persistidos."""
+    per_user_metrics.clear()
+    qualitative_metrics["avg_satisfaction"] = []
+    qualitative_metrics["avg_clarity"] = []
+    qualitative_metrics["avg_completeness"] = []
+    qualitative_metrics["hallucination_rate"] = []
+    qualitative_metrics["avg_sentiment"] = []
+    qualitative_metrics["query_categories"] = {}
+    qualitative_metrics["error_types"] = {}
+    qualitative_metrics["response_times"] = []
+
+    for record in read_jsonl_records(INTERACTION_LOG_PATH):
+        user_id = record.get("user_id", "anonymous")
+        bucket, _ = ensure_user_metrics(user_id)
+        bucket["queries_total"] += 1
+
+        categories = record.get("categories") or categorize_query_multi(record.get("question", ""))
+        for category in categories:
+            bucket["query_categories"][category] = bucket["query_categories"].get(category, 0) + 1
+        qualitative_metrics["query_categories"][str(categories)] = qualitative_metrics["query_categories"].get(str(categories), 0) + 1
+
+        source = record.get("source", "RAG")
+        if source == "FAQ":
+            bucket["faq_hits_total"] += 1
+        elif source == "CACHE":
+            bucket["cache_hits_total"] += 1
+        elif source == "GUIDANCE":
+            bucket["guidance_total"] += 1
+        elif source == "HISTORY_IMPORT":
+            bucket["history_import_total"] += 1
+        else:
+            bucket["rag_total"] += 1
+
+        response_time_val = safe_float(record.get("response_time_s"), None)
+        if response_time_val is not None:
+            bucket["response_times"].append(response_time_val)
+            qualitative_metrics["response_times"].append(response_time_val)
+
+        hallucinated = bool(record.get("hallucinated", False))
+        if hallucinated:
+            bucket["hallucinations_total"] += 1
+            qualitative_metrics["hallucination_rate"].append(1)
+        else:
+            qualitative_metrics["hallucination_rate"].append(0)
+
+    for record in read_jsonl_records(FEEDBACK_LOG_PATH):
+        user_id = record.get("user_id", "anonymous")
+        satisfaction = safe_float(record.get("satisfaction"), None)
+        clarity = safe_float(record.get("clarity"), None)
+        completeness = safe_float(record.get("completeness"), None)
+        error_type = record.get("error_type", "")
+
+        if satisfaction is not None:
+            qualitative_metrics["avg_satisfaction"].append(satisfaction)
+        if clarity is not None:
+            qualitative_metrics["avg_clarity"].append(clarity)
+        if completeness is not None:
+            qualitative_metrics["avg_completeness"].append(completeness)
+
+        if error_type:
+            qualitative_metrics["error_types"][error_type] = qualitative_metrics["error_types"].get(error_type, 0) + 1
+
+        if satisfaction is not None and clarity is not None and completeness is not None:
+            record_feedback_metrics(user_id, int(satisfaction), int(clarity), int(completeness), error_type)
+
+
 def record_interaction_metrics(user_id: str, question: str, categories: list, source: str, response_text: str, response_time_val: float, is_hallucinated: bool = False):
     """Registra métricas por usuario y persiste interacciones para análisis posteriores."""
     bucket, user_key = ensure_user_metrics(user_id)
@@ -143,6 +328,8 @@ def record_interaction_metrics(user_id: str, question: str, categories: list, so
         bucket["cache_hits_total"] += 1
     elif source == "GUIDANCE":
         bucket["guidance_total"] += 1
+    elif source == "HISTORY_IMPORT":
+        bucket["history_import_total"] += 1
     elif source == "RAG":
         bucket["rag_total"] += 1
 
@@ -159,6 +346,7 @@ def record_interaction_metrics(user_id: str, question: str, categories: list, so
             "source": source,
             "response_time_s": round(response_time_val, 4),
             "hallucinated": bool(is_hallucinated),
+            "response_text": response_text,
             "response_preview": response_text[:500]
         }
     )
@@ -185,6 +373,7 @@ def build_per_user_summary():
             "cache_hits_total": data["cache_hits_total"],
             "guidance_total": data["guidance_total"],
             "rag_total": data["rag_total"],
+            "history_import_total": data["history_import_total"],
             "errors_total": data["errors_total"],
             "hallucinations_total": data["hallucinations_total"],
             "avg_response_time": round(np.mean(data["response_times"]), 2) if data["response_times"] else 0,
@@ -266,6 +455,10 @@ async def lifespan(app: FastAPI):
     for domain, path in faq_files.items():
         faqs = cargar_faqs_con_embeddings(path, embeddings.embed_query)
         print(f"FAQ {domain} precargado: {len(faqs)} preguntas")
+
+    imported_count = backfill_interaction_logs_from_histories()
+    hydrate_metrics_from_persisted_data()
+    print(f"Historial persistido inicializado. Interacciones históricas importadas: {imported_count}")
 
     yield
 
@@ -350,7 +543,8 @@ def categorize_query_multi(question: str) -> list:
         "Investigacion": [
             "linea de investigacion", "perfil", "asesor", "tesis", "investigacion",
             "metodologia", "monografia", "trabajo final de grado", "predefensa",
-            "director de trabajo final", "tema de investigacion", "titulo del trabajo"
+            "director de trabajo final", "tema de investigacion", "titulo del trabajo",
+            "tutor", "tutores", "obtener mi tutor", "director de tesis"
         ]
     }
     matched = []
@@ -503,19 +697,6 @@ async def ask(request: AskRequest):
     qualitative_metrics["query_categories"][str(categories)] = qualitative_metrics["query_categories"].get(str(categories), 0) + 1
     print(f"Categorías detectadas: {categories}")
 
-    if needs_guidance(request.question, categories):
-        print("Consulta vaga detectada. Enviando guía de uso del chatbot.")
-        guidance_message = build_guidance_message()
-        response_time_val = time.time() - request_start
-        response_time.observe(response_time_val)
-        qualitative_metrics["response_times"].append(response_time_val)
-        qualitative_metrics["hallucination_rate"].append(0)
-        record_interaction_metrics(request.user_id, request.question, categories, "GUIDANCE", guidance_message, response_time_val, False)
-
-        async def stream_guidance_response():
-            yield guidance_message
-        return StreamingResponse(stream_guidance_response(), media_type="text/event-stream")
-
     # 0. Buscar en FAQs por dominio ANTES que en RAG
     faq_files = {
         "AtencionCliente": "documentos/faq_atencion_cliente.txt",
@@ -569,6 +750,19 @@ async def ask(request: AskRequest):
                 logging.error(f"Error guardando caché: {e}")
             yield combined_response
         return StreamingResponse(stream_faq_response(), media_type="text/event-stream")
+
+    if needs_guidance(request.question, categories):
+        print("Consulta vaga detectada. Enviando guía de uso del chatbot.")
+        guidance_message = build_guidance_message()
+        response_time_val = time.time() - request_start
+        response_time.observe(response_time_val)
+        qualitative_metrics["response_times"].append(response_time_val)
+        qualitative_metrics["hallucination_rate"].append(0)
+        record_interaction_metrics(request.user_id, request.question, categories, "GUIDANCE", guidance_message, response_time_val, False)
+
+        async def stream_guidance_response():
+            yield guidance_message
+        return StreamingResponse(stream_guidance_response(), media_type="text/event-stream")
 
     # 1. Check cache first (exact match)
     if request.question in qa_cache:
@@ -723,7 +917,7 @@ async def feedback(request: FeedbackRequest):
     }
     
     # Guardar feedback sin perder histórico previo
-    append_jsonl_record("feedback.jsonl", feedback_data)
+    append_jsonl_record(FEEDBACK_LOG_PATH, feedback_data)
 
     # Actualizar métricas globales
     qualitative_metrics["avg_satisfaction"].append(request.satisfaction)
@@ -745,15 +939,20 @@ async def metrics():
     cpu_usage.set(psutil.cpu_percent())
     memory_usage.set(psutil.virtual_memory().percent)
     
+    persisted_interactions = read_jsonl_records(INTERACTION_LOG_PATH)
+    persisted_queries_total = len(persisted_interactions)
+    persisted_cache_hits = sum(1 for record in persisted_interactions if record.get("source") == "CACHE")
+    persisted_hallucinations = sum(1 for record in persisted_interactions if record.get("hallucinated"))
+
     # Calcular promedios cualitativos
     metrics_summary = {
         "quantitative": {
             "cpu_usage_percent": psutil.cpu_percent(),
             "memory_usage_percent": psutil.virtual_memory().percent,
-            "queries_total": query_counter._value.get() if hasattr(query_counter, '_value') else 0,
-            "cache_hits_total": cache_hit_counter._value.get() if hasattr(cache_hit_counter, '_value') else 0,
-            "errors_total": error_counter._value.get() if hasattr(error_counter, '_value') else 0,
-            "hallucinations_total": hallucination_counter._value.get() if hasattr(hallucination_counter, '_value') else 0
+            "queries_total": persisted_queries_total,
+            "cache_hits_total": persisted_cache_hits,
+            "errors_total": max(error_counter._value.get() if hasattr(error_counter, '_value') else 0, sum(qualitative_metrics["error_types"].values())),
+            "hallucinations_total": persisted_hallucinations
         },
         "qualitative": {
             "avg_satisfaction": round(np.mean(qualitative_metrics["avg_satisfaction"]), 2) if qualitative_metrics["avg_satisfaction"] else 0,
