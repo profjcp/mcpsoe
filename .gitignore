@@ -1,0 +1,28 @@
+# Python cache
+__pycache__/
+*.py[cod]
+appclient/__pycache__/
+
+# Virtual environments
+venmcp/
+venv/
+.venv/
+
+# Local logs and runtime artifacts
+metrics.log
+
+# Local/sensitive data files
+feedback.jsonl
+interaction_logs.jsonl
+user_histories.json
+users.json
+
+# Local learning/cache artifacts
+qa_cache.pkl
+qa_faiss_index.bin
+
+# Experiment outputs
+experiments/results/
+
+# OS/editor files
+.DS_Store
