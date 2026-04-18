@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import requests
 import time
 import json
@@ -115,6 +116,7 @@ def apply_styles():
             line-height: 1.45;
             border: 1px solid #e2d8c8;
             color: #1b2736;
+            animation: fadeInUp 0.18s ease-out;
         }
 
         .bubble.user {
@@ -217,6 +219,104 @@ def apply_styles():
             color: var(--accent-2);
             line-height: 1.45;
         }
+
+        /* ── Avatar de usuario ── */
+        .user-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #f2a65a, #d97745);
+            color: #1d2735;
+            font-weight: 700;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 8px auto;
+        }
+        .user-info-block {
+            text-align: center;
+            margin-bottom: 14px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .user-info-block .uname {
+            color: #eef3fa;
+            font-weight: 700;
+            font-size: 15px;
+        }
+        .user-info-block .urole {
+            color: #a0b0c5;
+            font-size: 12px;
+            margin-top: 2px;
+        }
+
+        /* ── Panel de login ── */
+        .login-wrap  { max-width: 420px; margin: 40px auto; }
+        .login-header { text-align: center; padding: 10px 0 20px 0; }
+        .login-icon  { font-size: 40px; display: block; margin-bottom: 6px; }
+        .login-title { font-size: 22px; font-weight: 700; color: var(--ink); }
+        .login-sub   { color: var(--muted); font-size: 14px; margin-top: 4px; }
+
+        /* ── Fila de feedback ── */
+        .fb-row { display: flex; gap: 6px; margin: 2px 0 8px 0; align-items: center; }
+
+        /* ── Animación de burbujas ── */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(6px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ── Botones de historial estilo card ── */
+        .hist-card-wrap { margin: 4px 0; }
+
+        .hist-card-wrap [data-testid="stButton"] > button {
+            background: rgba(255,255,255,0.06) !important;
+            color: #dce8f5 !important;
+            border: 1px solid rgba(255,255,255,0.12) !important;
+            border-radius: 10px !important;
+            padding: 10px 13px !important;
+            text-align: left !important;
+            font-weight: 600 !important;
+            font-size: 14px !important;
+            line-height: 1.4 !important;
+            cursor: pointer !important;
+            transition: background 0.14s, border-color 0.14s !important;
+            box-shadow: none !important;
+            transform: none !important;
+            width: 100% !important;
+        }
+
+        .hist-card-wrap [data-testid="stButton"] > button:hover {
+            background: rgba(255,255,255,0.13) !important;
+            border-color: rgba(255,255,255,0.28) !important;
+            color: #ffffff !important;
+        }
+
+        .hist-active [data-testid="stButton"] > button {
+            background: rgba(242,166,90,0.18) !important;
+            border-left: 3px solid #f2a65a !important;
+            color: #ffdeb8 !important;
+        }
+
+        .hist-active [data-testid="stButton"] > button:hover {
+            background: rgba(242,166,90,0.26) !important;
+        }
+
+        /* meta caption debajo del botón-card */
+        .hist-card-wrap [data-testid="stCaptionContainer"] p {
+            color: #8aa3bf !important;
+            font-size: 11px !important;
+            margin: -6px 0 6px 13px !important;
+            padding: 0 !important;
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 768px) {
+            .panel  { padding: 10px; border-radius: 10px; }
+            .bubble { padding: 10px 11px; }
+            .app-title { font-size: 22px; }
+        }
         </style>
         """,
         unsafe_allow_html=True
@@ -308,15 +408,29 @@ def get_conversation_preview(conversation, max_len=80):
     preview = str(latest_question).replace("\n", " ").strip()
     return preview[:max_len] + ("..." if len(preview) > max_len else "")
 
-def render_message(role, text, response_time=None):
-    safe_text = safe_html_text(text).replace("\n", "<br>")
+def render_message(role, text, response_time=None, timestamp=None):
     css_class = "user" if role == "user" else "bot"
-    st.markdown(f"<div class='bubble {css_class}'>{safe_text}</div>", unsafe_allow_html=True)
-    if role == "bot":
-        if response_time is None:
-            st.markdown("<div class='meta'>Tiempo de respuesta: N/A</div>", unsafe_allow_html=True)
-        else:
-            st.markdown(f"<div class='meta'>Tiempo de respuesta: {response_time:.2f} segundos</div>", unsafe_allow_html=True)
+    if role == "user":
+        safe_text = safe_html_text(text).replace("\n", "<br>")
+        st.markdown(f"<div class='bubble {css_class}'>{safe_text}</div>", unsafe_allow_html=True)
+    else:
+        # Bot: preservar negrita e itálica del markdown
+        escaped = safe_html_text(text)
+        escaped = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', escaped)
+        escaped = re.sub(r'\*(.*?)\*', r'<em>\1</em>', escaped)
+        escaped = escaped.replace('\n', '<br>')
+        st.markdown(f"<div class='bubble {css_class}'>{escaped}</div>", unsafe_allow_html=True)
+        parts = []
+        if response_time is not None:
+            parts.append(f"⏱ {response_time:.2f}s")
+        if timestamp:
+            try:
+                dt = datetime.fromisoformat(timestamp)
+                parts.append(dt.strftime("%H:%M"))
+            except Exception:
+                pass
+        meta_str = " · ".join(parts) if parts else "N/A"
+        st.markdown(f"<div class='meta'>{meta_str}</div>", unsafe_allow_html=True)
 
 def render_sidebar():
     with st.sidebar:
@@ -353,40 +467,53 @@ if "active_conversation_id" not in st.session_state:
 # Pantalla de Login/Registro
 if not st.session_state.logged_in:
     render_sidebar()
-    st.subheader("Acceso a SoeBOT")
-    action = st.radio("Selecciona una opción:", ("Iniciar Sesión", "Registrarse"))
-    
-    username = st.text_input("Usuario:")
-    password = st.text_input("Contraseña:", type="password")
-    
-    if action == "Iniciar Sesión":
-        if st.button("Iniciar Sesión"):
-            if username in users and users[username] == password:
+    st.markdown("<div class='login-wrap'>", unsafe_allow_html=True)
+    st.markdown(
+        "<div class='login-header'>"
+        "<span class='login-icon'>🎓</span>"
+        "<div class='login-title'>SoeBOT — UAGRM/SOE</div>"
+        "<div class='login-sub'>Asistente académico con FAQs y RAG</div>"
+        "</div>",
+        unsafe_allow_html=True,
+    )
+
+    tab_login, tab_reg = st.tabs(["Iniciar Sesión", "Registrarse"])
+
+    with tab_login:
+        username_l = st.text_input("Usuario:", key="login_user")
+        password_l = st.text_input("Contraseña:", type="password", key="login_pass")
+        if st.button("Iniciar Sesión", use_container_width=True, key="btn_login"):
+            if username_l in users and users[username_l] == password_l:
                 st.session_state.logged_in = True
-                st.session_state.user_id = username
-                normalized = normalize_user_history(user_histories.get(username, []))
+                st.session_state.user_id = username_l
+                normalized = normalize_user_history(user_histories.get(username_l, []))
                 st.session_state.conversations = normalized["conversations"]
                 st.session_state.active_conversation_id = normalized.get("active_id")
-                st.success(f"Bienvenido, {username}!")
+                st.success(f"Bienvenido, {username_l}!")
                 st.rerun()
             else:
                 st.error("Usuario o contraseña incorrectos.")
-    elif action == "Registrarse":
-        if st.button("Registrarse"):
-            if username and password:
-                if not USERNAME_PATTERN.match(username):
+
+    with tab_reg:
+        username_r = st.text_input("Nuevo usuario:", key="reg_user")
+        password_r = st.text_input("Contraseña:", type="password", key="reg_pass")
+        if st.button("Registrarse", use_container_width=True, key="btn_reg"):
+            if username_r and password_r:
+                if not USERNAME_PATTERN.match(username_r):
                     st.error("Usuario inválido. Usa 3-30 caracteres: letras, números, _, - o .")
                     st.stop()
-                if username in users:
+                if username_r in users:
                     st.error("El usuario ya existe. Elige otro nombre.")
                 else:
-                    users[username] = password
+                    users[username_r] = password_r
                     save_users(users)
-                    user_histories[username] = {"conversations": [], "active_id": None}
+                    user_histories[username_r] = {"conversations": [], "active_id": None}
                     save_histories(user_histories)
-                    st.success(f"Usuario {username} registrado exitosamente. Ahora puedes iniciar sesión.")
+                    st.success(f"Usuario {username_r} registrado exitosamente. Ahora puedes iniciar sesión.")
             else:
                 st.error("Por favor, ingresa un usuario y contraseña válidos.")
+
+    st.markdown("</div>", unsafe_allow_html=True)
 else:
     if st.session_state.user_id and st.session_state.user_id in user_histories and not st.session_state.conversations:
         normalized = normalize_user_history(user_histories.get(st.session_state.user_id, []))
@@ -404,42 +531,54 @@ else:
 
     with st.sidebar:
         st.markdown("### Historial")
-        st.caption("Todos tus chats quedan en esta barra lateral.")
+        # Avatar con iniciales
+        initial = st.session_state.user_id[0].upper() if st.session_state.user_id else "?"
+        st.markdown(
+            f"<div class='user-info-block'>"
+            f"<div class='user-avatar'>{initial}</div>"
+            f"<div class='uname'>{safe_html_text(st.session_state.user_id)}</div>"
+            f"<div class='urole'>Estudiante SOE</div>"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
 
         new_chat_clicked = st.button("Nuevo chat", key="new_chat_btn", use_container_width=True)
 
         if st.session_state.conversations:
             for conv in reversed(st.session_state.conversations):
                 is_active = conv["id"] == st.session_state.active_conversation_id
-                card_class = "history-card active" if is_active else "history-card"
-                preview = safe_html_text(get_conversation_preview(conv))
-                title = safe_html_text(conv["title"])
+                title = conv["title"]
                 count = len(conv.get("messages", []))
+                preview = get_conversation_preview(conv)
+                # Timestamp del último mensaje
+                last_ts = ""
+                _msgs = conv.get("messages", [])
+                if _msgs:
+                    _last = _msgs[-1]
+                    if isinstance(_last, (list, tuple)) and len(_last) >= 4:
+                        try:
+                            last_ts = datetime.fromisoformat(_last[3]).strftime("%d/%m %H:%M")
+                        except Exception:
+                            pass
 
-                st.markdown(
-                    f"""
-                    <div class='{card_class}'>
-                        <div class='history-title'>{title}</div>
-                        <div class='history-meta'>{count} mensaje(s)</div>
-                        <div class='history-preview'>{preview}</div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
-
-                if st.button(
-                    "Abrir este chat" if not is_active else "Chat actual",
-                    key=f"open_{conv['id']}",
-                    use_container_width=True,
-                    disabled=is_active
-                ):
-                    st.session_state.active_conversation_id = conv["id"]
-                    save_user_state(
-                        st.session_state.user_id,
-                        st.session_state.conversations,
-                        st.session_state.active_conversation_id
-                    )
-                    st.rerun()
+                active_cls = "hist-active" if is_active else ""
+                st.markdown(f'<div class="hist-card-wrap {active_cls}">', unsafe_allow_html=True)
+                if st.button(title, key=f"open_{conv['id']}", use_container_width=True):
+                    if not is_active:
+                        st.session_state.active_conversation_id = conv["id"]
+                        save_user_state(
+                            st.session_state.user_id,
+                            st.session_state.conversations,
+                            st.session_state.active_conversation_id
+                        )
+                        st.rerun()
+                meta_parts = [f"{count} msg"]
+                if last_ts:
+                    meta_parts.append(last_ts)
+                if preview and preview != "Sin mensajes todavía.":
+                    meta_parts.append(preview[:45])
+                st.caption(" · ".join(meta_parts))
+                st.markdown('</div>', unsafe_allow_html=True)
 
         st.markdown("---")
         st.markdown("**Consultas sugeridas**")
@@ -494,48 +633,70 @@ else:
         for idx, item in enumerate(active_conversation["messages"]):
             if isinstance(item, (list, tuple)) and len(item) >= 3:
                 q, a, t = item[0], item[1], item[2]
+                ts = item[3] if len(item) >= 4 else None
                 render_message("user", q)
-                render_message("bot", a, t)
+                render_message("bot", a, t, ts)
 
-                with st.expander("Enviar Feedback (opcional)"):
-                    col1, col2, col3 = st.columns(3)
-                    satisfaction = col1.slider("Satisfaccion", 1, 5, 3, key=f"sat_{idx}")
-                    clarity = col2.slider("Claridad", 1, 5, 3, key=f"clar_{idx}")
-                    completeness = col3.slider("Completitud", 1, 5, 3, key=f"comp_{idx}")
+                # Feedback inline: 👍 cierra, 👎 abre formulario
+                fb_show_key = f"fb_show_{idx}"
+                if fb_show_key not in st.session_state:
+                    st.session_state[fb_show_key] = False
+                col_pos, col_neg, _ = st.columns([1, 1, 8])
+                if col_pos.button("👍", key=f"fb_pos_{idx}", help="Respuesta útil"):
+                    st.session_state[fb_show_key] = False
+                if col_neg.button("👎", key=f"fb_neg_{idx}", help="Reportar problema"):
+                    st.session_state[fb_show_key] = not st.session_state[fb_show_key]
 
-                    error_type = st.selectbox(
-                        "Hubo algun error?",
-                        ["Ninguno", "Contexto insuficiente", "Alucinacion", "Interpretacion erronea", "Formato incorrecto"],
-                        key=f"err_{idx}"
-                    )
-                    comments = st.text_area("Comentarios adicionales", key=f"comm_{idx}")
+                if st.session_state[fb_show_key]:
+                    with st.expander("Detalle del problema", expanded=True):
+                        col1, col2, col3 = st.columns(3)
+                        satisfaction = col1.slider("Satisfaccion", 1, 5, 3, key=f"sat_{idx}")
+                        clarity = col2.slider("Claridad", 1, 5, 3, key=f"clar_{idx}")
+                        completeness = col3.slider("Completitud", 1, 5, 3, key=f"comp_{idx}")
 
-                    if st.button("Enviar Feedback", key=f"btn_{idx}"):
-                        try:
-                            error_val = "" if error_type == "Ninguno" else error_type
-                            feedback_response = requests.post(
-                                "http://127.0.0.1:9000/feedback",
-                                json={
-                                    "question": q,
-                                    "response": a,
-                                    "user_id": st.session_state.user_id,
-                                    "satisfaction": satisfaction,
-                                    "clarity": clarity,
-                                    "completeness": completeness,
-                                    "error_type": error_val,
-                                    "comments": comments
-                                }
-                            )
-                            if feedback_response.status_code == 200:
-                                st.success("Feedback guardado. Gracias.")
-                            else:
-                                st.error("Error al enviar feedback.")
-                        except Exception as e:
-                            st.error(f"Error: {e}")
+                        error_type = st.selectbox(
+                            "Hubo algun error?",
+                            ["Ninguno", "Contexto insuficiente", "Alucinacion", "Interpretacion erronea", "Formato incorrecto"],
+                            key=f"err_{idx}"
+                        )
+                        comments = st.text_area("Comentarios adicionales", key=f"comm_{idx}")
+
+                        if st.button("Enviar Feedback", key=f"btn_{idx}"):
+                            try:
+                                error_val = "" if error_type == "Ninguno" else error_type
+                                feedback_response = requests.post(
+                                    "http://127.0.0.1:9000/feedback",
+                                    json={
+                                        "question": q,
+                                        "response": a,
+                                        "user_id": st.session_state.user_id,
+                                        "satisfaction": satisfaction,
+                                        "clarity": clarity,
+                                        "completeness": completeness,
+                                        "error_type": error_val,
+                                        "comments": comments
+                                    }
+                                )
+                                if feedback_response.status_code == 200:
+                                    st.success("Feedback guardado. Gracias.")
+                                    st.session_state[fb_show_key] = False
+                                else:
+                                    st.error("Error al enviar feedback.")
+                            except Exception as e:
+                                st.error(f"Error: {e}")
             else:
                 q, a = item
                 render_message("user", q)
                 render_message("bot", a)
+
+    # Scroll automático al último mensaje
+    components.html(
+        "<script>"
+        "var m=window.parent.document.querySelectorAll('[data-testid=stMain],[data-testid=stAppViewBlockContainer]');"
+        "m.forEach(function(el){el.scrollTo(0,el.scrollHeight);});"
+        "</script>",
+        height=0,
+    )
 
     question = st.text_input(
         "Escribe tu pregunta",
