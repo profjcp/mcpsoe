@@ -47,7 +47,7 @@ logging.basicConfig(
 )
 
 # --- Configuration ---
-LLM_MODEL = "promptnow/llama-3-typhoon-v1.5-8b-instruct-q4_k_m"  # Cambiado al nuevo modelo para mejor precisión
+LLM_MODEL = "llama3.1:8b-instruct-q4_K_M"  # Modelo multilingüe Meta con soporte nativo de español (reemplaza typhoon Thai-English)
 EMBEDDING_MODEL = "nomic-embed-text"
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
 REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
@@ -817,25 +817,30 @@ async def ask(request: AskRequest):
     else:
         knowledge_context = "No se encontró información relevante en los documentos."
 
-    # 5. Build the improved prompt with better instructions
-    template = '''
-Eres un asistente experto en responder preguntas basadas únicamente en el contexto proporcionado. No inventes información ni respondas fuera del contexto.
+    # 5. Prompt estructurado: grounding estricto, español formal, dominio SOE/UAGRM
+    template = '''Eres SoeBOT, el asistente académico oficial de la School of Engineering (SOE) de la Universidad Autónoma Gabriel René Moreno (UAGRM), Bolivia.
 
-Instrucciones:
-- Responde de manera concisa, clara y en el mismo idioma que la pregunta.
-- Si la respuesta no está en el contexto, di "No tengo suficiente información para responder esta pregunta".
-- Cita partes relevantes del contexto si es posible.
-- Usa los ejemplos de Q&A anteriores como guía para el estilo de respuesta.
+Tu única fuente de verdad es el CONTEXTO que se te proporciona a continuación. No uses conocimiento externo ni inventes datos.
 
-Contexto de documentos:
+REGLAS OBLIGATORIAS:
+1. Responde SIEMPRE en español formal y claro, independientemente del idioma de la pregunta.
+2. Basa tu respuesta EXCLUSIVAMENTE en el contexto proporcionado.
+3. Si la información NO está en el contexto, responde exactamente: "Lo siento, no encontré información sobre eso en mis documentos. Te recomiendo contactar directamente a la secretaría de SOE."
+4. No menciones que tienes un "contexto" o que estás "buscando en documentos" — responde directamente.
+5. Si la pregunta es sobre horarios, fechas, costos, docentes o módulos, cita el dato exacto del contexto sin parafrasear.
+6. Usa los EJEMPLOS DE REFERENCIA para calibrar el nivel de detalle y formato de tu respuesta.
+7. Responde de forma concisa: máximo 4 oraciones para preguntas simples; lista numerada solo si hay múltiples ítems.
+
+--- CONTEXTO DE DOCUMENTOS ---
 {context}
 
-Ejemplos de preguntas y respuestas anteriores:
+--- EJEMPLOS DE REFERENCIA ---
 {few_shot_examples}
 
-Pregunta actual: {question}
+--- PREGUNTA DEL ESTUDIANTE ---
+{question}
 
-Respuesta:
+--- RESPUESTA DE SOEBOT ---
 '''
     prompt = PromptTemplate.from_template(template)
     chain = prompt | llm
