@@ -637,53 +637,86 @@ else:
                 render_message("user", q)
                 render_message("bot", a, t, ts)
 
-                # Feedback inline: 👍 cierra, 👎 abre formulario
+                # ── Barra de feedback ──────────────────────────────────────
                 fb_show_key = f"fb_show_{idx}"
+                fb_sent_key = f"fb_sent_{idx}"
                 if fb_show_key not in st.session_state:
                     st.session_state[fb_show_key] = False
-                col_pos, col_neg, _ = st.columns([1, 1, 8])
-                if col_pos.button("👍", key=f"fb_pos_{idx}", help="Respuesta útil"):
-                    st.session_state[fb_show_key] = False
-                if col_neg.button("👎", key=f"fb_neg_{idx}", help="Reportar problema"):
-                    st.session_state[fb_show_key] = not st.session_state[fb_show_key]
+                if fb_sent_key not in st.session_state:
+                    st.session_state[fb_sent_key] = False
 
-                if st.session_state[fb_show_key]:
-                    with st.expander("Detalle del problema", expanded=True):
-                        col1, col2, col3 = st.columns(3)
-                        satisfaction = col1.slider("Satisfaccion", 1, 5, 3, key=f"sat_{idx}")
-                        clarity = col2.slider("Claridad", 1, 5, 3, key=f"clar_{idx}")
-                        completeness = col3.slider("Completitud", 1, 5, 3, key=f"comp_{idx}")
+                if st.session_state[fb_sent_key]:
+                    st.caption("✅ Feedback enviado. ¡Gracias!")
+                else:
+                    st.markdown("<div class='fb-row'>", unsafe_allow_html=True)
+                    col_lbl, col_pos, col_neg, _ = st.columns([3, 1, 1, 5])
+                    col_lbl.markdown("<span style='font-size:13px;color:#6b7280;'>¿Fue útil?</span>", unsafe_allow_html=True)
 
-                        error_type = st.selectbox(
-                            "Hubo algun error?",
-                            ["Ninguno", "Contexto insuficiente", "Alucinacion", "Interpretacion erronea", "Formato incorrecto"],
-                            key=f"err_{idx}"
-                        )
-                        comments = st.text_area("Comentarios adicionales", key=f"comm_{idx}")
+                    if col_pos.button("👍", key=f"fb_pos_{idx}", help="Respuesta útil"):
+                        try:
+                            r = requests.post(
+                                "http://127.0.0.1:9000/feedback",
+                                json={
+                                    "question": q,
+                                    "response": a,
+                                    "user_id": st.session_state.user_id,
+                                    "satisfaction": 5,
+                                    "clarity": 5,
+                                    "completeness": 5,
+                                    "error_type": "",
+                                    "comments": "respuesta útil"
+                                }
+                            )
+                            if r.status_code == 200:
+                                st.session_state[fb_sent_key] = True
+                                st.session_state[fb_show_key] = False
+                                st.rerun()
+                        except Exception:
+                            pass
 
-                        if st.button("Enviar Feedback", key=f"btn_{idx}"):
-                            try:
-                                error_val = "" if error_type == "Ninguno" else error_type
-                                feedback_response = requests.post(
-                                    "http://127.0.0.1:9000/feedback",
-                                    json={
-                                        "question": q,
-                                        "response": a,
-                                        "user_id": st.session_state.user_id,
-                                        "satisfaction": satisfaction,
-                                        "clarity": clarity,
-                                        "completeness": completeness,
-                                        "error_type": error_val,
-                                        "comments": comments
-                                    }
-                                )
-                                if feedback_response.status_code == 200:
-                                    st.success("Feedback guardado. Gracias.")
-                                    st.session_state[fb_show_key] = False
-                                else:
-                                    st.error("Error al enviar feedback.")
-                            except Exception as e:
-                                st.error(f"Error: {e}")
+                    if col_neg.button("👎", key=f"fb_neg_{idx}", help="Reportar problema"):
+                        st.session_state[fb_show_key] = not st.session_state[fb_show_key]
+
+                    st.markdown("</div>", unsafe_allow_html=True)
+
+                    if st.session_state[fb_show_key]:
+                        with st.expander("Detalle del problema", expanded=True):
+                            col1, col2, col3 = st.columns(3)
+                            satisfaction = col1.slider("Satisfaccion", 1, 5, 3, key=f"sat_{idx}")
+                            clarity = col2.slider("Claridad", 1, 5, 3, key=f"clar_{idx}")
+                            completeness = col3.slider("Completitud", 1, 5, 3, key=f"comp_{idx}")
+
+                            error_type = st.selectbox(
+                                "Hubo algun error?",
+                                ["Ninguno", "Contexto insuficiente", "Alucinacion", "Interpretacion erronea", "Formato incorrecto"],
+                                key=f"err_{idx}"
+                            )
+                            comments = st.text_area("Comentarios adicionales", key=f"comm_{idx}")
+
+                            if st.button("Enviar Feedback", key=f"btn_{idx}"):
+                                try:
+                                    error_val = "" if error_type == "Ninguno" else error_type
+                                    feedback_response = requests.post(
+                                        "http://127.0.0.1:9000/feedback",
+                                        json={
+                                            "question": q,
+                                            "response": a,
+                                            "user_id": st.session_state.user_id,
+                                            "satisfaction": satisfaction,
+                                            "clarity": clarity,
+                                            "completeness": completeness,
+                                            "error_type": error_val,
+                                            "comments": comments
+                                        }
+                                    )
+                                    if feedback_response.status_code == 200:
+                                        st.session_state[fb_sent_key] = True
+                                        st.session_state[fb_show_key] = False
+                                        st.rerun()
+                                    else:
+                                        st.error("Error al enviar feedback.")
+                                except Exception as e:
+                                    st.error(f"Error: {e}")
             else:
                 q, a = item
                 render_message("user", q)
