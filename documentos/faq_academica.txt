@@ -78,3 +78,33 @@ Respuesta: Eje 1 Ciberseguridad Estratégica y Operacional: Módulo 1 Introducci
 
 Pregunta: ¿Quiénes son los docentes del programa de Ciberseguridad y Ciberdefensa?
 Respuesta: M.Sc. Julio Cesar Becerra Lino (coordinador del programa); M.Sc. Alexis García Sandoval; M.Sc. Roque Javier Bueno Gallardo; PhD. Luis Roberto Pérez Ríos; M.Sc. Dydier José Rojas Guerrero.
+
+Pregunta: ¿Cuál es la inversión total del programa de Maestría en Ciberseguridad y Ciberdefensa?
+Respuesta: El costo total es de Bs. 24.250, desglosado en: Matrícula (Bs. 2.000), Derecho a Estudio (Bs. 18.000), Derecho a Defensa de TFG (Bs. 4.200) y Certificado de Avance Académico (Bs. 50).
+
+Pregunta: ¿Existen planes de pago para el derecho a estudio?
+Respuesta: Sí, el monto de Bs. 18.000 correspondiente al derecho a estudio se puede cancelar en 12 cuotas mensuales de Bs. 1.500 cada una.
+
+Pregunta: ¿Qué títulos intermedios puedo obtener durante la maestría?
+Respuesta: El programa ofrece dos certificaciones intermedias: Diplomado en "Ciberseguridad Estratégica y Operacional" (al concluir el primer grupo de módulos) y Diplomado en "Auditoría y Cumplimiento en Ciberseguridad" (al concluir el segundo grupo).
+
+Pregunta: ¿Cómo es la modalidad de las clases y qué plataformas se utilizan?
+Respuesta: La modalidad es 100% virtual con clases sincrónicas (en vivo). Se utiliza la plataforma ZOOM para las sesiones en tiempo real y la plataforma MOODLE de la Unidad de Postgrado para la gestión de contenidos y actividades académicas.
+
+Pregunta: ¿Cuál es la carga horaria semanal y los horarios de clase?
+Respuesta: El programa demanda 7 horas académicas semanales. Los horarios son los martes de 19:15 a 22:15 y los sábados de 15:30 a 17:45.
+
+Pregunta: ¿Cuál es el requisito mínimo de asistencia para aprobar un módulo?
+Respuesta: Es obligatoria la asistencia a por lo menos el 75% de las horas académicas programadas para cada asignatura o módulo.
+
+Pregunta: ¿Qué sucede si repruebo una asignatura durante el programa?
+Respuesta: Se permite la desaprobación de una asignatura, pudiendo autorizarse excepcionalmente la repetición de hasta dos asignaturas por única vez. Reprobar más de dos asignaturas causa la baja automática del programa de maestría.
+
+Pregunta: ¿Cuál es el perfil de los profesionales que pueden postular?
+Respuesta: El programa está dirigido a profesionales con título en Provisión Nacional en áreas de Ingeniería de Sistemas, Ciencias de la Computación, Telecomunicaciones, Informática, Redes, Auditoría de Sistemas o ramas afines.
+
+Pregunta: ¿En qué consiste el Trabajo Final de Grado (TFG) para la titulación?
+Respuesta: Para obtener el título de Magíster, el estudiante debe realizar una Tesis de Maestría que consiste en un trabajo de investigación original que contribuya al área de ciberseguridad o ciberdefensa.
+
+Pregunta: ¿Qué cargos podré desempeñar al finalizar la maestría?
+Respuesta: El graduado podrá ocupar roles estratégicos como Director de Seguridad de la Información (CISO), Analista de Inteligencia de Amenazas, Consultor en Gestión de Riesgos Cibernéticos, Auditor de Sistemas o especialista en Operaciones de Ciberdefensa.
