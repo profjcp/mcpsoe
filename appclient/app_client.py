@@ -479,7 +479,7 @@ else:
                     print(f"--- CLIENTE: [{start_time}] Iniciando peticion para usuario {st.session_state.user_id}.")
 
                     with requests.post(
-                        "http://127.0.0.1:9000/ask",
+                        "http://127.0.0.1:9000/ask_cliente",
                         json={"question": question, "user_id": st.session_state.user_id},
                         stream=True
                     ) as response:
