@@ -587,19 +587,27 @@ def needs_guidance(question: str, categories: list) -> bool:
     return False
 
 def build_guidance_message() -> str:
-    """Mensaje guía para ayudar al usuario a formular preguntas más concretas."""
-    return (
-        "Puedo ayudarte mejor si escribes una pregunta concreta dentro del contexto de SoeBOT.\n\n"
-        "Áreas que manejo:\n"
-        "1. Atención al cliente: inscripciones, certificados, pagos, Moodle y trámites.\n"
-        "2. Académica: programas, módulos, horarios y docentes.\n"
-        "3. Investigación: tutor, monografía, defensa y curso de actualización.\n\n"
-        "Ejemplos de preguntas útiles:\n"
-        "- ¿Cómo puedo subir una tarea a Moodle?\n"
-        "- ¿Cuáles son los horarios de Ciberseguridad?\n"
-        "- ¿Cómo puedo obtener mi tutor?\n"
-        "- ¿Cuáles son los documentos de inscripción?"
+    """Mensaje guía para ayudar al usuario a formular preguntas más concretas, usando sugerencias externas."""
+    sugerencias_path = "documentos/faq_sugerencias.txt"
+    sugerencias = []
+    try:
+        with open(sugerencias_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#"):
+                    sugerencias.append(line)
+    except Exception as e:
+        sugerencias = [
+            "¿Cuáles son los horarios de atención?",
+            "¿Cómo puedo inscribirme en un curso?",
+            "¿Dónde encuentro mi boleta de pago?",
+            "¿Cómo solicito un certificado?"
+        ]
+    mensaje = (
+        "No encontré una respuesta exacta a tu pregunta.\n"
+        "Puedes preguntarme sobre:\n- " + "\n- ".join(sugerencias)
     )
+    return mensaje
 
 def cargar_faqs_con_embeddings(faq_path: str, embed_fn):
     """Carga preguntas/respuestas del FAQ con cache por mtime y embeddings precalculados."""
@@ -905,6 +913,34 @@ REGLAS OBLIGATORIAS:
         logging.info(f"Respuesta completada en {response_time_val:.2f}s | Usuario: {request.user_id} | Categorías: {categories} | Hallucination: {is_hallucinated} | Sentiment: {sentiment:.2f}")
 
     return StreamingResponse(stream_generator(), media_type="text/event-stream")
+
+@app.post("/ask_cliente")
+async def ask_cliente(request: AskRequest):
+    """Endpoint dedicado para el agente de atención al cliente."""
+    print("Ruta /ask_cliente llamada.")
+    return await ask(request)
+
+@app.post("/ask_academico")
+async def ask_academico(request: AskRequest):
+    """Stub de endpoint académico para mostrar el flujo futuro."""
+    print("Ruta /ask_academico llamada (endpoint en construcción).")
+    return JSONResponse(content={
+        "message": (
+            "Este endpoint académico está en construcción. "
+            "Por ahora, utiliza /ask para consultas generales o espera la futura implementación del agente académico."
+        )
+    })
+
+@app.post("/ask_investigacion")
+async def ask_investigacion(request: AskRequest):
+    """Stub de endpoint de investigación para mostrar el flujo futuro."""
+    print("Ruta /ask_investigacion llamada (endpoint en construcción).")
+    return JSONResponse(content={
+        "message": (
+            "Este endpoint de investigación está en construcción. "
+            "Por ahora, utiliza /ask para consultas generales o espera la futura implementación del agente de investigación."
+        )
+    })
 
 @app.post("/feedback")
 async def feedback(request: FeedbackRequest):

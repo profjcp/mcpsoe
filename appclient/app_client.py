@@ -38,113 +38,109 @@ def apply_styles():
             border-right: 1px solid rgba(255, 255, 255, 0.08);
         }
 
-        section[data-testid="stSidebar"] * {
-            color: #eef3fa;
-        }
+                            with st.expander("Enviar Feedback (opcional)"):
+                                col1, col2, col3 = st.columns(3)
+                                satisfaction = col1.slider("Satisfaccion", 1, 5, 3, key=f"sat_{idx}")
+                                clarity = col2.slider("Claridad", 1, 5, 3, key=f"clar_{idx}")
+                                completeness = col3.slider("Completitud", 1, 5, 3, key=f"comp_{idx}")
 
-        section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p,
-        section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] li,
-        section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] span,
-        section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] strong,
-        section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] h3,
-        section[data-testid="stSidebar"] .stCaption {
-            color: #eef3fa !important;
-        }
+                                error_type = st.selectbox(
+                                    "Hubo algun error?",
+                                    ["Ninguno", "Contexto insuficiente", "Alucinacion", "Interpretacion erronea", "Formato incorrecto"],
+                                    key=f"err_{idx}"
+                                )
+                                comments = st.text_area("Comentarios adicionales", key=f"comm_{idx}")
 
-        section[data-testid="stSidebar"] .stButton>button {
-            background: #f2a65a;
-            color: #1d2735;
-            font-weight: 700;
-            border: none;
-        }
+                                if st.button("Enviar Feedback", key=f"btn_{idx}"):
+                                    try:
+                                        error_val = "" if error_type == "Ninguno" else error_type
+                                        feedback_response = requests.post(
+                                            "http://127.0.0.1:9000/feedback",
+                                            json={
+                                                "question": q,
+                                                "response": a,
+                                                "user_id": st.session_state.user_id,
+                                                "satisfaction": satisfaction,
+                                                "clarity": clarity,
+                                                "completeness": completeness,
+                                                "error_type": error_val,
+                                                "comments": comments
+                                            }
+                                        )
+                                        if feedback_response.status_code == 200:
+                                            st.success("Feedback guardado. Gracias.")
+                                        else:
+                                            st.error("Error al enviar feedback.")
+                                    except Exception as e:
+                                        st.error(f"Error: {e}")
+                        else:
+                            q, a = item
+                            render_message("user", q)
+                            render_message("bot", a)
 
-        section[data-testid="stSidebar"] .stButton>button:hover {
-            background: #f09a45;
-        }
+                question = st.text_input(
+                    "Escribe tu pregunta",
+                    key="input_box",
+                    placeholder="Ej.: ¿Cómo puedo subir una tarea a Moodle?"
+                )
 
-        section[data-testid="stSidebar"] .stAlert {
-            background: rgba(255, 255, 255, 0.08);
-            color: #f2f6fb;
-            border: 1px solid rgba(255, 255, 255, 0.12);
-        }
+                if st.button("Enviar") and question.strip():
+                    answer_placeholder = st.empty()
+                    answer_wrapper = {"text": ""}
 
-        .app-title {
-            font-size: 28px;
-            font-weight: 700;
-            letter-spacing: 0.2px;
-            margin: 0 0 12px 0;
-        }
+                    if active_conversation and not active_conversation["messages"]:
+                        short_title = question.strip()[:36]
+                        active_conversation["title"] = short_title if len(short_title) > 0 else active_conversation["title"]
 
-        .app-subtitle {
-            color: var(--muted);
-            margin: 0 0 18px 0;
-        }
+                    try:
+                        with st.spinner("Consultando a la IA..."):
+                            start_time = time.time()
+                            print(f"--- CLIENTE: [{start_time}] Iniciando peticion para usuario {st.session_state.user_id}.")
 
-        .panel {
-            background: var(--panel);
-            border: 1px solid #e3d8c7;
-            border-radius: 16px;
-            padding: 16px;
-            box-shadow: 0 8px 24px rgba(19, 35, 58, 0.08);
-        }
+                            with requests.post(
+                                "http://127.0.0.1:9000/ask_cliente",
+                                json={"question": question, "user_id": st.session_state.user_id},
+                                stream=True
+                            ) as response:
+                                response.raise_for_status()
+                                first_chunk = True
+                                for chunk in response.iter_content(chunk_size=None):
+                                    if first_chunk:
+                                        first_chunk_time = time.time()
+                                        print(f"--- CLIENTE: [{first_chunk_time}] Primer chunk recibido en {first_chunk_time - start_time:.2f}s")
+                                        first_chunk = False
+                                    if chunk:
+                                        decoded_chunk = chunk.decode("utf-8")
+                                        answer_wrapper["text"] += decoded_chunk
+                                        answer_placeholder.markdown(
+                                            f"<div class='bubble bot'>{safe_html_text(answer_wrapper['text']).replace('\n', '<br>')}</div>",
+                                            unsafe_allow_html=True
+                                        )
 
-        .panel-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 12px;
-        }
+                        end_time = time.time()
+                        response_time = end_time - start_time
+                        st.markdown(f"<div class='meta'>Tiempo de respuesta: {response_time:.2f} segundos</div>", unsafe_allow_html=True)
 
-        .panel-title {
-            font-weight: 700;
-        }
+                        if active_conversation is None:
+                            new_id = f"chat_{int(time.time())}"
+                            active_conversation = {"id": new_id, "title": "Chat 1", "messages": []}
+                            st.session_state.conversations.append(active_conversation)
+                            st.session_state.active_conversation_id = new_id
 
-        .badge {
-            font-family: 'IBM Plex Mono', monospace;
-            background: #ece6dc;
-            border: 1px solid #d8cbba;
-            padding: 2px 8px;
-            border-radius: 999px;
-            font-size: 12px;
-            color: #2a3d56;
-        }
+                        active_conversation["messages"].append((question, answer_wrapper["text"], response_time, datetime.now().isoformat()))
+                        save_user_state(
+                            st.session_state.user_id,
+                            st.session_state.conversations,
+                            st.session_state.active_conversation_id
+                        )
+                        st.rerun()
 
-        .bubble {
-            padding: 12px 14px;
-            border-radius: 14px;
-            margin: 10px 0;
-            line-height: 1.45;
-            border: 1px solid #e2d8c8;
-            color: #1b2736;
-            animation: fadeInUp 0.18s ease-out;
-        }
+                    except requests.exceptions.RequestException:
+                        st.error("Error de conexion: no se pudo conectar al servidor MCP.")
+                    except Exception as e:
+                        st.error(f"Ocurrio un error inesperado: {e}")
 
-        .bubble.user {
-            background: #fff3e5;
-            border-left: 4px solid var(--accent);
-        }
-
-        .bubble.bot {
-            background: #ffffff;
-            border-left: 4px solid var(--accent-2);
-        }
-
-        .meta {
-            color: var(--muted);
-            font-size: 12px;
-            margin-top: 4px;
-        }
-
-        .stButton>button {
-            background: var(--accent);
-            color: white;
-            border: none;
-            padding: 8px 14px;
-            border-radius: 10px;
-            font-weight: 600;
-        }
-
-        .stButton>button:hover {
+                st.markdown("</div>", unsafe_allow_html=True)
             background: #c9683e;
         }
 
@@ -748,4 +744,110 @@ else:
         except Exception as e:
             st.error(f"Ocurrio un error inesperado: {e}")
 
+<<<<<<< HEAD
     st.markdown("</div>", unsafe_allow_html=True)
+=======
+                    with st.expander("Enviar Feedback (opcional)"):
+                        col1, col2, col3 = st.columns(3)
+                        satisfaction = col1.slider("Satisfaccion", 1, 5, 3, key=f"sat_{idx}")
+                        clarity = col2.slider("Claridad", 1, 5, 3, key=f"clar_{idx}")
+                        completeness = col3.slider("Completitud", 1, 5, 3, key=f"comp_{idx}")
+
+                        error_type = st.selectbox(
+                            "Hubo algun error?",
+                            ["Ninguno", "Contexto insuficiente", "Alucinacion", "Interpretacion erronea", "Formato incorrecto"],
+                            key=f"err_{idx}"
+                        )
+                        comments = st.text_area("Comentarios adicionales", key=f"comm_{idx}")
+
+                        if st.button("Enviar Feedback", key=f"btn_{idx}"):
+                            try:
+                                error_val = "" if error_type == "Ninguno" else error_type
+                                feedback_response = requests.post(
+                                    "http://127.0.0.1:9000/feedback",
+                                    json={
+                                        "question": q,
+                                        "response": a,
+                                        "user_id": st.session_state.user_id,
+                                        "satisfaction": satisfaction,
+                                        "clarity": clarity,
+                                        "completeness": completeness,
+                                        "error_type": error_val,
+                                        "comments": comments
+                                    }
+                                )
+                                if feedback_response.status_code == 200:
+                                    st.success("Feedback guardado. Gracias.")
+                                else:
+                                    st.error("Error al enviar feedback.")
+                            except Exception as e:
+                                st.error(f"Error: {e}")
+                else:
+                    q, a = item
+                    render_message("user", q)
+                    render_message("bot", a)
+
+        question = st.text_input(
+            "Escribe tu pregunta",
+            key="input_box",
+            placeholder="Ej.: ¿Cómo puedo subir una tarea a Moodle?"
+        )
+
+        if st.button("Enviar") and question.strip():
+            answer_placeholder = st.empty()
+            answer_wrapper = {"text": ""}
+
+            if active_conversation and not active_conversation["messages"]:
+                short_title = question.strip()[:36]
+                active_conversation["title"] = short_title if len(short_title) > 0 else active_conversation["title"]
+
+            try:
+                with st.spinner("Consultando a la IA..."):
+                    start_time = time.time()
+                    print(f"--- CLIENTE: [{start_time}] Iniciando peticion para usuario {st.session_state.user_id}.")
+
+                    with requests.post(
+                        "http://127.0.0.1:9000/ask_cliente",
+                        json={"question": question, "user_id": st.session_state.user_id},
+                        stream=True
+                    ) as response:
+                        response.raise_for_status()
+                        first_chunk = True
+                        for chunk in response.iter_content(chunk_size=None):
+                            if first_chunk:
+                                first_chunk_time = time.time()
+                                print(f"--- CLIENTE: [{first_chunk_time}] Primer chunk recibido en {first_chunk_time - start_time:.2f}s")
+                                first_chunk = False
+                            if chunk:
+                                decoded_chunk = chunk.decode("utf-8")
+                                answer_wrapper["text"] += decoded_chunk
+                                answer_placeholder.markdown(
+                                    f"<div class='bubble bot'>{safe_html_text(answer_wrapper['text']).replace('\n', '<br>')}</div>",
+                                    unsafe_allow_html=True
+                                )
+
+                end_time = time.time()
+                response_time = end_time - start_time
+                st.markdown(f"<div class='meta'>Tiempo de respuesta: {response_time:.2f} segundos</div>", unsafe_allow_html=True)
+
+                if active_conversation is None:
+                    new_id = f"chat_{int(time.time())}"
+                    active_conversation = {"id": new_id, "title": "Chat 1", "messages": []}
+                    st.session_state.conversations.append(active_conversation)
+                    st.session_state.active_conversation_id = new_id
+
+                active_conversation["messages"].append((question, answer_wrapper["text"], response_time, datetime.now().isoformat()))
+                save_user_state(
+                    st.session_state.user_id,
+                    st.session_state.conversations,
+                    st.session_state.active_conversation_id
+                )
+                st.rerun()
+
+            except requests.exceptions.RequestException:
+                st.error("Error de conexion: no se pudo conectar al servidor MCP.")
+            except Exception as e:
+                st.error(f"Ocurrio un error inesperado: {e}")
+
+        st.markdown("</div>", unsafe_allow_html=True)
+>>>>>>> b12bd27f
