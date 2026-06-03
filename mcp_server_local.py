@@ -47,7 +47,7 @@ logging.basicConfig(
 )
 
 # --- Configuration ---
-LLM_MODEL = "promptnow/llama-3-typhoon-v1.5-8b-instruct-q4_k_m"  # Cambiado al nuevo modelo para mejor precisión
+LLM_MODEL = "promptnow/llama-3-typhoon-v1.5-8b-instruct-q4_k_m:latest"  # Modelo disponible localmente en Ollama
 EMBEDDING_MODEL = "nomic-embed-text"
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
 REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
@@ -554,7 +554,7 @@ def categorize_query_multi(question: str) -> list:
     return matched if matched else ["Otro"]
 
 def needs_guidance(question: str, categories: list) -> bool:
-    """Detecta preguntas demasiado vagas para guiar al usuario antes de responder."""
+    """Detecta preguntas que deben recibir guía (vagas o fuera del dominio SOEBOT)."""
     normalized = normalize_text(question)
     cleaned = re.sub(r"[^a-z0-9\s]", " ", normalized)
     cleaned = " ".join(cleaned.split())
@@ -581,7 +581,9 @@ def needs_guidance(question: str, categories: list) -> bool:
     if any(cleaned.startswith(prefix) for prefix in vague_starts) and len(cleaned.split()) <= 6:
         return True
 
-    if categories == ["Otro"] and len(cleaned.split()) <= 5:
+    # Regla clave: si la pregunta cae completamente fuera de dominio,
+    # responder con guía y sugerencias en lugar de dejar que el LLM improvise.
+    if categories == ["Otro"]:
         return True
 
     return False
