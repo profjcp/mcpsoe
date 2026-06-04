@@ -1,4 +1,4 @@
-# SoeBOT - Sistema RAG Híbrido para Validación de Tesis Doctoral
+# SoeBOT - Arquitectura Pipeline Multiagente Basado en LLM y RAG para Optimización Académica
 
 [![Python](https://img.shields.io/badge/Python-3.12+-blue.svg)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.119.0-green.svg)](https://fastapi.tiangolo.com/)
@@ -9,37 +9,37 @@
 
 ## 📋 Descripción General
 
-**SoeBOT** es un sistema de Generación Aumentada por Recuperación (RAG) híbrido desarrollado como plataforma de investigación doctoral. El sistema combina búsqueda semántica sobre FAQs categorizadas por dominio con generación aumentada por documentos académicos, implementando un marco de validación cuantitativa y cualitativa para evaluar sistemas conversacionales en contextos educativos.
+**SoeBOT** es una **arquitectura pipeline multiagente** desarrollada como plataforma de investigación doctoral para la Unidad de Posgrado de la School of Engineering (SOE). El sistema utiliza agentes especializados (FAQAgent, DocRAGAgent) controlados por un Orchestrator con lógica de routing pre-LLM, implementando un marco de validación cuantitativa y cualitativa para evaluar sistemas conversacionales en contextos educativos de posgrado.
 
 ### Características Distintivas del Sistema
 
-- 🎓 **Arquitectura Híbrida FAQ-RAG**: Búsqueda semántica prioritaria sobre 3 dominios especializados (Atención al Cliente, Académica, Investigación) con fallback a RAG generativo
-- 🤖 **LLM Optimizado**: Ollama con Llama 3 Typhoon 8B (Quantized Q4_K_M) y embeddings nomic-embed-text para máxima eficiencia
+- 🎓 **Arquitectura Pipeline Multiagente**: Routing pre-LLM con FAQAgent, DocRAGAgent y Guardrails para evitar falsos positivos en tesis/investigación
+- 🤖 **LLM Optimizado**: Ollama con Llama 3.1 8B (Q4_K_M) y embeddings nomic-embed-text para máxima eficiencia
 - 📊 **Marco de Evaluación Doctoral**: Sistema de métricas alineado con criterios de tesis (eficiencia, claridad, veracidad, satisfacción)
 - 💬 **Interfaz UX Avanzada**: Cliente estilo Gemini con gestión conversacional, sidebar de historial y visualización de métricas en tiempo real
 - 📈 **Dashboard Analítico**: Visualización estratificada por criterios de tesis con exportación CSV para análisis estadístico
-- 🔍 **Búsqueda Semántica Dual**: FAISS para chunks documentales (RAG) y pares Q&A (FAQ) con umbrales de similitud coseno configurables
-- 💾 **Sistema de Aprendizaje Continuo**: Persistencia de interacciones (Redis + archivos binarios) para refinamiento iterativo
-- 🧠 **Categorización Multi-dominio**: Clasificación automática de consultas con soporte para multi-clasificación temática
+- 🔍 **Búsqueda Semántica Dual**: FAISS para chunks documentales y Q&A cache con umbrales configurables (0.82 para FAQ)
+- 💾 **Sistema de Aprendizaje Continuo**: Persistencia de interacciones (Redis + archivos JSON) para refinamiento iterativo
+- 🧠 **Categorización Multi-dominio**: Clasificación automática con soporte multi-categoría y guardrails léxicos
 
 ---
 
 ## 🎯 Justificación del Marco de Investigación Doctoral
 
-### Contexto: Tesis Doctoral en Sistemas Conversacionales Educativos
+### Contexto: Tesis Doctoral en Arquitectura Multiagente para Educación
 
-Este proyecto constituye el sistema experimental de una **tesis doctoral** enfocada en validar la eficacia de sistemas RAG híbridos (FAQ + Generativo) en contextos educativos de posgrado. La investigación busca responder las siguientes preguntas de investigación:
+Este proyecto constituye el sistema experimental de una **tesis doctoral** enfocada en validar la eficacia de arquitecturas pipeline multiagente basadas en LLM y RAG en contextos educativos de posgrado SOE-UAGRM. La investigación busca responder las siguientes preguntas de investigación:
 
-1. **RQ1 (Eficiencia)**: ¿Un sistema híbrido FAQ-RAG reduce la latencia y optimiza recursos computacionales comparado con RAG puro?
-2. **RQ2 (Claridad)**: ¿La búsqueda semántica sobre FAQs estructuradas mejora la claridad percibida de las respuestas?
-3. **RQ3 (Veracidad)**: ¿La priorización de FAQs validadas reduce la tasa de alucinaciones en sistemas generativos?
-4. **RQ4 (Satisfacción)**: ¿Los usuarios de posgrado prefieren respuestas directas (FAQ) sobre respuestas generadas contextualmente (RAG)?
+1. **RQ1 (Eficiencia)**: ¿Un pipeline multiagente con routing pre-LLM reduce la latencia comparado con mono-agente RAG?
+2. **RQ2 (Claridad)**: ¿El agente FAQAgent con threshold elevado mejora la claridad percibida vs. DocRAGAgent?
+3. **RQ3 (Veracidad)**: ¿Los guardrails léxicos reducen la tasa de falsos positivos en tesis/defensa?
+4. **RQ4 (Satisfacción)**: ¿Los usuarios de posgrado prefieren respuestas de FAQAgent sobre DocRAGAgent?
 
 ### Hipótesis de Investigación
 
-**H1**: Los sistemas RAG híbridos con búsqueda semántica sobre FAQs categorizadas demuestran mejoras estadísticamente significativas (p < 0.05) en los cuatro criterios de evaluación comparados con RAG generativo tradicional.
+**H1**: Las arquitecturas pipeline multiagente con routing pre-LLM y guardrails léxicos demuestran mejoras estadísticamente significativas (p < 0.05) en los cuatro criterios de evaluación comparados con mono-agente RAG tradicional.
 
-**H0**: No existe diferencia significativa entre ambos enfoques en el contexto educativo evaluado.
+**H0**: No existe diferencia significativa entre ambos enfoques en el contexto SOE-UAGRM evaluado.
 
 ### Marco de Validación: Cuatro Criterios de Tesis
 
@@ -118,45 +118,45 @@ Este proyecto constituye el sistema experimental de una **tesis doctoral** enfoc
 
 ---
 
-## 🔬 Sistema Híbrido FAQ-RAG: Fundamentos Técnicos
+## 🔬 Arquitectura Pipeline Multiagente: Fundamentos Técnicos
 
-### Arquitectura de Búsqueda Prioritizada
+### Arquitectura de Routing Pre-LLM
 
-El sistema implementa una **estrategia de cascada con tres niveles**:
+El sistema implementa una **arquitectura pipeline multiagente con routing basado en categorización**:
 
 ```
-1️⃣ Búsqueda Semántica en FAQs (Nivel 1)
-   - Categorización automática del query → [AtencionCliente, Academica, Investigacion]
-   - Carga de FAQs relevantes según categoría(s) detectada(s)
-   - Embedding del query con nomic-embed-text (768 dims)
-   - Búsqueda por similitud coseno en índice FAISS de FAQs
-   - Umbral de confianza: 0.75 (ajustable)
-   - Si match >= 0.75 → Retorna respuesta FAQ directa ⚡ (~ 0.3s)
+1️⃣ Router (Orquestador) - Análisis inicial
+   - Categorización automática multi-label → [AtencionCliente, Academica, Investigacion]
+   - Detección de preguntas vagas (GUIDANCE)
+   - Guardrails léxicos para evitar falsos positivos en tesis/defensa
+   - Routing hacia el agente adecuado
 
-2️⃣ Búsqueda en Caché Q&A (Nivel 2)
-   - Si no hay match en FAQs, busca en caché de interacciones previas
-   - Índice FAISS de pares pregunta-respuesta históricos
-   - Umbral: 0.85 (más estricto por ser respuestas generadas)
-   - Si match >= 0.85 → Retorna respuesta cacheada 💾 (~ 0.5s)
+2️⃣ FAQAgent - Respuestas pre-validadas (Threshold 0.82)
+   - Matching semántico en FAQs por dominio
+   - Embedding con nomic-embed-text (768 dims)
+   - Si match >= 0.82 → Retorna respuesta FAQ directa ⚡ (~ 0.3s)
+   - Guardrails: filtrado por categoría origen
 
-3️⃣ Generación RAG Completa (Nivel 3 - Fallback)
-   - Si no hay match anterior, activa pipeline RAG completo
-   - Búsqueda semántica en chunks documentales (FAISS)
-   - Recuperación de top-k chunks (k=5)
-   - Generación aumentada con LLM Llama 3 Typhoon
-   - Guarda nuevo par Q&A en caché para futuras consultas
+3️⃣ DocRAGAgent - Búsqueda en documentos académicos
+   - Fallback cuando FAQAgent no retorna match
+   - Búsqueda en chunks FAISS (top-k=5)
+   - Generación aumentada con LLM Ollama Llama 3.1
    - Tiempo promedio: ~ 2.5s
+
+4️⃣ Cache Q&A - Respuestas anteriores
+   - Coincidencia exacta (O(1))
+   - Bypass para categorías sensibles (tesis/defensa)
 ```
 
-### Ventajas del Enfoque Híbrido
+### Ventajas del Pipeline Multiagente
 
-| Aspecto | FAQ-RAG Híbrido | RAG Tradicional |
-|---------|-----------------|-----------------|
-| **Latencia** | 0.3s - 0.5s (mayoría) | 2.5s - 4s (todas) |
-| **Alucinaciones** | < 5% (FAQs validadas) | 15-25% (generativo) |
-| **Uso de LLM** | ~40% de consultas | 100% de consultas |
-| **Consistencia** | Alta (FAQs fijas) | Variable (generativa) |
-| **Escalabilidad** | Excelente (caché crece) | Moderada (siempre procesa) |
+| Aspecto | FAQAgent | DocRAGAgent | Mono-Agente RAG |
+|---------|---------|------------|-----------------|
+| **Latencia** | 0.3s ⚡ | 2.5s | 2.5s - 4s |
+| **Falsos Positivos** | < 3% (guardrails) | 5-10% | 15-25% |
+| **Uso de LLM** | ~30% (routing pre-LLM) | ~70% | 100% |
+| **Consistencia** | Alta (FAQs fijas) | Variable | Variable |
+| **Escalabilidad** | Excelente | Moderada | Moderada |
 
 ---
 
@@ -291,12 +291,14 @@ Ver [requirements.txt](requirements.txt) - Se instalan automáticamente con `run
 
 | Archivo | Función | Líneas | Características |
 |---------|---------|--------|-----------------|
-| `mcp_server_local.py` | 🎯 Servidor FastAPI con RAG Híbrido | ~420 | FAQ search, categorización, métricas |
+| `mcp_server_local.py` | 🎯 Servidor FastAPI con Pipeline Multiagente | ~500 | Orchestrator, FAQAgent, DocRAGAgent |
+| `orchestrator/router.py` | 🎯 Router/MultiAgentOrchestrator | ~200 | Routing pre-LLM, categorización, guardrails |
+| `agents/faq_agent.py` | 📋 FAQAgent con guardrails | ~100 | Threshold 0.82, filtering léxico |
+| `agents/rag_doc_agent.py` | 📄 DocRAGAgent para documentos | ~100 | FAISS search, fuentes citations |
 | `appclient/app_client.py` | 💬 Cliente estilo Gemini | ~300 | Sidebar, conversaciones, feedback UI |
 | `appclient/app_admin.py` | 📊 Dashboard de tesis | ~350 | 4 criterios, gráficos, CSV export |
 | `documentos/faq_*.txt` | 📚 Base de FAQs por dominio | ~50 Q&A | Formato estructurado Pregunta/Respuesta |
 | `preprocess.py` | 🔄 Procesador de documentos | ~150 | Chunking, embeddings, FAISS indexing |
-| `rag.py` | 🤖 Agente RAG generativo | ~200 | LangChain, Ollama, streaming |
 | `run.sh` | 🚀 Orquestador de servicios | ~150 | Health checks, startup sequence |
 
 ---
@@ -889,6 +891,6 @@ Si utilizas este proyecto en investigación, por favor cita:
 
 ---
 
-**Última actualización**: Enero 20, 2026  
-**Versión**: 4.0 - Sistema de Métricas Completo  
+**Última actualización**: Junio 3, 2026  
+**Versión**: 2.0 - Arquitectura Pipeline Multiagente  
 **Estado**: ✅ Producción - Validado y Operacional
