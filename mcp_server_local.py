@@ -19,6 +19,10 @@ import logging
 import unicodedata
 import re
 
+from agents.faq_agent import FAQAgent
+from agents.rag_doc_agent import DocRAGAgent
+from orchestrator.router import MultiAgentOrchestrator
+
 # Lazy import de NLTK para evitar errores de inicialización
 def get_sentiment_analyzer():
     """Importa y retorna el analizador de sentimientos de NLTK bajo demanda"""
@@ -71,6 +75,9 @@ chunks: list
 qa_faiss_index: faiss.Index
 qa_cache: dict
 faq_cache: dict = {}
+faq_agent = None
+doc_rag_agent = None
+orchestrator = None
 
 # --- Métricas Prometheus (Cuantitativas) ---
 query_counter = Counter('queries_total', 'Total queries processed')
@@ -313,7 +320,19 @@ def hydrate_metrics_from_persisted_data():
             record_feedback_metrics(user_id, int(satisfaction), int(clarity), int(completeness), error_type)
 
 
-def record_interaction_metrics(user_id: str, question: str, categories: list, source: str, response_text: str, response_time_val: float, is_hallucinated: bool = False):
+def record_interaction_metrics(
+    user_id: str,
+    question: str,
+    categories: list,
+    source: str,
+    response_text: str,
+    response_time_val: float,
+    is_hallucinated: bool = False,
+    sources: list = None,
+    routing_trace: dict = None,
+    confidence: float = 0.0,
+    timing_ms: dict = None,
+):
     """Registra métricas por usuario y persiste interacciones para análisis posteriores."""
     bucket, user_key = ensure_user_metrics(user_id)
     bucket["queries_total"] += 1
@@ -330,7 +349,7 @@ def record_interaction_metrics(user_id: str, question: str, categories: list, so
         bucket["guidance_total"] += 1
     elif source == "HISTORY_IMPORT":
         bucket["history_import_total"] += 1
-    elif source == "RAG":
+    elif source in ("RAG", "RAG_DOC"):
         bucket["rag_total"] += 1
 
     if is_hallucinated:
@@ -347,7 +366,11 @@ def record_interaction_metrics(user_id: str, question: str, categories: list, so
             "response_time_s": round(response_time_val, 4),
             "hallucinated": bool(is_hallucinated),
             "response_text": response_text,
-            "response_preview": response_text[:500]
+            "response_preview": response_text[:500],
+            "sources": sources or [],
+            "routing_trace": routing_trace or {},
+            "confidence": float(confidence or 0.0),
+            "timing_ms": timing_ms or {},
         }
     )
 
