@@ -1,11 +1,11 @@
 # Smoke API Results
 
-- Timestamp: 2026-06-03T20:13:33-04:00
+- Timestamp: 2026-06-03T20:37:12-04:00
 - Base URL: http://localhost:9000
 
 ## Health
 ```json
-{"status":"healthy","timestamp":"2026-06-03T20:13:33.822920"}
+{"status":"healthy","timestamp":"2026-06-03T20:37:12.999246"}
 
 ```
 
@@ -64,7 +64,7 @@ No tengo suficiente información para responder esta pregunta.
 
 ## Metrics
 ```json
-{"quantitative":{"cpu_usage_percent":0.0,"memory_usage_percent":55.2,"queries_total":164,"cache_hits_total":5,"errors_total":25,"hallucinations_total":0},"qualitative":{"avg_satisfaction":2.71,"avg_clarity":2.59,"avg_completeness":2.63,"hallucination_rate":0.0,"avg_sentiment":0.0,"avg_response_time":39.03,"query_categories":{"['Otro']":64,"['Academica']":38,"['Academica', 'Investigacion']":1,"['AtencionCliente', 'Academica']":11,"['AtencionCliente']":29,"['Investigacion']":17,"['AtencionCliente', 'Investigacion']":5},"error_types":{"Contexto insuficiente":13,"Interpretación errónea":1,"Alucinacion":2,"Formato incorrecto":1,"Interpretacion erronea":8},"total_queries_tracked":164},"per_user":{"verificacion_metricas":{"queries_total":1,"faq_hits_total":0,"cache_hits_total":0,"guidance_total":1,"rag_total":0,"history_import_total":0,"errors_total":0,"hallucinations_total":0,"avg_response_time":0.0,"avg_satisfaction":5.0,"avg_clarity":5.0,"avg_completeness":5.0,"query_categories":{"Otro":1},"error_types":{}},"jcpeinado":{"queries_total":67,"faq_hits_total":3,"cache_hits_total":2,"guidance_total":4,"rag_total":1,"history_import_total":57,"errors_total":1,"hallucinations_total":0,"avg_r
+{"quantitative":{"cpu_usage_percent":0.0,"memory_usage_percent":34.0,"queries_total":172,"cache_hits_total":6,"errors_total":25,"hallucinations_total":0},"qualitative":{"avg_satisfaction":2.85,"avg_clarity":2.67,"avg_completeness":2.71,"hallucination_rate":0.0,"avg_sentiment":0.0,"avg_response_time":37.25,"query_categories":{"['Otro']":65,"['Academica']":39,"['Academica', 'Investigacion']":4,"['AtencionCliente', 'Academica']":11,"['AtencionCliente']":32,"['Investigacion']":17,"['AtencionCliente', 'Investigacion']":5},"error_types":{"Contexto insuficiente":13,"Interpretación errónea":1,"Alucinacion":2,"Formato incorrecto":1,"Interpretacion erronea":8},"total_queries_tracked":172},"per_user":{"verificacion_metricas":{"queries_total":1,"faq_hits_total":0,"cache_hits_total":0,"guidance_total":1,"rag_total":0,"history_import_total":0,"errors_total":0,"hallucinations_total":0,"avg_response_time":0.0,"avg_satisfaction":5.0,"avg_clarity":5.0,"avg_completeness":5.0,"query_categories":{"Otro":1},"error_types":{}},"jcpeinado":{"queries_total":67,"faq_hits_total":3,"cache_hits_total":2,"guidance_total":4,"rag_total":1,"history_import_total":57,"errors_total":1,"hallucinations_total":0,"avg_r
 ```
 
 ## Ask Invalid Payload (expect 422)

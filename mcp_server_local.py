@@ -413,7 +413,7 @@ async def lifespan(app: FastAPI):
     """
     Load all necessary models and data into memory.
     """
-    global llm, embeddings, faiss_index, chunks, qa_faiss_index, qa_cache, faq_cache, r
+    global llm, embeddings, faiss_index, chunks, qa_faiss_index, qa_cache, faq_cache, r, faq_agent, doc_rag_agent, orchestrator
 
     # 1. Load LLM and Embedding models
     print("--- Cargando Modelos de Ollama ---")
@@ -478,6 +478,55 @@ async def lifespan(app: FastAPI):
     for domain, path in faq_files.items():
         faqs = cargar_faqs_con_embeddings(path, embeddings.embed_query)
         print(f"FAQ {domain} precargado: {len(faqs)} preguntas")
+
+    # 5. Inicializar agentes y orquestador Sprint 1 (GUIDANCE -> FAQ -> CACHE -> RAG_DOC)
+    def _build_chain():
+        template = """
+Eres un asistente experto en responder preguntas basadas únicamente en el contexto proporcionado. No inventes información ni respondas fuera del contexto.
+
+Instrucciones:
+- Responde de manera concisa, clara y en el mismo idioma que la pregunta.
+- Si la respuesta no está en el contexto, di "No tengo suficiente información para responder esta pregunta".
+- Cita partes relevantes del contexto si es posible.
+- Usa los ejemplos de Q&A anteriores como guía para el estilo de respuesta.
+
+Contexto de documentos:
+{context}
+
+Ejemplos de preguntas y respuestas anteriores:
+{few_shot_examples}
+
+Pregunta actual: {question}
+
+Respuesta:
+"""
+        prompt = PromptTemplate.from_template(template)
+        return prompt | llm
+
+    faq_agent = FAQAgent(
+        faq_files=faq_files,
+        load_faqs_fn=cargar_faqs_con_embeddings,
+        embed_query_fn=embeddings.embed_query,
+        threshold=0.82,
+        min_token_overlap=2,
+    )
+
+    doc_rag_agent = DocRAGAgent(
+        faiss_index=faiss_index,
+        chunks=chunks,
+        embed_query_fn=embeddings.embed_query,
+        build_chain_fn=_build_chain,
+        top_k=5,
+    )
+
+    orchestrator = MultiAgentOrchestrator(
+        faq_agent=faq_agent,
+        doc_rag_agent=doc_rag_agent,
+        categorize_fn=categorize_query_multi,
+        needs_guidance_fn=needs_guidance,
+        build_guidance_fn=build_guidance_message,
+        qa_cache_ref=qa_cache,
+    )
 
     imported_count = backfill_interaction_logs_from_histories()
     hydrate_metrics_from_persisted_data()
@@ -575,6 +624,32 @@ def categorize_query_multi(question: str) -> list:
         if any(kw in question_lower for kw in keywords):
             matched.append(category)
     return matched if matched else ["Otro"]
+
+
+def is_research_sensitive_query(question: str, categories: list) -> bool:
+    """Detecta consultas sensibles de investigación/defensa para evitar cache FAQ contaminado."""
+    normalized = normalize_text(question)
+    sensitive_keywords = [
+        "tesis", "defensa", "predefensa", "tutor", "investigacion",
+        "metodologia", "monografia", "trabajo final de grado",
+        "director de tesis", "linea de investigacion"
+    ]
+    if any(k in normalized for k in sensitive_keywords):
+        return True
+    return any(cat in {"Investigacion"} for cat in (categories or []))
+
+def should_bypass_cache_answer(question: str, categories: list, cached_response: str) -> bool:
+    """Bypass cuando el cache devuelve FAQ de ubicacion para consulta de tesis/investigacion."""
+    if not cached_response:
+        return False
+    if is_research_sensitive_query(question, categories):
+        bad_markers = [
+            "¿Dónde queda ubicado el SOE?",
+            "Respuesta (AtencionCliente):",
+            "Av. Bush entre el 2do y 3er Anillo"
+        ]
+        return any(m in cached_response for m in bad_markers)
+    return False
 
 def needs_guidance(question: str, categories: list) -> bool:
     """Detecta preguntas demasiado vagas para guiar al usuario antes de responder."""
@@ -708,221 +783,193 @@ def buscar_faq_semantico(question: str, faqs: list, embed_fn, threshold: float =
 @app.post("/ask")
 async def ask(request: AskRequest):
     """
-    Generates a streaming answer using RAG with FAISS and Redis caching.
-    Primero busca en FAQs por dominio, luego en RAG si no encuentra.
+    Sprint 1: routing multi-agente (GUIDANCE -> FAQ -> CACHE -> RAG_DOC)
+    preservando streaming y métricas existentes.
     """
+    global orchestrator
     print(f"Recibida pregunta: {request.question}")
     query_counter.inc()
     request_start = time.time()
-    
-    # Categorizar consulta (multi-categoría)
+
     categories = categorize_query_multi(request.question)
     qualitative_metrics["query_categories"][str(categories)] = qualitative_metrics["query_categories"].get(str(categories), 0) + 1
     print(f"Categorías detectadas: {categories}")
 
-    # 0. Buscar en FAQs por dominio ANTES que en RAG
-    faq_files = {
-        "AtencionCliente": "documentos/faq_atencion_cliente.txt",
-        "Academica": "documentos/faq_academica.txt",
-        "Investigacion": "documentos/faq_investigacion.txt"
-    }
-    faq_responses = []
-    searched_categories = set()
-    for cat in categories:
-        if cat in faq_files:
-            searched_categories.add(cat)
-            print(f"Buscando en FAQ de {cat}...")
-            faqs = cargar_faqs_con_embeddings(faq_files[cat], embeddings.embed_query)
-            faq_response = buscar_faq_semantico(request.question, faqs, embeddings.embed_query, threshold=0.75)
-            if faq_response:
-                faq_responses.append(f"Respuesta ({cat}):\n{faq_response}")
-                print(f"Encontrada respuesta en FAQ de {cat}")
-
-    # Fallback: si la categorización no encontró nada, revisar el resto de FAQs
-    if not faq_responses:
-        for cat, faq_path in faq_files.items():
-            if cat in searched_categories:
-                continue
-            print(f"Sin match por categoría, probando FAQ de {cat}...")
-            faqs = cargar_faqs_con_embeddings(faq_path, embeddings.embed_query)
-            faq_response = buscar_faq_semantico(request.question, faqs, embeddings.embed_query, threshold=0.75)
-            if faq_response:
-                faq_responses.append(f"Respuesta ({cat}):\n{faq_response}")
-                print(f"Encontrada respuesta en FAQ de {cat} por fallback")
-                break
-
-    if faq_responses:
-        print(f"Devolviendo {len(faq_responses)} respuesta(s) de FAQ")
-        combined_response = "\n\n".join(faq_responses)
-
-        async def stream_faq_response():
-            response_time_val = time.time() - request_start
-            response_time.observe(response_time_val)
-            qualitative_metrics["response_times"].append(response_time_val)
-            qualitative_metrics["hallucination_rate"].append(0)
-            record_interaction_metrics(request.user_id, request.question, categories, "FAQ", combined_response, response_time_val, False)
-
-            # Guardar en caché también
-            qa_cache[request.question] = combined_response
-            qa_faiss_index.add(np.array([embeddings.embed_query(request.question)], dtype="float32"))
-            try:
-                faiss.write_index(qa_faiss_index, QA_FAISS_INDEX_PATH)
-                with open(QA_CACHE_PATH, "wb") as f:
-                    pickle.dump(qa_cache, f)
-            except Exception as e:
-                logging.error(f"Error guardando caché: {e}")
-            yield combined_response
-        return StreamingResponse(stream_faq_response(), media_type="text/event-stream")
-
-    if needs_guidance(request.question, categories):
-        print("Consulta vaga detectada. Enviando guía de uso del chatbot.")
+    if orchestrator is None:
+        # Fallback defensivo para no romper servicio si no se inicializó en lifespan
+        print("[WARNING] Orquestador no inicializado, activando fallback mínimo.")
         guidance_message = build_guidance_message()
-        response_time_val = time.time() - request_start
-        response_time.observe(response_time_val)
-        qualitative_metrics["response_times"].append(response_time_val)
-        qualitative_metrics["hallucination_rate"].append(0)
-        record_interaction_metrics(request.user_id, request.question, categories, "GUIDANCE", guidance_message, response_time_val, False)
-
-        async def stream_guidance_response():
-            yield guidance_message
-        return StreamingResponse(stream_guidance_response(), media_type="text/event-stream")
-
-    # 1. Check cache first (exact match)
-    if request.question in qa_cache:
-        print("Respuesta encontrada en caché de Q&A (coincidencia exacta).")
-        cache_hit_counter.inc()
-        cached_response = qa_cache[request.question]
-
-        async def stream_cached_response():
+        async def stream_fallback():
             response_time_val = time.time() - request_start
             response_time.observe(response_time_val)
             qualitative_metrics["response_times"].append(response_time_val)
             qualitative_metrics["hallucination_rate"].append(0)
-            record_interaction_metrics(request.user_id, request.question, categories, "CACHE", cached_response, response_time_val, False)
-            yield cached_response
-        return StreamingResponse(stream_cached_response(), media_type="text/event-stream")
+            record_interaction_metrics(request.user_id, request.question, categories, "GUIDANCE", guidance_message, response_time_val, False)
+            yield guidance_message
+        return StreamingResponse(stream_fallback(), media_type="text/event-stream")
 
-    # 2. Embed the question
-    start_embed = time.time()
-    question_embedding = embeddings.embed_query(request.question)
-    question_embedding_np = np.array([question_embedding], dtype="float32")
-    print(f"Embedding de la pregunta generado en {time.time() - start_embed:.2f}s")
+    route_result = orchestrator.route_pre_llm(request.question)
 
-    # 3. Find similar Q&A pairs (Few-shot learning)
+    if route_result.answer_mode in ("GUIDANCE", "FAQ", "CACHE"):
+        if route_result.answer_mode == "CACHE":
+            # Evitar cache para consultas académicas/investigación sensibles o respuestas contaminadas
+            cached_text = route_result.answer_text or ""
+            bypass_sensitive = any(cat in {"Academica", "Investigacion"} for cat in categories)
+            bypass_contaminated = should_bypass_cache_answer(request.question, categories, cached_text)
+
+            if bypass_sensitive or bypass_contaminated:
+                context, sources, retrieval_ms, q_np = doc_rag_agent.retrieve(request.question)
+                route_result = type(route_result)(
+                    answer_text="",
+                    answer_mode="RAG_DOC",
+                    confidence=0.0,
+                    sources=sources,
+                    routing_trace={
+                        **(route_result.routing_trace or {}),
+                        "cache_bypassed_for_sensitive_categories": bool(bypass_sensitive),
+                        "cache_bypassed_for_contaminated_answer": bool(bypass_contaminated),
+                        "cache_hit": False,
+                        "rag_used": True,
+                    },
+                    timing_ms={**(route_result.timing_ms or {}), "retrieval": retrieval_ms},
+                    knowledge_context=context,
+                    question_embedding_np=q_np,
+                )
+            else:
+                cache_hit_counter.inc()
+
+        if route_result.answer_mode in ("GUIDANCE", "FAQ", "CACHE"):
+            async def stream_pre_llm():
+                response_time_val = time.time() - request_start
+                response_time.observe(response_time_val)
+                qualitative_metrics["response_times"].append(response_time_val)
+                qualitative_metrics["hallucination_rate"].append(0)
+
+                record_interaction_metrics(
+                    request.user_id,
+                    request.question,
+                    categories,
+                    route_result.answer_mode,
+                    route_result.answer_text,
+                    response_time_val,
+                    False,
+                    sources=route_result.sources,
+                    routing_trace=route_result.routing_trace,
+                    confidence=route_result.confidence,
+                    timing_ms=route_result.timing_ms,
+                )
+
+                if route_result.answer_mode == "FAQ":
+                    qa_cache[request.question] = route_result.answer_text
+                    qa_faiss_index.add(np.array([embeddings.embed_query(request.question)], dtype="float32"))
+                    try:
+                        faiss.write_index(qa_faiss_index, QA_FAISS_INDEX_PATH)
+                        with open(QA_CACHE_PATH, "wb") as f:
+                            pickle.dump(qa_cache, f)
+                    except Exception as e:
+                        logging.error(f"Error guardando caché: {e}")
+
+                yield route_result.answer_text
+
+            return StreamingResponse(stream_pre_llm(), media_type="text/event-stream")
+
+    # RAG_DOC
+    if route_result.answer_mode == "RAG_DOC" and (route_result.question_embedding_np is None or not route_result.knowledge_context):
+        context, sources, retrieval_ms, q_np = doc_rag_agent.retrieve(request.question)
+        route_result.knowledge_context = context
+        route_result.sources = sources
+        route_result.question_embedding_np = q_np
+        base_timing = dict(route_result.timing_ms or {})
+        base_timing["retrieval"] = retrieval_ms
+        route_result.timing_ms = base_timing
+
+    knowledge_context = route_result.knowledge_context
+    question_embedding_np = route_result.question_embedding_np
     similar_qa_examples = ""
+
     qa_keys = list(qa_cache.keys())
     if qa_faiss_index.ntotal > 0 and len(qa_keys) > 0:
-        print("Buscando preguntas similares en el índice de Q&A...")
         k = min(3, qa_faiss_index.ntotal, len(qa_keys))
         distances, indices = qa_faiss_index.search(question_embedding_np, k=k)
-        
         example_list = []
         for i in indices[0]:
             if 0 <= i < len(qa_keys):
                 q = qa_keys[i]
                 if q in qa_cache:
                     example_list.append(f"Pregunta: {q}\nRespuesta: {qa_cache[q]}")
-        
         if example_list:
             similar_qa_examples = "\n\n---\n\nEjemplos de preguntas y respuestas anteriores:\n\n" + "\n\n".join(example_list)
-            print(f"Encontrados {len(example_list)} ejemplos de Q&A similares.")
 
-    # 4. Perform RAG search for document chunks (aumentado a 5 chunks para más contexto)
-    print("Realizando búsqueda RAG con FAISS para documentos...")
-    start_faiss = time.time()
-    distances, indices = faiss_index.search(question_embedding_np, 5)  # Cambiado a top_k=5
-    relevant_chunks = [chunks[i] for i in indices[0]]
-    print(f"Búsqueda en FAISS completada en {time.time() - start_faiss:.4f}s")
-
-    if relevant_chunks:
-        knowledge_context = "\n\n---\n\n".join(relevant_chunks)
-        print(f"Contexto encontrado: {len(relevant_chunks)} chunks.")
-    else:
-        knowledge_context = "No se encontró información relevante en los documentos."
-
-    # 5. Build the improved prompt with better instructions
-    template = '''
-Eres un asistente experto en responder preguntas basadas únicamente en el contexto proporcionado. No inventes información ni respondas fuera del contexto.
-
-Instrucciones:
-- Responde de manera concisa, clara y en el mismo idioma que la pregunta.
-- Si la respuesta no está en el contexto, di "No tengo suficiente información para responder esta pregunta".
-- Cita partes relevantes del contexto si es posible.
-- Usa los ejemplos de Q&A anteriores como guía para el estilo de respuesta.
-
-Contexto de documentos:
-{context}
-
-Ejemplos de preguntas y respuestas anteriores:
-{few_shot_examples}
-
-Pregunta actual: {question}
-
-Respuesta:
-'''
-    prompt = PromptTemplate.from_template(template)
-    chain = prompt | llm
-
-    async def stream_generator():
+    async def stream_rag_doc():
         full_response = ""
-        start_time = time.time()
-        print("Iniciando llamada a chain.astream...")
-        async for chunk in chain.astream({"context": knowledge_context, "question": request.question, "few_shot_examples": similar_qa_examples}):
-            full_response += chunk
-            yield chunk
-        print("Stream del LLM finalizado.")
-        
-        # 6. Análisis cualitativo post-generación
-        response_time_val = time.time() - start_time
+        generation_ms = 0.0
+
+        async for chunk, done_ms in doc_rag_agent.generate(
+            request.question,
+            knowledge_context,
+            few_shot_examples=similar_qa_examples,
+        ):
+            if chunk is not None:
+                full_response += chunk
+                yield chunk
+            if done_ms is not None:
+                generation_ms = done_ms
+
+        response_time_val = time.time() - request_start
         response_time.observe(response_time_val)
         qualitative_metrics["response_times"].append(response_time_val)
 
-        # Hallucination detection
         is_hallucinated = detect_hallucination(full_response, knowledge_context)
         if is_hallucinated:
             hallucination_counter.inc()
             qualitative_metrics["hallucination_rate"].append(1)
-            logging.warning(f"Posible alucinación detectada en respuesta a: {request.question}")
         else:
             qualitative_metrics["hallucination_rate"].append(0)
 
-        # Sentiment analysis
         global sia
         if sia is None:
             sia = get_sentiment_analyzer()
-        
+
         sentiment = 0
         if sia:
             try:
-                sentiment = sia.polarity_scores(full_response)['compound']
+                sentiment = sia.polarity_scores(full_response)["compound"]
                 sentiment_score.set(sentiment)
                 qualitative_metrics["avg_sentiment"].append(sentiment)
-            except Exception as e:
-                logging.warning(f"Sentiment analysis failed: {e}")
+            except Exception:
                 qualitative_metrics["avg_sentiment"].append(0)
         else:
             qualitative_metrics["avg_sentiment"].append(0)
 
-        # 7. Save the new Q&A to cache, FAISS index, and disk
-        print("Guardando nueva Q&A para aprendizaje futuro...")
         qa_cache[request.question] = full_response
         qa_faiss_index.add(question_embedding_np)
-        
         try:
-            # Save updated FAISS index
             faiss.write_index(qa_faiss_index, QA_FAISS_INDEX_PATH)
-            # Save updated Q&A cache
             with open(QA_CACHE_PATH, "wb") as f:
                 pickle.dump(qa_cache, f)
-            print("Índice y caché de Q&A actualizados en disco.")
         except Exception as e:
             logging.error(f"Error guardando caché: {e}")
             error_counter.inc()
 
-        record_interaction_metrics(request.user_id, request.question, categories, "RAG", full_response, response_time_val, is_hallucinated)
-        logging.info(f"Respuesta completada en {response_time_val:.2f}s | Usuario: {request.user_id} | Categorías: {categories} | Hallucination: {is_hallucinated} | Sentiment: {sentiment:.2f}")
+        timing_ms = dict(route_result.timing_ms or {})
+        timing_ms["generation"] = float(generation_ms)
+        timing_ms["total"] = float(response_time_val * 1000.0)
 
-    return StreamingResponse(stream_generator(), media_type="text/event-stream")
+        record_interaction_metrics(
+            request.user_id,
+            request.question,
+            categories,
+            "RAG_DOC",
+            full_response,
+            response_time_val,
+            is_hallucinated,
+            sources=route_result.sources,
+            routing_trace=route_result.routing_trace,
+            confidence=route_result.confidence,
+            timing_ms=timing_ms,
+        )
+
+    return StreamingResponse(stream_rag_doc(), media_type="text/event-stream")
 
 @app.post("/feedback")
 async def feedback(request: FeedbackRequest):

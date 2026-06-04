@@ -1,5 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Callable, List, Dict, Any, Optional
+import unicodedata
+import re
 import numpy as np
 
 
@@ -33,17 +35,45 @@ class FAQAgent:
         faq_files: Dict[str, str],
         load_faqs_fn: Callable[[str, Callable[[str], List[float]]], List[Dict[str, Any]]],
         embed_query_fn: Callable[[str], List[float]],
-        threshold: float = 0.75,
+        threshold: float = 0.82,
+        min_token_overlap: int = 2,
     ):
         self.faq_files = faq_files
         self.load_faqs_fn = load_faqs_fn
         self.embed_query_fn = embed_query_fn
         self.threshold = threshold
+        self.min_token_overlap = min_token_overlap
 
     @staticmethod
     def _cosine_similarity(vec_a: np.ndarray, vec_b: np.ndarray) -> float:
         denom = (np.linalg.norm(vec_a) * np.linalg.norm(vec_b)) + 1e-8
         return float(np.dot(vec_a, vec_b) / denom)
+
+    @staticmethod
+    def _normalize_text(text: str) -> str:
+        text = text.lower()
+        text = unicodedata.normalize("NFD", text)
+        text = "".join(ch for ch in text if unicodedata.category(ch) != "Mn")
+        return text
+
+    @staticmethod
+    def _tokenize_meaningful(text: str) -> set:
+        stopwords = {
+            "de", "la", "el", "los", "las", "un", "una", "unos", "unas", "y", "o", "u",
+            "que", "como", "cual", "cuales", "es", "son", "en", "por", "para", "del",
+            "al", "a", "me", "mi", "tu", "su", "se", "lo", "le", "les"
+        }
+        normalized = FAQAgent._normalize_text(text)
+        tokens = re.findall(r"[a-z0-9]+", normalized)
+        return {t for t in tokens if len(t) > 2 and t not in stopwords}
+
+    def _passes_lexical_guardrail(self, question: str, faq_question: str) -> bool:
+        q_tokens = self._tokenize_meaningful(question)
+        f_tokens = self._tokenize_meaningful(faq_question)
+        if not q_tokens or not f_tokens:
+            return False
+        overlap = q_tokens.intersection(f_tokens)
+        return len(overlap) >= self.min_token_overlap
 
     def _search_in_category(self, question: str, category: str) -> Optional[FAQAgentResult]:
         faq_path = self.faq_files.get(category)
@@ -67,7 +97,7 @@ class FAQAgent:
                 best_score = score
                 best_item = item
 
-        if best_item and best_score >= self.threshold:
+        if best_item and best_score >= self.threshold and self._passes_lexical_guardrail(question, best_item.get("pregunta", "")):
             answer = f"Pregunta: {best_item.get('pregunta', '')}\nRespuesta: {best_item.get('respuesta', '')}"
             source = AgentSource(
                 source_type="faq",
@@ -87,18 +117,28 @@ class FAQAgent:
 
     def run(self, question: str, categories: List[str]) -> FAQAgentResult:
         checked = set()
+        normalized_categories = categories or ["Otro"]
+        needs_strict_rag_fallback = any(cat in {"Investigacion", "Academica"} for cat in normalized_categories)
 
-        for category in categories:
+        for category in normalized_categories:
             checked.add(category)
             result = self._search_in_category(question, category)
             if result and result.found:
+                # Guardrail adicional: para categorías académicas/investigación,
+                # no aceptar FAQ cruzado de AtenciónCliente.
+                if needs_strict_rag_fallback and result.matched_category == "AtencionCliente":
+                    continue
                 return result
 
-        for category in self.faq_files.keys():
-            if category in checked:
-                continue
-            result = self._search_in_category(question, category)
-            if result and result.found:
-                return result
+        # Solo permitir fallback global cuando NO hay categorización útil.
+        # Evita falsos positivos cross-category (ej: investigación -> FAQ ubicación).
+        has_specific_categories = any(cat != "Otro" for cat in normalized_categories)
+        if not has_specific_categories:
+            for category in self.faq_files.keys():
+                if category in checked:
+                    continue
+                result = self._search_in_category(question, category)
+                if result and result.found:
+                    return result
 
         return FAQAgentResult(found=False)
