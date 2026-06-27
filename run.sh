@@ -197,30 +197,15 @@ fi
 echo "🔧 Servidor API (MCP):"
 echo "   http://localhost:9000"
 echo ""
-echo "Presiona Ctrl+C para detener todos los servicios"
-echo "=========================================="
 echo ""
-
-# Nota: El cliente se ejecuta en una sesión tmux o en background
-# No mantenemos el proceso aquí,Ctrl+C no funcionará de forma esperada
-
-echo ""
-echo "=========================================="
-echo "✅ ¡SoEBOT está listo!"
-echo "=========================================="
-echo ""
-echo "📱 Cliente de Chat:"
-echo "   Local:  http://localhost:8501"
-echo "   Red:    http://$(hostname -I | awk '{print $1}'):8501"
-echo ""
+echo "📋 Resumen de servicios:"
+echo "   ├── Redis:         ✅ Puerto 6379"
+echo "   ├── Ollama:        ✅ Puerto 11434"
+echo "   ├── MCP Server:    ✅ Puerto 9000"
+echo "   ├── Cliente Chat: ✅ Puerto 8501"
 if [ "$1" == "--admin" ]; then
-    echo "📊 Dashboard Admin:"
-    echo "   Local:  http://localhost:8502"
-    echo "   Red:    http://$(hostname -I | awk '{print $1}'):8502"
-    echo ""
+    echo "   └── Dashboard:     ✅ Puerto 8502"
 fi
-echo "🔧 Servidor API:"
-echo "   http://localhost:9000"
 echo ""
 echo "=========================================="
 echo "Presiona Ctrl+C para detener todos los servicios"
