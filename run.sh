@@ -129,30 +129,53 @@ echo ""
 
 echo "========== PASO 5: INICIAR CLIENTES =========="
 
+# Puertobase para el cliente
+CLIENT_PORT=8501
+
+echo "🎯 Iniciando cliente de chat..."
+echo ""
+if command -v tmux &> /dev/null; then
+    # Usar tmux si está disponible
+    tmux has-session -t soebot_client 2>/dev/null && tmux kill-session -t soebot_client 2>/dev/null || true
+    tmux new-session -d -s soebot_client "bash -lc 'cd \"$(pwd)\" && source venmcp/bin/activate && streamlit run appclient/app_client.py --server.port=$CLIENT_PORT --server.address=0.0.0.0 --logger.level=error --client.showErrorDetails=false'"
+    if [ $? -eq 0 ]; then
+        echo "✅ Cliente de chat en tmux 'soebot_client' (puerto $CLIENT_PORT)"
+    else
+        echo "⚠️ No se pudo crear la sesión tmux, iniciando en background"
+        streamlit run appclient/app_client.py --server.port=$CLIENT_PORT --server.address=0.0.0.0 --logger.level=error --client.showErrorDetails=false &
+        CLIENT_PID=$!
+        echo "✅ Cliente de chat en PID: $CLIENT_PID (puerto $CLIENT_PORT)"
+    fi
+else
+    # Fallback: ejecutar en background
+    streamlit run appclient/app_client.py --server.port=$CLIENT_PORT --server.address=0.0.0.0 --logger.level=error --client.showErrorDetails=false &
+    CLIENT_PID=$!
+    echo "✅ Cliente de chat en PID: $CLIENT_PID (puerto $CLIENT_PORT)"
+fi
+sleep 2
+
 # Verificar flag --admin para lanzar dashboard administrativo
 if [ "$1" == "--admin" ]; then
     echo "🚀 Iniciando dashboard administrativo..."
     sleep 1
+    ADMIN_PORT=8502
     if command -v tmux &> /dev/null; then
-        # Usar tmux si está disponible. Intentar limpiar sesión previa y crear una nueva
         tmux has-session -t soebot_admin 2>/dev/null && tmux kill-session -t soebot_admin 2>/dev/null || true
-        tmux new-session -d -s soebot_admin "bash -lc 'cd \"$(pwd)\" && source venmcp/bin/activate && streamlit run appclient/app_admin.py --server.port=8502 --server.address=0.0.0.0 --logger.level=error --client.showErrorDetails=false'"
+        tmux new-session -d -s soebot_admin "bash -lc 'cd \"$(pwd)\" && source venmcp/bin/activate && streamlit run appclient/app_admin.py --server.port=$ADMIN_PORT --server.address=0.0.0.0 --logger.level=error --client.showErrorDetails=false'"
         if [ $? -eq 0 ]; then
-            echo "✅ Dashboard administrativo en sesión tmux 'soebot_admin' (puerto 8502)"
+            echo "✅ Dashboard administrativo en tmux 'soebot_admin' (puerto $ADMIN_PORT)"
         else
-            echo "⚠️ No se pudo crear la sesión tmux, iniciando en background como fallback"
-            streamlit run appclient/app_admin.py --server.port=8502 --server.address=0.0.0.0 --logger.level=error --client.showErrorDetails=false &
+            echo "⚠️ No se pudo crear sesión tmux, iniciando en background"
+            streamlit run appclient/app_admin.py --server.port=$ADMIN_PORT --server.address=0.0.0.0 --logger.level=error --client.showErrorDetails=false &
             ADMIN_PID=$!
-            echo "✅ Dashboard administrativo en PID: $ADMIN_PID (puerto 8502)"
+            echo "✅ Dashboard admin en PID: $ADMIN_PID (puerto $ADMIN_PORT)"
         fi
-        sleep 2
     else
-        # Fallback: ejecutar en background y fijar puerto 8502
-        streamlit run appclient/app_admin.py --server.port=8502 --server.address=0.0.0.0 --logger.level=error --client.showErrorDetails=false &
+        streamlit run appclient/app_admin.py --server.port=$ADMIN_PORT --server.address=0.0.0.0 --logger.level=error --client.showErrorDetails=false &
         ADMIN_PID=$!
-        echo "✅ Dashboard administrativo en PID: $ADMIN_PID (puerto 8502)"
-        sleep 2
+        echo "✅ Dashboard admin en PID: $ADMIN_PID (puerto $ADMIN_PORT)"
     fi
+    sleep 2
 fi
 
 echo "🎯 Iniciando cliente principal..."
@@ -161,12 +184,12 @@ echo "=========================================="
 echo "✅ ¡SoEBOT está listo!"
 echo "=========================================="
 echo ""
-echo "📱 Cliente Principal (Chat):"
+echo "📱 Cliente Principal (Chat - Puerto 8501):"
 echo "   Local:  http://localhost:8501"
 echo "   Red:    http://$(hostname -I | awk '{print $1}'):8501"
 echo ""
 if [ "$1" == "--admin" ]; then
-    echo "📊 Dashboard Admin (Métricas):"
+    echo "📊 Dashboard Admin (Métricas - Puerto 8502):"
     echo "   Local:  http://localhost:8502"
     echo "   Red:    http://$(hostname -I | awk '{print $1}'):8502"
     echo ""
@@ -178,21 +201,34 @@ echo "Presiona Ctrl+C para detener todos los servicios"
 echo "=========================================="
 echo ""
 
-streamlit run appclient/app_client.py --logger.level=error --client.showErrorDetails=false
+# Nota: El cliente se ejecuta en una sesión tmux o en background
+# No mantenemos el proceso aquí,Ctrl+C no funcionará de forma esperada
 
-# Cleanup al salir
 echo ""
-echo "🛑 Deteniendo servicios..."
-kill $MCP_PID 2>/dev/null || true
-if [ ! -z "$ADMIN_PID" ]; then
-    kill $ADMIN_PID 2>/dev/null || true
+echo "=========================================="
+echo "✅ ¡SoEBOT está listo!"
+echo "=========================================="
+echo ""
+echo "📱 Cliente de Chat:"
+echo "   Local:  http://localhost:8501"
+echo "   Red:    http://$(hostname -I | awk '{print $1}'):8501"
+echo ""
+if [ "$1" == "--admin" ]; then
+    echo "📊 Dashboard Admin:"
+    echo "   Local:  http://localhost:8502"
+    echo "   Red:    http://$(hostname -I | awk '{print $1}'):8502"
+    echo ""
 fi
-if [ ! -z "$OLLAMA_PID" ]; then
-    kill $OLLAMA_PID 2>/dev/null || true
-fi
+echo "🔧 Servidor API:"
+echo "   http://localhost:9000"
+echo ""
+echo "=========================================="
+echo "Presiona Ctrl+C para detener todos los servicios"
+echo "=========================================="
 
-# Matar tmux session si existe
-tmux kill-session -t soebot_admin 2>/dev/null || true
+# Esperar indefinidamente (o hasta Ctrl+C)
+# El cleanup se maneja por señales
+trap 'echo "🛑 Deteniendo servicios..."; kill $MCP_PID 2>/dev/null; tmux kill-session -t soebot_client 2>/dev/null; tmux kill-session -t soebot_admin 2>/dev/null; echo "✅ Servicios detenidos."; exit 0' INT TERM
 
-echo "✅ Servicios detenidos correctamente."
-echo "Proyecto detenido."
+# Mantener el script vivo para capturar señales
+wait
