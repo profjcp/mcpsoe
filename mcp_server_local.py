@@ -541,6 +541,9 @@ Respuesta:
 
 app = FastAPI(lifespan=lifespan)
 
+class EmbedRequest(BaseModel):
+    text: str
+
 class AskRequest(BaseModel):
     question: str
     user_id: str = "anonymous"
@@ -1044,6 +1047,16 @@ async def metrics():
 async def health():
     """Health check endpoint."""
     return {"status": "healthy", "timestamp": datetime.now().isoformat()}
+
+@app.post("/embed")
+async def embed(request: EmbedRequest):
+    """Generate embeddings for text using Ollama embeddings model."""
+    try:
+        embedding = embeddings.embed_query(request.text)
+        return {"embedding": embedding}
+    except Exception as e:
+        logging.error(f"Error generating embedding: {e}")
+        return {"error": str(e)}, 500
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=9000)
