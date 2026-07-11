@@ -17,29 +17,37 @@ def apply_styles():
         @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap');
 
         :root {
-            --bg-1: #f6f4ef;
-            --bg-2: #ebe5d9;
-            --ink: #17212f;
-            --panel: #fffdfa;
-            --panel-strong: #f2ecdf;
-            --accent: #d97745;
-            --accent-2: #28405c;
-            --muted: #5c6675;
+            --bg-1: #ffffff;
+            --bg-2: #ffffff;
+            --ink: #111111;
+            --panel: #ffffff;
+            --panel-strong: #ffffff;
+            --accent: #111111;
+            --accent-2: #111111;
+            --muted: #6b7280;
+            --line: #e5e7eb;
+            --hover: #f3f4f6;
         }
 
         .stApp {
-            background: radial-gradient(1200px 600px at 10% -10%, var(--bg-2) 0%, var(--bg-1) 45%, #fefefe 100%);
+            background: #ffffff;
             color: var(--ink);
             font-family: 'Space Grotesk', sans-serif;
         }
 
+        [data-testid="stAppViewContainer"],
+        [data-testid="stMain"],
+        [data-testid="stMainBlockContainer"] {
+            background: #ffffff !important;
+        }
+
         section[data-testid="stSidebar"] {
-            background: linear-gradient(180deg, #223349 0%, #1b2a3f 100%);
-            border-right: 1px solid rgba(255, 255, 255, 0.08);
+            background: #ffffff;
+            border-right: 1px solid #e5e7eb;
         }
 
         section[data-testid="stSidebar"] * {
-            color: #eef3fa;
+            color: #111111;
         }
 
         section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p,
@@ -48,24 +56,24 @@ def apply_styles():
         section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] strong,
         section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] h3,
         section[data-testid="stSidebar"] .stCaption {
-            color: #eef3fa !important;
+            color: #111111 !important;
         }
 
         section[data-testid="stSidebar"] .stButton>button {
-            background: #f2a65a;
-            color: #1d2735;
-            font-weight: 700;
-            border: none;
+            background: #ffffff;
+            color: #111111;
+            font-weight: 600;
+            border: 1px solid var(--line);
         }
 
         section[data-testid="stSidebar"] .stButton>button:hover {
-            background: #f09a45;
+            background: var(--hover);
         }
 
         section[data-testid="stSidebar"] .stAlert {
-            background: rgba(255, 255, 255, 0.08);
-            color: #f2f6fb;
-            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: #ffffff;
+            color: #111111;
+            border: 1px solid var(--line);
         }
 
         .app-title {
@@ -81,11 +89,11 @@ def apply_styles():
         }
 
         .panel {
-            background: var(--panel);
-            border: 1px solid #e3d8c7;
+            background: #ffffff;
+            border: 1px solid var(--line);
             border-radius: 16px;
             padding: 16px;
-            box-shadow: 0 8px 24px rgba(19, 35, 58, 0.08);
+            box-shadow: none;
         }
 
         .panel-header {
@@ -120,13 +128,13 @@ def apply_styles():
         }
 
         .bubble.user {
-            background: #fff3e5;
-            border-left: 4px solid var(--accent);
+            background: #f9fafb;
+            border-left: 3px solid #d1d5db;
         }
 
         .bubble.bot {
             background: #ffffff;
-            border-left: 4px solid var(--accent-2);
+            border-left: 3px solid #d1d5db;
         }
 
         .meta {
@@ -225,8 +233,9 @@ def apply_styles():
             width: 44px;
             height: 44px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #f2a65a, #d97745);
-            color: #1d2735;
+            background: #f3f4f6;
+            border: 1px solid var(--line);
+            color: #111111;
             font-weight: 700;
             font-size: 20px;
             display: flex;
@@ -238,21 +247,28 @@ def apply_styles():
             text-align: center;
             margin-bottom: 14px;
             padding-bottom: 12px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
+            border-bottom: 1px solid var(--line);
         }
         .user-info-block .uname {
-            color: #eef3fa;
+            color: #111111;
             font-weight: 700;
             font-size: 15px;
         }
         .user-info-block .urole {
-            color: #a0b0c5;
+            color: #6b7280;
             font-size: 12px;
             margin-top: 2px;
         }
 
         /* ── Panel de login ── */
-        .login-wrap  { max-width: 420px; margin: 40px auto; }
+        .login-wrap  {
+            max-width: 420px;
+            margin: 40px auto;
+            background: #ffffff;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 18px;
+        }
         .login-header { text-align: center; padding: 10px 0 20px 0; }
         .login-icon  { font-size: 40px; display: block; margin-bottom: 6px; }
         .login-title { font-size: 22px; font-weight: 700; color: var(--ink); }
@@ -268,18 +284,18 @@ def apply_styles():
         }
 
         /* ── Botones de historial estilo card ── */
-        .hist-card-wrap { margin: 4px 0; }
+        .hist-card-wrap { margin: 2px 0; }
 
         .hist-card-wrap [data-testid="stButton"] > button {
-            background: rgba(255,255,255,0.06) !important;
-            color: #dce8f5 !important;
-            border: 1px solid rgba(255,255,255,0.12) !important;
-            border-radius: 10px !important;
-            padding: 10px 13px !important;
+            background: #ffffff !important;
+            color: #111111 !important;
+            border: 1px solid transparent !important;
+            border-radius: 6px !important;
+            padding: 6px 8px !important;
             text-align: left !important;
-            font-weight: 600 !important;
+            font-weight: 500 !important;
             font-size: 14px !important;
-            line-height: 1.4 !important;
+            line-height: 1.2 !important;
             cursor: pointer !important;
             transition: background 0.14s, border-color 0.14s !important;
             box-shadow: none !important;
@@ -288,26 +304,25 @@ def apply_styles():
         }
 
         .hist-card-wrap [data-testid="stButton"] > button:hover {
-            background: rgba(255,255,255,0.13) !important;
-            border-color: rgba(255,255,255,0.28) !important;
-            color: #ffffff !important;
+            background: var(--hover) !important;
+            border-color: #d1d5db !important;
+            color: #111111 !important;
         }
 
         .hist-active [data-testid="stButton"] > button {
-            background: rgba(242,166,90,0.18) !important;
-            border-left: 3px solid #f2a65a !important;
-            color: #ffdeb8 !important;
+            background: #f3f4f6 !important;
+            border-color: #d1d5db !important;
+            color: #111111 !important;
         }
 
         .hist-active [data-testid="stButton"] > button:hover {
-            background: rgba(242,166,90,0.26) !important;
+            background: #e5e7eb !important;
         }
 
-        /* meta caption debajo del botón-card */
         .hist-card-wrap [data-testid="stCaptionContainer"] p {
-            color: #8aa3bf !important;
+            color: #9ca3af !important;
             font-size: 11px !important;
-            margin: -6px 0 6px 13px !important;
+            margin: -4px 0 4px 8px !important;
             padding: 0 !important;
         }
 
@@ -686,13 +701,9 @@ else:
         height=0,
     )
 
-    question = st.text_input(
-        "Escribe tu pregunta",
-        key="input_box",
-        placeholder="Ej.: ¿Cómo puedo subir una tarea a Moodle?"
-    )
+    question = st.chat_input("Ej.: ¿Cómo puedo subir una tarea a Moodle?")
 
-    if st.button("Enviar") and question.strip():
+    if question and question.strip():
         answer_placeholder = st.empty()
         answer_wrapper = {"text": ""}
 

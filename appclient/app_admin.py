@@ -16,20 +16,28 @@ st.markdown(
     @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap');
 
     :root {
-        --bg-1: #f7f1e8;
-        --bg-2: #efe0c4;
-        --ink: #1a1a1a;
-        --panel: #fff7ea;
-        --panel-strong: #f4dcc0;
-        --accent: #e07a5f;
-        --accent-2: #3d405b;
-        --muted: #6e6e6e;
+        --bg-1: #ffffff;
+        --bg-2: #ffffff;
+        --ink: #111111;
+        --panel: #ffffff;
+        --panel-strong: #ffffff;
+        --accent: #111111;
+        --accent-2: #111111;
+        --muted: #6b7280;
+        --line: #e5e7eb;
+        --hover: #f3f4f6;
     }
 
     .stApp {
-        background: radial-gradient(1200px 600px at 10% -10%, var(--bg-2) 0%, var(--bg-1) 45%, #ffffff 100%);
+        background: #ffffff;
         color: var(--ink);
         font-family: 'Space Grotesk', sans-serif;
+    }
+
+    [data-testid="stAppViewContainer"],
+    [data-testid="stMain"],
+    [data-testid="stMainBlockContainer"] {
+        background: #ffffff !important;
     }
 
     .app-title {
@@ -45,11 +53,11 @@ st.markdown(
     }
 
     .panel {
-        background: var(--panel);
-        border: 1px solid #ead7c0;
+        background: #ffffff;
+        border: 1px solid var(--line);
         border-radius: 16px;
         padding: 16px;
-        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.05);
+        box-shadow: none;
         margin-bottom: 18px;
     }
 
