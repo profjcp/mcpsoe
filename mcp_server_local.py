@@ -21,6 +21,7 @@ import re
 
 from agents.faq_agent import FAQAgent
 from agents.rag_doc_agent import DocRAGAgent
+from agents.graph_rag_agent import GraphRAGAgent
 from orchestrator.router import MultiAgentOrchestrator
 
 # Lazy import de NLTK para evitar errores de inicialización
@@ -60,9 +61,11 @@ FAISS_INDEX_PATH = "faiss_index.bin"
 CHUNKS_PATH = "chunks.pkl"
 QA_FAISS_INDEX_PATH = "qa_faiss_index.bin"
 QA_CACHE_PATH = "qa_cache.pkl"
+GRAPH_INDEX_PATH = "graph_index.pkl"
 INTERACTION_LOG_PATH = "interaction_logs.jsonl"
 FEEDBACK_LOG_PATH = "feedback.jsonl"
 USER_HISTORIES_PATH = "user_histories.json"
+ENABLE_GRAPH_RAG = os.getenv("ENABLE_GRAPH_RAG", "1") == "1"
 
 # Redis connection will be initialized after app creation
 r = None
@@ -77,6 +80,7 @@ qa_cache: dict
 faq_cache: dict = {}
 faq_agent = None
 doc_rag_agent = None
+graph_rag_agent = None
 orchestrator = None
 
 # --- Métricas Prometheus (Cuantitativas) ---
@@ -349,7 +353,7 @@ def record_interaction_metrics(
         bucket["guidance_total"] += 1
     elif source == "HISTORY_IMPORT":
         bucket["history_import_total"] += 1
-    elif source in ("RAG", "RAG_DOC"):
+    elif source in ("RAG", "RAG_DOC", "GRAPH_RAG"):
         bucket["rag_total"] += 1
 
     if is_hallucinated:
@@ -413,7 +417,7 @@ async def lifespan(app: FastAPI):
     """
     Load all necessary models and data into memory.
     """
-    global llm, embeddings, faiss_index, chunks, qa_faiss_index, qa_cache, faq_cache, r, faq_agent, doc_rag_agent, orchestrator
+    global llm, embeddings, faiss_index, chunks, qa_faiss_index, qa_cache, faq_cache, r, faq_agent, doc_rag_agent, graph_rag_agent, orchestrator
 
     # 1. Load LLM and Embedding models
     print("--- Cargando Modelos de Ollama ---")
@@ -479,7 +483,20 @@ async def lifespan(app: FastAPI):
         faqs = cargar_faqs_con_embeddings(path, embeddings.embed_query)
         print(f"FAQ {domain} precargado: {len(faqs)} preguntas")
 
-    # 5. Inicializar agentes y orquestador Sprint 1 (GUIDANCE -> FAQ -> CACHE -> RAG_DOC)
+    # 5. Cargar índice de grafo (Sprint 2 - GraphRAG, opcional)
+    graph_index = {}
+    if ENABLE_GRAPH_RAG and os.path.exists(GRAPH_INDEX_PATH):
+        try:
+            with open(GRAPH_INDEX_PATH, "rb") as f:
+                graph_index = pickle.load(f)
+            print(f"Graph index cargado: {len(graph_index)} nodos")
+        except Exception as e:
+            print(f"[WARNING] No se pudo cargar graph index: {e}")
+            graph_index = {}
+    elif ENABLE_GRAPH_RAG:
+        print(f"[WARNING] Graph index no encontrado en {GRAPH_INDEX_PATH}. Ejecutar preprocess.py para habilitar GraphRAG.")
+
+    # 6. Inicializar agentes y orquestador Sprint 1+2 (GUIDANCE -> FAQ -> CACHE -> RAG_DOC/GRAPH_RAG)
     def _build_chain():
         template = """
 Eres un asistente experto en responder preguntas basadas únicamente en el contexto proporcionado. No inventes información ni respondas fuera del contexto.
@@ -519,13 +536,24 @@ Respuesta:
         top_k=5,
     )
 
+    graph_rag_agent = GraphRAGAgent(
+        faiss_index=faiss_index,
+        chunks=chunks,
+        graph_index=graph_index,
+        embed_query_fn=embeddings.embed_query,
+        top_k=5,
+        max_neighbors_per_chunk=2,
+    ) if ENABLE_GRAPH_RAG else None
+
     orchestrator = MultiAgentOrchestrator(
         faq_agent=faq_agent,
         doc_rag_agent=doc_rag_agent,
+        graph_rag_agent=graph_rag_agent,
         categorize_fn=categorize_query_multi,
         needs_guidance_fn=needs_guidance,
         build_guidance_fn=build_guidance_message,
         qa_cache_ref=qa_cache,
+        enable_graph_rag=ENABLE_GRAPH_RAG,
     )
 
     imported_count = backfill_interaction_logs_from_histories()
@@ -876,7 +904,7 @@ async def ask(request: AskRequest):
 
             return StreamingResponse(stream_pre_llm(), media_type="text/event-stream")
 
-    # RAG_DOC
+    # RAG_DOC / GRAPH_RAG
     if route_result.answer_mode == "RAG_DOC" and (route_result.question_embedding_np is None or not route_result.knowledge_context):
         context, sources, retrieval_ms, q_np = doc_rag_agent.retrieve(request.question)
         route_result.knowledge_context = context
@@ -886,8 +914,21 @@ async def ask(request: AskRequest):
         base_timing["retrieval"] = retrieval_ms
         route_result.timing_ms = base_timing
 
+    if route_result.answer_mode == "GRAPH_RAG" and not route_result.knowledge_context and graph_rag_agent is not None:
+        graph_result = graph_rag_agent.retrieve_with_graph(request.question)
+        route_result.knowledge_context = graph_result.context
+        route_result.sources = graph_result.sources
+        route_result.question_embedding_np = np.array([embeddings.embed_query(request.question)], dtype="float32")
+        base_timing = dict(route_result.timing_ms or {})
+        base_timing.update(graph_result.timing_ms or {})
+        route_result.timing_ms = base_timing
+        route_result.routing_trace = {**(route_result.routing_trace or {}), "graph_trace": graph_result.graph_trace}
+        route_result.confidence = float(graph_result.confidence)
+
     knowledge_context = route_result.knowledge_context
     question_embedding_np = route_result.question_embedding_np
+    if question_embedding_np is None:
+        question_embedding_np = np.array([embeddings.embed_query(request.question)], dtype="float32")
     similar_qa_examples = ""
 
     qa_keys = list(qa_cache.keys())
@@ -962,7 +1003,7 @@ async def ask(request: AskRequest):
             request.user_id,
             request.question,
             categories,
-            "RAG_DOC",
+            "GRAPH_RAG" if route_result.answer_mode == "GRAPH_RAG" else "RAG_DOC",
             full_response,
             response_time_val,
             is_hallucinated,
@@ -1016,6 +1057,19 @@ async def metrics():
     persisted_queries_total = len(persisted_interactions)
     persisted_cache_hits = sum(1 for record in persisted_interactions if record.get("source") == "CACHE")
     persisted_hallucinations = sum(1 for record in persisted_interactions if record.get("hallucinated"))
+    source_counts = {}
+    traces_present = 0
+    graph_rag_total = 0
+    for record in persisted_interactions:
+        src = str(record.get("source", "UNKNOWN"))
+        source_counts[src] = source_counts.get(src, 0) + 1
+        if src == "GRAPH_RAG":
+            graph_rag_total += 1
+        if record.get("routing_trace"):
+            traces_present += 1
+
+    graph_rag_rate = round((graph_rag_total / persisted_queries_total) * 100, 2) if persisted_queries_total else 0.0
+    trace_coverage_rate = round((traces_present / persisted_queries_total) * 100, 2) if persisted_queries_total else 0.0
 
     # Calcular promedios cualitativos
     metrics_summary = {
@@ -1025,7 +1079,12 @@ async def metrics():
             "queries_total": persisted_queries_total,
             "cache_hits_total": persisted_cache_hits,
             "errors_total": max(error_counter._value.get() if hasattr(error_counter, '_value') else 0, sum(qualitative_metrics["error_types"].values())),
-            "hallucinations_total": persisted_hallucinations
+            "hallucinations_total": persisted_hallucinations,
+            "source_counts": source_counts,
+            "graph_rag_total": graph_rag_total,
+            "graph_rag_rate_percent": graph_rag_rate,
+            "routing_trace_present_total": traces_present,
+            "routing_trace_coverage_percent": trace_coverage_rate
         },
         "qualitative": {
             "avg_satisfaction": round(np.mean(qualitative_metrics["avg_satisfaction"]), 2) if qualitative_metrics["avg_satisfaction"] else 0,

@@ -65,6 +65,35 @@ st.markdown(
         font-weight: 700;
         margin-bottom: 8px;
     }
+
+    /* Scroll horizontal para barra de pestañas cuando hay muchas */
+    div[data-testid="stTabs"] > div[role="tablist"] {
+        overflow-x: auto;
+        overflow-y: hidden;
+        flex-wrap: nowrap;
+        white-space: nowrap;
+        scrollbar-width: thin;
+        scrollbar-color: #cbd5e1 #f1f5f9;
+        padding-bottom: 4px;
+    }
+
+    div[data-testid="stTabs"] > div[role="tablist"]::-webkit-scrollbar {
+        height: 8px;
+    }
+
+    div[data-testid="stTabs"] > div[role="tablist"]::-webkit-scrollbar-track {
+        background: #f1f5f9;
+        border-radius: 999px;
+    }
+
+    div[data-testid="stTabs"] > div[role="tablist"]::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 999px;
+    }
+
+    div[data-testid="stTabs"] button[role="tab"] {
+        flex: 0 0 auto;
+    }
     </style>
     """,
     unsafe_allow_html=True
@@ -373,12 +402,13 @@ if metrics:
         - **Búsqueda por texto:** {keyword if keyword.strip() else 'Sin filtro'}
         """)
 
-    tab_resumen, tab_quant, tab_qual, tab_users, tab_method, tab_data = st.tabs([
-        "📌 Resumen",
-        "📈 Cuantitativas",
-        "✨ Cualitativas",
-        "👤 Usuarios",
-        "🧮 Metodología",
+    tab_resumen, tab_quant, tab_qual, tab_users, tab_routing, tab_method, tab_data = st.tabs([
+        "📌 Res.",
+        "📈 Cuant.",
+        "✨ Cual.",
+        "👤 Usrs",
+        "🧭 Routing",
+        "🧮 Método",
         "🗂️ Datos"
     ])
 
@@ -641,6 +671,57 @@ if metrics:
                 st.markdown("### Feedback del usuario")
                 cols = [col for col in ["timestamp", "question", "satisfaction", "clarity", "completeness", "error_type", "comments"] if col in user_feedback.columns]
                 st.dataframe(user_feedback[cols].tail(15), use_container_width=True)
+
+    with tab_routing:
+        st.subheader("Observabilidad de Routing y GRAPH_RAG")
+
+        if df_interactions_view.empty:
+            st.info("No hay interacciones para analizar routing con los filtros actuales.")
+        else:
+            if "source" in df_interactions_view.columns:
+                source_counts_rt = df_interactions_view["source"].fillna("UNKNOWN").value_counts()
+                total_rt = int(source_counts_rt.sum())
+                graph_rt = int(source_counts_rt.get("GRAPH_RAG", 0))
+                graph_pct = round((graph_rt / total_rt) * 100, 2) if total_rt else 0.0
+
+                c1, c2, c3 = st.columns(3)
+                c1.metric("Interacciones analizadas", total_rt)
+                c2.metric("GRAPH_RAG", graph_rt)
+                c3.metric("% GRAPH_RAG", f"{graph_pct}%")
+
+                fig, ax = plt.subplots(figsize=(8, 3.8))
+                ax.bar(source_counts_rt.index.astype(str), source_counts_rt.values, color="#6d597a")
+                ax.set_title("Distribución de modos de respuesta")
+                ax.set_ylabel("Interacciones")
+                plt.xticks(rotation=25, ha="right")
+                st.pyplot(fig)
+
+                df_src = source_counts_rt.reset_index()
+                df_src.columns = ["source", "count"]
+                df_src["percent"] = (df_src["count"] / max(1, df_src["count"].sum()) * 100).round(2)
+                st.dataframe(df_src, use_container_width=True)
+            else:
+                st.warning("La columna 'source' no está disponible en las interacciones filtradas.")
+
+            trace_cols = [c for c in ["timestamp", "user_id", "question", "source", "confidence", "routing_trace", "timing_ms"] if c in df_interactions_view.columns]
+            if trace_cols:
+                trace_df = df_interactions_view[trace_cols].sort_values("timestamp", ascending=False).head(30) if "timestamp" in df_interactions_view.columns else df_interactions_view[trace_cols].head(30)
+                st.markdown("### Trazas recientes")
+                st.dataframe(trace_df, use_container_width=True)
+                download_dataframe(trace_df, "Descargar trazas recientes", "routing_traces_recientes.csv")
+
+            if "routing_trace" in df_interactions_view.columns:
+                reasons = []
+                for trace in df_interactions_view["routing_trace"].tolist():
+                    if isinstance(trace, dict):
+                        reason = str(trace.get("decision_reason", "")).strip()
+                        if reason:
+                            reasons.append(reason)
+                if reasons:
+                    df_reasons = pd.Series(reasons).value_counts().reset_index()
+                    df_reasons.columns = ["decision_reason", "count"]
+                    st.markdown("### Razones de enrutamiento")
+                    st.dataframe(df_reasons, use_container_width=True)
 
     with tab_method:
         st.subheader("Metodología, fórmulas y criterios")

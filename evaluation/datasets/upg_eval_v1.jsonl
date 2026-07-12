@@ -1,0 +1,11 @@
+{"question": "¿Cuál es el costo de la maestría?", "expected_domain": "AtencionCliente", "expected_type": "faq"}
+{"question": "¿Cómo me inscribo?", "expected_domain": "AtencionCliente", "expected_type": "faq"}
+{"question": "¿Cuándo pagan la matrícula?", "expected_domain": "AtencionCliente", "expected_type": "faq"}
+{"question": "¿Qué módulos hay en Ciberseguridad?", "expected_domain": "Academica", "expected_type": "faq"}
+{"question": "¿Quién enseña el módulo de IA?", "expected_domain": "Academica", "expected_type": "faq"}
+{"question": "¿Cuál es el plan de estudios?", "expected_domain": "Academica", "expected_type": "faq"}
+{"question": "¿Cómo obtengo mi tutor?", "expected_domain": "Investigacion", "expected_type": "rag"}
+{"question": "¿Qué es la defensa de tesis?", "expected_domain": "Investigacion", "expected_type": "rag"}
+{"question": "¿Cómo funciona el proceso de investigación?", "expected_domain": "Investigacion", "expected_type": "rag"}
+{"question": "ayuda", "expected_domain": "Otro", "expected_type": "guidance"}
+{"question": "quiero información", "expected_domain": "Otro", "expected_type": "guidance"}

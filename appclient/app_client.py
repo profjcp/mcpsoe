@@ -646,51 +646,67 @@ else:
 
     if active_conversation:
         for idx, item in enumerate(active_conversation["messages"]):
-            if isinstance(item, (list, tuple)) and len(item) >= 3:
+            q, a, t, ts, meta = "", "", None, None, {}
+
+            if isinstance(item, dict):
+                q = item.get("question", "")
+                a = item.get("answer", "")
+                t = item.get("response_time", None)
+                ts = item.get("timestamp", None)
+                meta = item.get("meta", {}) or {}
+            elif isinstance(item, (list, tuple)) and len(item) >= 3:
                 q, a, t = item[0], item[1], item[2]
                 ts = item[3] if len(item) >= 4 else None
-                render_message("user", q)
-                render_message("bot", a, t, ts)
+            elif isinstance(item, (list, tuple)) and len(item) >= 2:
+                q, a = item[0], item[1]
 
-                with st.expander("Enviar Feedback (opcional)"):
-                    col1, col2, col3 = st.columns(3)
-                    satisfaction = col1.slider("Satisfaccion", 1, 5, 3, key=f"sat_{idx}")
-                    clarity = col2.slider("Claridad", 1, 5, 3, key=f"clar_{idx}")
-                    completeness = col3.slider("Completitud", 1, 5, 3, key=f"comp_{idx}")
+            render_message("user", q)
+            render_message("bot", a, t, ts)
 
-                    error_type = st.selectbox(
-                        "Hubo algun error?",
-                        ["Ninguno", "Contexto insuficiente", "Alucinacion", "Interpretacion erronea", "Formato incorrecto"],
-                        key=f"err_{idx}"
-                    )
-                    comments = st.text_area("Comentarios adicionales", key=f"comm_{idx}")
+            if meta:
+                with st.expander("Metadatos de respuesta (routing/fuentes)", expanded=False):
+                    st.markdown(f"- **Fuente/MODO:** `{meta.get('source', 'UNKNOWN')}`")
+                    st.markdown(f"- **Confianza:** `{float(meta.get('confidence', 0.0)):.3f}`")
+                    src_list = meta.get("sources", []) or []
+                    st.markdown(f"- **Fuentes recuperadas:** `{len(src_list)}`")
+                    if src_list:
+                        st.json(src_list[:3])
 
-                    if st.button("Enviar Feedback", key=f"btn_{idx}"):
-                        try:
-                            error_val = "" if error_type == "Ninguno" else error_type
-                            feedback_response = requests.post(
-                                "http://127.0.0.1:9000/feedback",
-                                json={
-                                    "question": q,
-                                    "response": a,
-                                    "user_id": st.session_state.user_id,
-                                    "satisfaction": satisfaction,
-                                    "clarity": clarity,
-                                    "completeness": completeness,
-                                    "error_type": error_val,
-                                    "comments": comments
-                                }
-                            )
-                            if feedback_response.status_code == 200:
-                                st.success("Feedback guardado. Gracias.")
-                            else:
-                                st.error("Error al enviar feedback.")
-                        except Exception as e:
-                            st.error(f"Error: {e}")
-            else:
-                q, a = item
-                render_message("user", q)
-                render_message("bot", a)
+            with st.expander("Enviar Feedback (opcional)"):
+                col1, col2, col3 = st.columns(3)
+                satisfaction = col1.slider("Satisfaccion", 1, 5, 3, key=f"sat_{idx}")
+                clarity = col2.slider("Claridad", 1, 5, 3, key=f"clar_{idx}")
+                completeness = col3.slider("Completitud", 1, 5, 3, key=f"comp_{idx}")
+
+                error_type = st.selectbox(
+                    "Hubo algun error?",
+                    ["Ninguno", "Contexto insuficiente", "Alucinacion", "Interpretacion erronea", "Formato incorrecto"],
+                    key=f"err_{idx}"
+                )
+                comments = st.text_area("Comentarios adicionales", key=f"comm_{idx}")
+
+                if st.button("Enviar Feedback", key=f"btn_{idx}"):
+                    try:
+                        error_val = "" if error_type == "Ninguno" else error_type
+                        feedback_response = requests.post(
+                            "http://127.0.0.1:9000/feedback",
+                            json={
+                                "question": q,
+                                "response": a,
+                                "user_id": st.session_state.user_id,
+                                "satisfaction": satisfaction,
+                                "clarity": clarity,
+                                "completeness": completeness,
+                                "error_type": error_val,
+                                "comments": comments
+                            }
+                        )
+                        if feedback_response.status_code == 200:
+                            st.success("Feedback guardado. Gracias.")
+                        else:
+                            st.error("Error al enviar feedback.")
+                    except Exception as e:
+                        st.error(f"Error: {e}")
 
     # Scroll automático al último mensaje
     components.html(
@@ -740,13 +756,58 @@ else:
             response_time = end_time - start_time
             st.markdown(f"<div class='meta'>Tiempo de respuesta: {response_time:.2f} segundos</div>", unsafe_allow_html=True)
 
+            interaction_meta = {}
+            try:
+                base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                interaction_path = os.path.join(base_dir, "interaction_logs.jsonl")
+                if os.path.exists(interaction_path):
+                    with open(interaction_path, "r", encoding="utf-8") as f:
+                        lines = [line.strip() for line in f if line.strip()]
+                    for line in reversed(lines[-200:]):
+                        try:
+                            row = json.loads(line)
+                        except Exception:
+                            continue
+                        if row.get("user_id") == st.session_state.user_id and row.get("question") == question:
+                            interaction_meta = {
+                                "source": row.get("source", "UNKNOWN"),
+                                "confidence": row.get("confidence", 0.0),
+                                "sources": row.get("sources", []),
+                                "routing_trace": row.get("routing_trace", {}),
+                                "timing_ms": row.get("timing_ms", {}),
+                            }
+                            break
+            except Exception:
+                interaction_meta = {}
+
+            if interaction_meta:
+                with st.expander("Metadatos de respuesta (routing/fuentes)", expanded=False):
+                    st.markdown(f"- **Fuente/MODO:** `{interaction_meta.get('source', 'UNKNOWN')}`")
+                    st.markdown(f"- **Confianza:** `{float(interaction_meta.get('confidence', 0.0)):.3f}`")
+                    src_list = interaction_meta.get("sources", []) or []
+                    st.markdown(f"- **Fuentes recuperadas:** `{len(src_list)}`")
+                    if src_list:
+                        st.json(src_list[:3])
+                    if interaction_meta.get("routing_trace"):
+                        st.markdown("**Routing trace**")
+                        st.json(interaction_meta["routing_trace"])
+                    if interaction_meta.get("timing_ms"):
+                        st.markdown("**Timing (ms)**")
+                        st.json(interaction_meta["timing_ms"])
+
             if active_conversation is None:
                 new_id = f"chat_{int(time.time())}"
                 active_conversation = {"id": new_id, "title": "Chat 1", "messages": []}
                 st.session_state.conversations.append(active_conversation)
                 st.session_state.active_conversation_id = new_id
 
-            active_conversation["messages"].append((question, answer_wrapper["text"], response_time, datetime.now().isoformat()))
+            active_conversation["messages"].append({
+                "question": question,
+                "answer": answer_wrapper["text"],
+                "response_time": response_time,
+                "timestamp": datetime.now().isoformat(),
+                "meta": interaction_meta,
+            })
             save_user_state(
                 st.session_state.user_id,
                 st.session_state.conversations,
