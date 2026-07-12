@@ -39,7 +39,32 @@ class MCPChatLLM(BaseLanguageModel):
 # Define file paths
 FAISS_INDEX_PATH = "faiss_index.bin"
 CHUNKS_PATH = "chunks.pkl"
+GRAPH_INDEX_PATH = "graph_index.pkl"
 SOURCE_DOCUMENT = "documentos/Preguntas_Frecuentes.txt"
+
+def build_graph_index(embeddings_array: np.ndarray, k_neighbors: int = 3):
+    """
+    Construye un índice de grafo simple por vecinos más cercanos entre chunks.
+    Retorna dict[int, list[int]].
+    """
+    graph = {}
+    if embeddings_array is None or len(embeddings_array) == 0:
+        return graph
+
+    # Similaridad coseno (normalizando)
+    norms = np.linalg.norm(embeddings_array, axis=1, keepdims=True) + 1e-8
+    normalized = embeddings_array / norms
+    sim = np.dot(normalized, normalized.T)
+
+    n = sim.shape[0]
+    for i in range(n):
+        # Excluir self y ordenar descendente por similitud
+        candidates = [(j, sim[i, j]) for j in range(n) if j != i]
+        candidates.sort(key=lambda x: x[1], reverse=True)
+        graph[i] = [int(j) for j, _ in candidates[:k_neighbors]]
+
+    return graph
+
 
 def create_faiss_index():
     """
@@ -81,6 +106,12 @@ def create_faiss_index():
     print(f"Saving chunks to {CHUNKS_PATH}")
     with open(CHUNKS_PATH, "wb") as f:
         pickle.dump(chunks, f)
+
+    # 7. Build and save graph index for Sprint 2 (GraphRAG)
+    print(f"Building graph index and saving to {GRAPH_INDEX_PATH}")
+    graph_index = build_graph_index(embeddings_array, k_neighbors=3)
+    with open(GRAPH_INDEX_PATH, "wb") as f:
+        pickle.dump(graph_index, f)
 
     print("Preprocessing finished successfully.")
 

@@ -1,0 +1,149 @@
+{
+  "timestamp": "2026-07-11T18:03:18.714272",
+  "total_cases": 11,
+  "successful": 4,
+  "failed": 7,
+  "avg_faithfulness": 1.0,
+  "avg_answer_relevancy": 0.22619047619047616,
+  "avg_context_precision": 1.0,
+  "overall_type_accuracy": 0.5,
+  "per_type_accuracy": {
+    "FAQ": 0.0,
+    "GUIDANCE": 1.0
+  },
+  "results": [
+    {
+      "question": "¿Cuál es el costo de la maestría?",
+      "expected_type": "FAQ",
+      "actual_type": "CACHE",
+      "answer_preview": "El costo total del programa es de 24.200 Bs. (Veinticuatro mil doscientos bolivianos).",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.5714285714285714,
+      "context_precision": 1.0,
+      "success": true,
+      "sources_count": 0,
+      "routing_trace": {
+        "categories": [
+          "AtencionCliente"
+        ],
+        "guidance_triggered": false,
+        "faq_checked": true,
+        "faq_confidence": 0.0,
+        "cache_hit": true,
+        "rag_used": false
+      }
+    },
+    {
+      "question": "¿Cómo me inscribo?",
+      "expected_type": "FAQ",
+      "actual_type": "GUIDANCE",
+      "answer_preview": "Puedo ayudarte mejor si escribes una pregunta concreta dentro del contexto de SoeBOT.\n\nÁreas que manejo:\n1. Atención al cliente: inscripciones, certificados, pagos, Moodle y trámites.\n2. Académica: programas, módulos, horarios y docentes.\n3. Investigación: tutor, monografía, defensa y curso de actua",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.3333333333333333,
+      "context_precision": 1.0,
+      "success": true,
+      "sources_count": 0,
+      "routing_trace": {
+        "categories": [
+          "Otro"
+        ],
+        "guidance_triggered": true,
+        "faq_checked": false,
+        "faq_confidence": 0.0,
+        "cache_hit": false,
+        "rag_used": false
+      }
+    },
+    {
+      "question": "¿Cuándo pagan la matrícula?",
+      "expected_type": "FAQ",
+      "actual_type": "ERROR",
+      "success": false,
+      "error": "HTTPConnectionPool(host='127.0.0.1', port=9000): Read timed out."
+    },
+    {
+      "question": "¿Qué módulos hay en Ciberseguridad?",
+      "expected_type": "FAQ",
+      "actual_type": "ERROR",
+      "success": false,
+      "error": "HTTPConnectionPool(host='127.0.0.1', port=9000): Read timed out. (read timeout=60)"
+    },
+    {
+      "question": "¿Quién enseña el módulo de IA?",
+      "expected_type": "FAQ",
+      "actual_type": "ERROR",
+      "success": false,
+      "error": "HTTPConnectionPool(host='127.0.0.1', port=9000): Read timed out."
+    },
+    {
+      "question": "¿Cuál es el plan de estudios?",
+      "expected_type": "FAQ",
+      "actual_type": "ERROR",
+      "success": false,
+      "error": "HTTPConnectionPool(host='127.0.0.1', port=9000): Read timed out. (read timeout=60)"
+    },
+    {
+      "question": "¿Cómo obtengo mi tutor?",
+      "expected_type": "RAG",
+      "actual_type": "ERROR",
+      "success": false,
+      "error": "HTTPConnectionPool(host='127.0.0.1', port=9000): Read timed out."
+    },
+    {
+      "question": "¿Qué es la defensa de tesis?",
+      "expected_type": "RAG",
+      "actual_type": "ERROR",
+      "success": false,
+      "error": "HTTPConnectionPool(host='127.0.0.1', port=9000): Read timed out. (read timeout=60)"
+    },
+    {
+      "question": "¿Cómo funciona el proceso de investigación?",
+      "expected_type": "RAG",
+      "actual_type": "ERROR",
+      "success": false,
+      "error": "HTTPConnectionPool(host='127.0.0.1', port=9000): Read timed out."
+    },
+    {
+      "question": "ayuda",
+      "expected_type": "GUIDANCE",
+      "actual_type": "GUIDANCE",
+      "answer_preview": "Puedo ayudarte mejor si escribes una pregunta concreta dentro del contexto de SoeBOT.\n\nÁreas que manejo:\n1. Atención al cliente: inscripciones, certificados, pagos, Moodle y trámites.\n2. Académica: programas, módulos, horarios y docentes.\n3. Investigación: tutor, monografía, defensa y curso de actua",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.0,
+      "context_precision": 1.0,
+      "success": true,
+      "sources_count": 0,
+      "routing_trace": {
+        "categories": [
+          "Otro"
+        ],
+        "guidance_triggered": true,
+        "faq_checked": false,
+        "faq_confidence": 0.0,
+        "cache_hit": false,
+        "rag_used": false
+      }
+    },
+    {
+      "question": "quiero información",
+      "expected_type": "GUIDANCE",
+      "actual_type": "GUIDANCE",
+      "answer_preview": "Puedo ayudarte mejor si escribes una pregunta concreta dentro del contexto de SoeBOT.\n\nÁreas que manejo:\n1. Atención al cliente: inscripciones, certificados, pagos, Moodle y trámites.\n2. Académica: programas, módulos, horarios y docentes.\n3. Investigación: tutor, monografía, defensa y curso de actua",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.0,
+      "context_precision": 1.0,
+      "success": true,
+      "sources_count": 0,
+      "routing_trace": {
+        "categories": [
+          "Otro"
+        ],
+        "guidance_triggered": true,
+        "faq_checked": false,
+        "faq_confidence": 0.0,
+        "cache_hit": false,
+        "rag_used": false
+      }
+    }
+  ]
+}

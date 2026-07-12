@@ -288,6 +288,8 @@ if metrics:
         default_end = datetime.now().date()
 
     user_options = sorted(users_from_data, key=lambda x: str(x).lower())
+    if not df_interactions.empty and "source" in df_interactions.columns:
+        df_interactions["source"] = df_interactions["source"].fillna("UNKNOWN").astype(str).str.strip().str.upper()
     source_options = sorted(df_interactions["source"].dropna().astype(str).unique().tolist()) if not df_interactions.empty and "source" in df_interactions.columns else []
     category_options = sorted({category for values in (df_interactions["categories_list"] if not df_interactions.empty and "categories_list" in df_interactions.columns else []) for category in values})
 
@@ -402,13 +404,14 @@ if metrics:
         - **Búsqueda por texto:** {keyword if keyword.strip() else 'Sin filtro'}
         """)
 
-    tab_resumen, tab_quant, tab_qual, tab_users, tab_routing, tab_method, tab_data = st.tabs([
+    tab_resumen, tab_quant, tab_qual, tab_users, tab_routing, tab_method, tab_ragas, tab_data = st.tabs([
         "📌 Res.",
         "📈 Cuant.",
         "✨ Cual.",
         "👤 Usrs",
         "🧭 Routing",
         "🧮 Método",
+        "🧪 RAGAS",
         "🗂️ Datos"
     ])
 
@@ -539,7 +542,15 @@ if metrics:
             col2.metric("Memoria (%)", round(quant.get("memory_usage_percent", 0), 1))
             col3.metric("Errores", int(quant.get("errors_total", 0)))
             col4.metric("Alucinaciones", int(quant.get("hallucinations_total", 0)))
-            st.markdown("**Método:** observabilidad operativa usando métricas del proceso y del sistema operativo.")
+
+            st.markdown("### Telemetría de tokens")
+            t1, t2, t3, t4 = st.columns(4)
+            t1.metric("Tokens totales", int(quant.get("tokens_total", 0) or 0))
+            t2.metric("Avg prompt tokens", float(quant.get("avg_prompt_tokens", 0) or 0))
+            t3.metric("Avg completion tokens", float(quant.get("avg_completion_tokens", 0) or 0))
+            t4.metric("Avg total tokens", float(quant.get("avg_total_tokens", 0) or 0))
+
+            st.markdown("**Método:** observabilidad operativa usando métricas del proceso, sistema y consumo aproximado de tokens.")
 
     with tab_qual:
         st.subheader("Métricas cualitativas")
@@ -679,7 +690,8 @@ if metrics:
             st.info("No hay interacciones para analizar routing con los filtros actuales.")
         else:
             if "source" in df_interactions_view.columns:
-                source_counts_rt = df_interactions_view["source"].fillna("UNKNOWN").value_counts()
+                source_series_rt = df_interactions_view["source"].fillna("UNKNOWN").astype(str).str.strip().str.upper()
+                source_counts_rt = source_series_rt.value_counts()
                 total_rt = int(source_counts_rt.sum())
                 graph_rt = int(source_counts_rt.get("GRAPH_RAG", 0))
                 graph_pct = round((graph_rt / total_rt) * 100, 2) if total_rt else 0.0
@@ -750,6 +762,41 @@ if metrics:
 
         st.latex(r"\bar{x} = \frac{\sum_{i=1}^{n} x_i}{n}")
         st.latex(r"\text{Tasa} = \frac{\text{casos de interés}}{\text{total de observaciones}} \times 100")
+
+    with tab_ragas:
+        st.subheader("Resultados de evaluación RAGAS")
+        ragas_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "evaluation", "results")
+        ragas_file = os.path.join(ragas_path, "eval_results_v1_streaming.json")
+        if os.path.exists(ragas_file):
+            try:
+                with open(ragas_file, "r", encoding="utf-8") as f:
+                    ragas_data = json.load(f)
+
+                c1, c2, c3, c4 = st.columns(4)
+                c1.metric("Faithfulness", round(float(ragas_data.get("avg_faithfulness", 0) or 0), 3))
+                c2.metric("Context Precision", round(float(ragas_data.get("avg_context_precision", 0) or 0), 3))
+                c3.metric("Context Recall", round(float(ragas_data.get("avg_context_recall", 0) or 0), 3))
+                c4.metric("Answer Relevancy", round(float(ragas_data.get("avg_answer_relevancy", 0) or 0), 3))
+
+                st.markdown("### Resumen de corrida")
+                st.json({
+                    "timestamp": ragas_data.get("timestamp"),
+                    "total_cases": ragas_data.get("total_cases"),
+                    "successful": ragas_data.get("successful"),
+                    "failed": ragas_data.get("failed"),
+                    "overall_type_accuracy": ragas_data.get("overall_type_accuracy"),
+                })
+
+                results = ragas_data.get("results", [])
+                if results:
+                    df_ragas = pd.DataFrame(results)
+                    cols = [c for c in ["question", "expected_type", "actual_type_canonical", "faithfulness", "context_precision", "context_recall", "answer_relevancy", "success"] if c in df_ragas.columns]
+                    st.dataframe(df_ragas[cols], use_container_width=True)
+                    download_dataframe(df_ragas[cols], "Descargar resultados RAGAS", "ragas_results_filtered.csv")
+            except Exception as e:
+                st.warning(f"No se pudo leer resultados RAGAS: {e}")
+        else:
+            st.info("No se encontró archivo de resultados RAGAS en evaluation/results/eval_results_v1_streaming.json")
 
     with tab_data:
         st.subheader("Datos filtrados y exportes")

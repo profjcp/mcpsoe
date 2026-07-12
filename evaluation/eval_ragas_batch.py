@@ -60,8 +60,9 @@ def main():
         avg_faithfulness = sum(r.get("faithfulness", 0) for r in successful) / len(successful)
         avg_relevancy = sum(r.get("answer_relevancy", 0) for r in successful) / len(successful)
         avg_precision = sum(r.get("context_precision", 0) for r in successful) / len(successful)
+        avg_recall = sum(r.get("context_recall", 0) for r in successful) / len(successful)
     else:
-        avg_faithfulness = avg_relevancy = avg_precision = 0.0
+        avg_faithfulness = avg_relevancy = avg_precision = avg_recall = 0.0
 
     by_type = defaultdict(lambda: {"total": 0, "ok": 0})
     for r in successful:
@@ -89,6 +90,7 @@ def main():
         "avg_faithfulness": avg_faithfulness,
         "avg_answer_relevancy": avg_relevancy,
         "avg_context_precision": avg_precision,
+        "avg_context_recall": avg_recall,
         "overall_type_accuracy": overall_type_accuracy,
         "per_type_accuracy": per_type_accuracy,
         "results": results
@@ -105,6 +107,7 @@ def main():
     print(f"   Faithfulness: {avg_faithfulness:.2f}")
     print(f"   Answer Relevancy: {avg_relevancy:.2f}")
     print(f"   Context Precision: {avg_precision:.2f}")
+    print(f"   Context Recall: {avg_recall:.2f}")
     print(f"   Type Accuracy (global): {overall_type_accuracy:.2f}")
     if per_type_accuracy:
         print("   Type Accuracy (por tipo):")

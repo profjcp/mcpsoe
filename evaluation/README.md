@@ -51,6 +51,7 @@ python evaluation/eval_ragas_batch.py \
 - Faithfulness
 - Answer Relevancy
 - Context Precision
+- Context Recall
 - Type Accuracy global
 - Type Accuracy por tipo esperado (faq/rag/guidance)
 

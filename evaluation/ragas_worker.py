@@ -131,6 +131,18 @@ class RAGAsWorker:
                 useful += 1
         return useful / max(1, len(chunks))
 
+    def calculate_context_recall(self, question: str, context: str) -> float:
+        """
+        Aproximación de Context Recall:
+        qué proporción de términos clave de la pregunta aparece en el contexto recuperado.
+        """
+        q_tokens = set(self._tokenize(question))
+        c_tokens = set(self._tokenize(context))
+        if not q_tokens or not c_tokens:
+            return 0.0
+        overlap = len(q_tokens.intersection(c_tokens))
+        return min(overlap / max(1, len(q_tokens)), 1.0)
+
     def evaluate_case(self, question: str, expected_type: str) -> Dict[str, Any]:
         """Evalúa un caso individual."""
         try:
@@ -149,6 +161,7 @@ class RAGAsWorker:
                 "faithfulness": self.calculate_faithfulness(answer, context),
                 "answer_relevancy": self.calculate_answer_relevancy(question, answer),
                 "context_precision": self.calculate_context_precision(context, answer),
+                "context_recall": self.calculate_context_recall(question, context),
                 "success": True,
                 "sources_count": len(result.get("sources", []) or []),
                 "routing_trace": result.get("routing_trace", {}),

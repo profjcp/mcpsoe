@@ -165,6 +165,14 @@ def safe_float(value, default=0.0):
         return default
 
 
+def estimate_token_count(text: str) -> int:
+    """Estimación ligera de tokens para telemetría (aprox 1 token ~ 4 chars)."""
+    text = str(text or "").strip()
+    if not text:
+        return 0
+    return max(1, int(len(text) / 4))
+
+
 def build_interaction_signature(user_id: str, question: str, response_text: str, response_time_val: float) -> str:
     """Crea una firma estable para evitar duplicados al importar historial."""
     normalized_user = (user_id or "anonymous").strip().lower()
@@ -336,6 +344,7 @@ def record_interaction_metrics(
     routing_trace: dict = None,
     confidence: float = 0.0,
     timing_ms: dict = None,
+    tokens_used: dict = None,
 ):
     """Registra métricas por usuario y persiste interacciones para análisis posteriores."""
     bucket, user_key = ensure_user_metrics(user_id)
@@ -375,6 +384,7 @@ def record_interaction_metrics(
             "routing_trace": routing_trace or {},
             "confidence": float(confidence or 0.0),
             "timing_ms": timing_ms or {},
+            "tokens_used": tokens_used or {},
         }
     )
 
@@ -876,6 +886,14 @@ async def ask(request: AskRequest):
                 qualitative_metrics["response_times"].append(response_time_val)
                 qualitative_metrics["hallucination_rate"].append(0)
 
+                prompt_tokens = estimate_token_count(request.question)
+                completion_tokens = estimate_token_count(route_result.answer_text)
+                tokens_used = {
+                    "prompt_tokens": prompt_tokens,
+                    "completion_tokens": completion_tokens,
+                    "total_tokens": prompt_tokens + completion_tokens
+                }
+
                 record_interaction_metrics(
                     request.user_id,
                     request.question,
@@ -888,6 +906,7 @@ async def ask(request: AskRequest):
                     routing_trace=route_result.routing_trace,
                     confidence=route_result.confidence,
                     timing_ms=route_result.timing_ms,
+                    tokens_used=tokens_used,
                 )
 
                 if route_result.answer_mode == "FAQ":
@@ -999,6 +1018,14 @@ async def ask(request: AskRequest):
         timing_ms["generation"] = float(generation_ms)
         timing_ms["total"] = float(response_time_val * 1000.0)
 
+        prompt_tokens = estimate_token_count(request.question) + estimate_token_count(knowledge_context)
+        completion_tokens = estimate_token_count(full_response)
+        tokens_used = {
+            "prompt_tokens": prompt_tokens,
+            "completion_tokens": completion_tokens,
+            "total_tokens": prompt_tokens + completion_tokens
+        }
+
         record_interaction_metrics(
             request.user_id,
             request.question,
@@ -1011,6 +1038,7 @@ async def ask(request: AskRequest):
             routing_trace=route_result.routing_trace,
             confidence=route_result.confidence,
             timing_ms=timing_ms,
+            tokens_used=tokens_used,
         )
 
     return StreamingResponse(stream_rag_doc(), media_type="text/event-stream")
@@ -1060,6 +1088,11 @@ async def metrics():
     source_counts = {}
     traces_present = 0
     graph_rag_total = 0
+    prompt_tokens_total = 0
+    completion_tokens_total = 0
+    total_tokens_total = 0
+    token_records = 0
+
     for record in persisted_interactions:
         src = str(record.get("source", "UNKNOWN"))
         source_counts[src] = source_counts.get(src, 0) + 1
@@ -1068,8 +1101,23 @@ async def metrics():
         if record.get("routing_trace"):
             traces_present += 1
 
+        tokens = record.get("tokens_used", {}) or {}
+        if isinstance(tokens, dict):
+            p_tok = int(tokens.get("prompt_tokens", 0) or 0)
+            c_tok = int(tokens.get("completion_tokens", 0) or 0)
+            t_tok = int(tokens.get("total_tokens", 0) or 0)
+            if p_tok > 0 or c_tok > 0 or t_tok > 0:
+                prompt_tokens_total += p_tok
+                completion_tokens_total += c_tok
+                total_tokens_total += t_tok
+                token_records += 1
+
     graph_rag_rate = round((graph_rag_total / persisted_queries_total) * 100, 2) if persisted_queries_total else 0.0
     trace_coverage_rate = round((traces_present / persisted_queries_total) * 100, 2) if persisted_queries_total else 0.0
+
+    avg_prompt_tokens = round(prompt_tokens_total / token_records, 2) if token_records else 0
+    avg_completion_tokens = round(completion_tokens_total / token_records, 2) if token_records else 0
+    avg_total_tokens = round(total_tokens_total / token_records, 2) if token_records else 0
 
     # Calcular promedios cualitativos
     metrics_summary = {
@@ -1084,7 +1132,12 @@ async def metrics():
             "graph_rag_total": graph_rag_total,
             "graph_rag_rate_percent": graph_rag_rate,
             "routing_trace_present_total": traces_present,
-            "routing_trace_coverage_percent": trace_coverage_rate
+            "routing_trace_coverage_percent": trace_coverage_rate,
+            "tokens_total": total_tokens_total,
+            "avg_prompt_tokens": avg_prompt_tokens,
+            "avg_completion_tokens": avg_completion_tokens,
+            "avg_total_tokens": avg_total_tokens,
+            "token_records_total": token_records
         },
         "qualitative": {
             "avg_satisfaction": round(np.mean(qualitative_metrics["avg_satisfaction"]), 2) if qualitative_metrics["avg_satisfaction"] else 0,
