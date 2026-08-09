@@ -122,3 +122,50 @@ Este documento consolida los cambios implementados en Sprint 2 para mejorar:
 ## Notas de publicación
 - Este sprint se publica excluyendo artefactos locales/binarios (`*.pkl`, `*.bin`, `__pycache__`, logs).
 - Se prioriza código funcional, documentación y scripts de evaluación.
+
+---
+
+## 6) Sprint 3 — Telemetría de tokens y visibilidad RAGAS
+
+Este bloque documenta los cambios asociados a Sprint 3 para observabilidad de calidad en el sistema.
+
+### 6.1) Telemetría de tokens (backend)
+
+**Archivo principal**: `mcp_server_local.py`
+
+**Cambios principales**:
+- Se agregó una estimación de tokens (`tokens_used`) para cada interacción.
+- Se persiste `tokens_used` en `interaction_logs.jsonl`.
+- `/metrics` expone agregados nuevos:
+  - `tokens_total`
+  - `avg_prompt_tokens`
+  - `avg_completion_tokens`
+  - `avg_total_tokens`
+  - `token_records_total`
+
+**Beneficio**:
+- Permite correlacionar costo/longitud de prompts con desempeño y calidad percibida.
+
+### 6.2) Visibilidad de Context Recall (evaluación)
+
+**Archivos principales**:
+- `evaluation/ragas_worker.py`
+- `evaluation/eval_ragas_batch.py`
+
+**Cambios principales**:
+- Se implementa `calculate_context_recall(question, context)`.
+- Se reporta `context_recall` por caso y se serializa hacia el archivo de salida del batch.
+
+**Beneficio**:
+- Aporta una métrica directa de “recall de contexto” para evaluar si el sistema recupera la información necesaria para responder.
+
+### 6.3) Admin: tab 🧪 RAGAS y telemetría de tokens
+
+**Archivo principal**: `appclient/app_admin.py`
+
+**Cambios principales**:
+- Se agregó la pestaña **`🧪 RAGAS`** para visualizar los resultados del batch (incluyendo `context_recall`).
+- Se incorpora un bloque de **Telemetría de tokens** dentro de la vista cuantitativa usando los nuevos KPIs del endpoint `/metrics`.
+
+**Beneficio**:
+- Cierra el ciclo: métricas de tokens (observabilidad) + evaluación de calidad RAG (RAGAS) en un solo dashboard.

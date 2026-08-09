@@ -94,13 +94,17 @@ else
 fi
 
 echo ""
-echo "========== PASO 4: INICIAR SERVIDOR MCP =========="
-echo "🔄 Iniciando servidor MCP..."
-python mcp_server_local.py > /tmp/mcp_server.log 2>&1 &
-MCP_PID=$!
+echo "========== PASO 4: INICIAR SERVIDOR MCP (CON WATCHDOG) =========="
+echo "🔄 Iniciando watchdog del servidor MCP (auto-reinicio)..."
+# El watchdog monitoriza el puerto 9000 y reinicia el servidor automáticamente si se cae
+# Se ejecuta en un proceso separado para que sobreviva y pueda reiniciar el MCP
+nohup ./restart_mcp.sh > /tmp/mcp_watchdog.log 2>&1 &
+WATCHDOG_PID=$!
+echo "✅ Watchdog MCP iniciado con PID: $WATCHDOG_PID (log: /tmp/mcp_watchdog.log)"
 
 # Health check del MCP Server con reintentos más agresivos
-echo "⏳ Esperando a que MCP cargue los modelos de Ollama..."
+# El watchdog ya está manejando el arranque y reinicio automático
+echo "⏳ Esperando a que MCP cargue los modelos de Ollama (el watchdog lo reiniciará si falla)..."
 MCP_RETRIES=0
 MAX_MCP_RETRIES=${MAX_MCP_RETRIES:-420}  # default 7 minutos (configurable por variable de entorno)
 while [ $MCP_RETRIES -lt $MAX_MCP_RETRIES ]; do
@@ -119,8 +123,8 @@ done
 if [ $MCP_RETRIES -eq $MAX_MCP_RETRIES ]; then
     echo "❌ ERROR: MCP no está respondiendo después de $MAX_MCP_RETRIES segundos"
     echo "Revisa: tail -f /tmp/mcp_server.log"
-    kill $MCP_PID 2>/dev/null || true
-    exit 1
+    echo "El watchdog (PID $WATCHDOG_PID) seguirá intentando reiniciarlo automáticamente."
+    # No salimos con error: el watchdog puede recuperarlo más tarde
 fi
 
 echo ""
@@ -213,7 +217,7 @@ echo "=========================================="
 
 # Esperar indefinidamente (o hasta Ctrl+C)
 # El cleanup se maneja por señales
-trap 'echo "🛑 Deteniendo servicios..."; kill $MCP_PID 2>/dev/null; tmux kill-session -t soebot_client 2>/dev/null; tmux kill-session -t soebot_admin 2>/dev/null; echo "✅ Servicios detenidos."; exit 0' INT TERM
+trap 'echo "🛑 Deteniendo servicios..."; pkill -f "restart_mcp.sh" 2>/dev/null; pkill -f "mcp_server_local.py" 2>/dev/null; tmux kill-session -t soebot_client 2>/dev/null; tmux kill-session -t soebot_admin 2>/dev/null; echo "✅ Servicios detenidos."; exit 0' INT TERM
 
 # Mantener el script vivo para capturar señales
 wait
