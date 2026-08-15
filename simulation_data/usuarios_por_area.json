@@ -1,0 +1,34 @@
+{
+  "Administracion": [
+    {"user_id": "admin_01", "password": "sim_pass_01", "nombre": "Carlos Mendoza", "rol": "Auxiliar Administrativo"},
+    {"user_id": "admin_02", "password": "sim_pass_02", "nombre": "Lucia Vargas", "rol": "Coordinadora Administrativa"},
+    {"user_id": "admin_03", "password": "sim_pass_03", "nombre": "Pedro Rojas", "rol": "Gestor de Tramites"}
+  ],
+  "Academico": [
+    {"user_id": "academic_01", "password": "sim_pass_04", "nombre": "Maria Fernanda Lopez", "rol": "Estudiante Maestria Ciencia de Datos"},
+    {"user_id": "academic_02", "password": "sim_pass_05", "nombre": "Jorge Luis Quispe", "rol": "Estudiante Maestria Ciberseguridad"},
+    {"user_id": "academic_03", "password": "sim_pass_06", "nombre": "Ana Belen Roca", "rol": "Estudiante Maestria Ciencia de Datos"},
+    {"user_id": "academic_04", "password": "sim_pass_07", "nombre": "Diego Fernando Cruz", "rol": "Estudiante Maestria Ciberseguridad"}
+  ],
+  "AtencionCliente": [
+    {"user_id": "cliente_01", "password": "sim_pass_08", "nombre": "Rosa Maria Gutierrez", "rol": "Estudiante - Tramites"},
+    {"user_id": "cliente_02", "password": "sim_pass_09", "nombre": "Luis Alberto Flores", "rol": "Estudiante - Certificaciones"},
+    {"user_id": "cliente_03", "password": "sim_pass_10", "nombre": "Carmen Rosa Delgado", "rol": "Estudiante - Inscripciones"},
+    {"user_id": "cliente_04", "password": "sim_pass_11", "nombre": "Hector Manuel Suarez", "rol": "Estudiante - Moodle"},
+    {"user_id": "cliente_05", "password": "sim_pass_12", "nombre": "Patricia Andrea Zeballos", "rol": "Estudiante - Pagos"}
+  ],
+  "Investigacion": [
+    {"user_id": "invest_01", "password": "sim_pass_13", "nombre": "Sofia Alejandra Paredes", "rol": "Estudiante - Tesista"},
+    {"user_id": "invest_02", "password": "sim_pass_14", "nombre": "Ruben Dario Salazar", "rol": "Estudiante - Monografia"},
+    {"user_id": "invest_03", "password": "sim_pass_15", "nombre": "Elena Gabriela Montero", "rol": "Estudiante - Curso Actualizacion"}
+  ],
+  "Direccion": [
+    {"user_id": "direccion_01", "password": "sim_pass_16", "nombre": "Ing. Roberto Camacho", "rol": "Director de Postgrado"},
+    {"user_id": "direccion_02", "password": "sim_pass_17", "nombre": "Dra. Mireya Soliz", "rol": "Subdirectora Academica"}
+  ],
+  "Marketing": [
+    {"user_id": "marketing_01", "password": "sim_pass_18", "nombre": "Gabriela Andrea Nunez", "rol": "Analista de Marketing"},
+    {"user_id": "marketing_02", "password": "sim_pass_19", "nombre": "Christian Paul Vargas", "rol": "Community Manager"},
+    {"user_id": "marketing_03", "password": "sim_pass_20", "nombre": "Valeria Beatriz Castro", "rol": "Coordinadora de Admisiones"}
+  ]
+}
