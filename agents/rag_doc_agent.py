@@ -13,52 +13,65 @@ class DocRAGAgentResult:
     timings_ms: Dict[str, float] = field(default_factory=dict)
 
 
+from retrieval.hybrid_retriever import HybridRetriever, ACCESS_HIERARCHY
+
 class DocRAGAgent:
     """
-    Agente de RAG documental (Sprint 1).
-    - Recupera top-k chunks desde índice FAISS.
-    - Genera respuesta con LLM chain externo.
-    - Expone sources y timings para trazabilidad.
+    Agente de RAG documental con búsqueda híbrida (BM25 + FAISS + RRF), metadatos y filtrado de acceso.
     """
 
     def __init__(
         self,
         faiss_index,
-        chunks: List[str],
+        chunks: List[Any],
         embed_query_fn: Callable[[str], List[float]],
         build_chain_fn: Callable[[], Any],
         top_k: int = 5,
+        reranker_model_name: str = None,
     ):
         self.faiss_index = faiss_index
         self.chunks = chunks
         self.embed_query_fn = embed_query_fn
         self.build_chain_fn = build_chain_fn
         self.top_k = top_k
+        self.hybrid_retriever = HybridRetriever(
+            faiss_index=faiss_index,
+            chunks=chunks,
+            embed_query_fn=embed_query_fn,
+            top_k=top_k,
+            reranker_model_name=reranker_model_name,
+        )
 
-    def retrieve(self, question: str):
-        t0 = time.time()
+    def retrieve(self, question: str, user_access_level: str = "publico"):
+        results, retrieval_ms = self.hybrid_retriever.search(
+            query=question,
+            user_access_level=user_access_level,
+        )
+
         q_emb = self.embed_query_fn(question)
         q_np = np.array([q_emb], dtype="float32")
-        distances, indices = self.faiss_index.search(q_np, self.top_k)
-        retrieval_ms = (time.time() - t0) * 1000.0
 
         relevant_chunks = []
         sources = []
-        for rank, idx in enumerate(indices[0]):
-            if 0 <= idx < len(self.chunks):
-                chunk = self.chunks[idx]
-                relevant_chunks.append(chunk)
-                sources.append(
-                    {
-                        "source_type": "chunk",
-                        "doc_id": f"chunk_{idx}",
-                        "title": "Base documental RAG",
-                        "section": f"chunk_rank_{rank+1}",
-                        "snippet": chunk[:240],
-                    }
-                )
 
-        context = "\n\n---\n\n".join(relevant_chunks) if relevant_chunks else "No se encontró información relevante en los documentos."
+        for rank, res in enumerate(results):
+            chunk_text = res.get("text", "")
+            meta = res.get("metadata", {})
+            relevant_chunks.append(chunk_text)
+            sources.append(
+                {
+                    "source_type": "hybrid_chunk",
+                    "doc_id": meta.get("doc_id", f"chunk_{res.get('chunk_index', rank)}"),
+                    "title": meta.get("titulo", "Documento Normativo"),
+                    "section": meta.get("articulo", f"rank_{rank+1}"),
+                    "categoria": meta.get("categoria", "General"),
+                    "nivel_acceso": meta.get("nivel_acceso", "publico"),
+                    "rrf_score": res.get("rrf_score", 0.0),
+                    "snippet": chunk_text[:240],
+                }
+            )
+
+        context = "\n\n---\n\n".join(relevant_chunks) if relevant_chunks else "No se encontró información relevante en los documentos a los que tiene acceso."
         return context, sources, retrieval_ms, q_np
 
     async def generate(self, question: str, context: str, few_shot_examples: str = ""):

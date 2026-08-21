@@ -22,6 +22,8 @@ import re
 from agents.faq_agent import FAQAgent
 from agents.rag_doc_agent import DocRAGAgent
 from agents.graph_rag_agent import GraphRAGAgent
+from agents.hallucination_grader import HallucinationGrader
+from agents.query_rewriter import QueryRewriter
 from orchestrator.router import MultiAgentOrchestrator
 
 # Lazy import de NLTK para evitar errores de inicialización
@@ -427,7 +429,7 @@ async def lifespan(app: FastAPI):
     """
     Load all necessary models and data into memory.
     """
-    global llm, embeddings, faiss_index, chunks, qa_faiss_index, qa_cache, faq_cache, r, faq_agent, doc_rag_agent, graph_rag_agent, orchestrator
+    global llm, embeddings, faiss_index, chunks, qa_faiss_index, qa_cache, faq_cache, r, faq_agent, doc_rag_agent, graph_rag_agent, orchestrator, hallucination_grader, query_rewriter
 
     # 1. Load LLM and Embedding models
     print("--- Cargando Modelos de Ollama ---")
@@ -440,6 +442,9 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print(f"\n[ERROR] No se pudieron cargar los modelos de Ollama. ¿Está Ollama en ejecución? Error: {e}")
         exit(1)
+
+    hallucination_grader = HallucinationGrader(llm=llm)
+    query_rewriter = QueryRewriter(llm=llm)
 
     # Initialize Redis
     try:
@@ -508,14 +513,15 @@ async def lifespan(app: FastAPI):
 
     # 6. Inicializar agentes y orquestador Sprint 1+2 (GUIDANCE -> FAQ -> CACHE -> RAG_DOC/GRAPH_RAG)
     def _build_chain():
-        template = """
-Eres un asistente experto en responder preguntas basadas únicamente en el contexto proporcionado. No inventes información ni respondas fuera del contexto.
+        template = """Eres un asistente académico oficial de posgrado (SoeBOT). Tu deber es responder preguntas basándote ÚNICA Y EXCLUSIVAMENTE en el contexto normativo y documental proporcionado.
 
-Instrucciones:
-- Responde de manera concisa, clara y en el mismo idioma que la pregunta.
-- Si la respuesta no está en el contexto, di "No tengo suficiente información para responder esta pregunta".
-- Cita partes relevantes del contexto si es posible.
-- Usa los ejemplos de Q&A anteriores como guía para el estilo de respuesta.
+REGLAS STRICTAS E INQUEBRANTABLES:
+1. Responde ÚNICA Y EXCLUSIVAMENTE basándote en el "Contexto de documentos" proporcionado a continuación.
+2. NUNCA asumas, deduzcas ni utilices conocimiento previo de otras universidades, normativas o fuentes externas.
+3. Si la respuesta a la pregunta NO está explícita en el contexto, responde EXACTAMENTE con la siguiente frase y nada más:
+   "No dispongo de esa información en los reglamentos vigentes. Por favor, acude a la Jefatura Académica."
+4. CITA SIEMPRE el artículo, sección o documento específico de donde extraes la respuesta (ej. "[Reglamento General de Posgrado, Art. 12]").
+5. Mantén un tono formal, claro y preciso.
 
 Contexto de documentos:
 {context}
@@ -585,6 +591,7 @@ class EmbedRequest(BaseModel):
 class AskRequest(BaseModel):
     question: str
     user_id: str = "anonymous"
+    user_access_level: str = "publico"
 
 class FeedbackRequest(BaseModel):
     question: str
@@ -828,7 +835,7 @@ async def ask(request: AskRequest):
     preservando streaming y métricas existentes.
     """
     global orchestrator
-    print(f"Recibida pregunta: {request.question}")
+    print(f"Recibida pregunta: {request.question} (Acceso: {request.user_access_level})")
     query_counter.inc()
     request_start = time.time()
 
@@ -849,7 +856,7 @@ async def ask(request: AskRequest):
             yield guidance_message
         return StreamingResponse(stream_fallback(), media_type="text/event-stream")
 
-    route_result = orchestrator.route_pre_llm(request.question)
+    route_result = orchestrator.route_pre_llm(request.question, user_access_level=request.user_access_level)
 
     if route_result.answer_mode in ("GUIDANCE", "FAQ", "CACHE"):
         if route_result.answer_mode == "CACHE":
@@ -859,7 +866,7 @@ async def ask(request: AskRequest):
             bypass_contaminated = should_bypass_cache_answer(request.question, categories, cached_text)
 
             if bypass_sensitive or bypass_contaminated:
-                context, sources, retrieval_ms, q_np = doc_rag_agent.retrieve(request.question)
+                context, sources, retrieval_ms, q_np = doc_rag_agent.retrieve(request.question, user_access_level=request.user_access_level)
                 route_result = type(route_result)(
                     answer_text="",
                     answer_mode="RAG_DOC",
@@ -982,7 +989,12 @@ async def ask(request: AskRequest):
         response_time.observe(response_time_val)
         qualitative_metrics["response_times"].append(response_time_val)
 
-        is_hallucinated = detect_hallucination(full_response, knowledge_context)
+        # Auditar alucinaciones con el agente evaluador (Fase 3.1)
+        is_grounded = True
+        if hallucination_grader:
+            is_grounded, reason = hallucination_grader.grade(knowledge_context, full_response, request.question)
+
+        is_hallucinated = not is_grounded or detect_hallucination(full_response, knowledge_context)
         if is_hallucinated:
             hallucination_counter.inc()
             qualitative_metrics["hallucination_rate"].append(1)

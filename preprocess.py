@@ -40,7 +40,31 @@ class MCPChatLLM(BaseLanguageModel):
 FAISS_INDEX_PATH = "faiss_index.bin"
 CHUNKS_PATH = "chunks.pkl"
 GRAPH_INDEX_PATH = "graph_index.pkl"
-SOURCE_DOCUMENT = "documentos/Preguntas_Frecuentes.txt"
+DOCUMENTS_DIR = "documentos"
+
+# Configuración de metadatos por documento fuente
+DOCUMENT_METADATA_MAP = {
+    "Preguntas_Frecuentes.txt": {
+        "titulo": "Preguntas Frecuentes Generales",
+        "categoria": "General",
+        "nivel_acceso": "publico",
+    },
+    "faq_atencion_cliente.txt": {
+        "titulo": "FAQ Atención al Cliente y Trámites",
+        "categoria": "AtencionCliente",
+        "nivel_acceso": "publico",
+    },
+    "faq_academica.txt": {
+        "titulo": "Reglamento y FAQ Académica",
+        "categoria": "Academica",
+        "nivel_acceso": "estudiante",
+    },
+    "faq_investigacion.txt": {
+        "titulo": "Reglamento y Guía de Investigación y Tesis",
+        "categoria": "Investigacion",
+        "nivel_acceso": "estudiante",
+    },
+}
 
 def build_graph_index(embeddings_array: np.ndarray, k_neighbors: int = 3):
     """
@@ -68,57 +92,83 @@ def build_graph_index(embeddings_array: np.ndarray, k_neighbors: int = 3):
 
 def create_faiss_index():
     """
-    Creates and saves a FAISS index and the corresponding text chunks using semantic chunking.
+    Creates and saves a FAISS index and corresponding enriched chunks with metadata.
     """
-    # 1. Read the document
-    print(f"Reading document from {SOURCE_DOCUMENT}...")
-    with open(SOURCE_DOCUMENT, "r", encoding="utf-8") as f:
-        text = f.read()
-
-    # 2. Create semantic chunker
     embeddings = MCPEmbeddings()
     text_splitter = SemanticChunker(embeddings, breakpoint_threshold_type="percentile")
 
-    # 3. Split into semantic chunks
-    print("Splitting document into semantic chunks...")
-    chunks = text_splitter.split_text(text)
-
-    if not chunks:
-        print("No chunks found in the document.")
+    all_enriched_chunks = []
+    
+    # 1. Recorrer todos los documentos en documentos/
+    if not os.path.exists(DOCUMENTS_DIR):
+        print(f"Error: Carpeta de documentos no encontrada en {DOCUMENTS_DIR}")
         return
 
-    print(f"Generated {len(chunks)} semantic chunks.")
+    doc_files = [f for f in os.listdir(DOCUMENTS_DIR) if f.endswith(".txt")]
+    print(f"Encontrados {len(doc_files)} documentos para ingesta en '{DOCUMENTS_DIR}'.")
 
-    # 4. Generate embeddings for each chunk
-    print(f"Generating embeddings for {len(chunks)} chunks...")
-    embeddings_list = embeddings.embed_documents(chunks)
+    for filename in doc_files:
+        filepath = os.path.join(DOCUMENTS_DIR, filename)
+        meta_info = DOCUMENT_METADATA_MAP.get(filename, {
+            "titulo": filename.replace(".txt", "").replace("_", " ").title(),
+            "categoria": "General",
+            "nivel_acceso": "publico",
+        })
+
+        print(f"Procesando {filename} (Categoría: {meta_info['categoria']}, Acceso: {meta_info['nivel_acceso']})...")
+        with open(filepath, "r", encoding="utf-8") as f:
+            text = f.read()
+
+        if not text.strip():
+            continue
+
+        raw_chunks = text_splitter.split_text(text)
+        print(f" -> Generados {len(raw_chunks)} chunks semánticos.")
+
+        for idx, chunk_text in enumerate(raw_chunks):
+            all_enriched_chunks.append({
+                "text": chunk_text,
+                "metadata": {
+                    "doc_id": filename,
+                    "titulo": meta_info["titulo"],
+                    "categoria": meta_info["categoria"],
+                    "nivel_acceso": meta_info["nivel_acceso"],
+                    "articulo": f"{meta_info['titulo']} - Sección {idx + 1}",
+                }
+            })
+
+    if not all_enriched_chunks:
+        print("No se encontraron chunks válidos en los documentos.")
+        return
+
+    print(f"Total de chunks enriquecidos generados: {len(all_enriched_chunks)}")
+
+    # 2. Generar embeddings para cada chunk
+    texts_to_embed = [c["text"] for c in all_enriched_chunks]
+    print(f"Generando embeddings para {len(texts_to_embed)} chunks...")
+    embeddings_list = embeddings.embed_documents(texts_to_embed)
     embeddings_array = np.array(embeddings_list, dtype="float32")
 
-    # 5. Create a FAISS index
+    # 3. Crear índice FAISS
     dimension = embeddings_array.shape[1]
     index = faiss.IndexFlatL2(dimension)
     index.add(embeddings_array)
 
-    # 6. Save the index and chunks
-    print(f"Saving FAISS index to {FAISS_INDEX_PATH}")
+    # 4. Guardar índice, chunks con metadatos e índice de grafo
+    print(f"Guardando índice FAISS en {FAISS_INDEX_PATH}")
     faiss.write_index(index, FAISS_INDEX_PATH)
 
-    print(f"Saving chunks to {CHUNKS_PATH}")
+    print(f"Guardando chunks enriquecidos en {CHUNKS_PATH}")
     with open(CHUNKS_PATH, "wb") as f:
-        pickle.dump(chunks, f)
+        pickle.dump(all_enriched_chunks, f)
 
-    # 7. Build and save graph index for Sprint 2 (GraphRAG)
-    print(f"Building graph index and saving to {GRAPH_INDEX_PATH}")
+    print(f"Construyendo índice de grafo y guardando en {GRAPH_INDEX_PATH}")
     graph_index = build_graph_index(embeddings_array, k_neighbors=3)
     with open(GRAPH_INDEX_PATH, "wb") as f:
         pickle.dump(graph_index, f)
 
-    print("Preprocessing finished successfully.")
+    print("✅ Preprocesamiento con metadatos completado exitosamente.")
 
 if __name__ == "__main__":
-    # Check if the source document exists
-    if not os.path.exists(SOURCE_DOCUMENT):
-        print(f"Error: Source document not found at {SOURCE_DOCUMENT}")
-    else:
-        print("Starting preprocessing...")
-        create_faiss_index()
+    print("Iniciando preprocesamiento normativo con metadatos...")
+    create_faiss_index()

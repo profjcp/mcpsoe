@@ -41,13 +41,14 @@ class MultiAgentOrchestrator:
         self.qa_cache_ref = qa_cache_ref
         self.enable_graph_rag = enable_graph_rag
 
-    def route_pre_llm(self, question: str) -> AgentResult:
+    def route_pre_llm(self, question: str, user_access_level: str = "publico") -> AgentResult:
         t0 = time.time()
         categories = self.categorize_fn(question)
 
         routing_trace = {
             "route_version": "sprint2.v2",
             "categories": categories,
+            "user_access_level": user_access_level,
             "selected_mode": None,
             "decision_reason": "",
             "fallbacks_applied": [],
@@ -119,7 +120,7 @@ class MultiAgentOrchestrator:
         )
 
         if use_graph_rag:
-            graph_result = self.graph_rag_agent.retrieve_with_graph(question)
+            graph_result = self.graph_rag_agent.retrieve_with_graph(question, user_access_level=user_access_level)
             routing_trace["graph_rag_used"] = True
             routing_trace["selected_mode"] = "GRAPH_RAG"
             routing_trace["decision_reason"] = "enable_graph_rag=True and category in {Investigacion,Academica}"
@@ -137,7 +138,7 @@ class MultiAgentOrchestrator:
         routing_trace["rag_used"] = True
         routing_trace["selected_mode"] = "RAG_DOC"
         routing_trace["decision_reason"] = "fallback_to_doc_rag"
-        context, sources, retrieval_ms, q_np = self.doc_rag_agent.retrieve(question)
+        context, sources, retrieval_ms, q_np = self.doc_rag_agent.retrieve(question, user_access_level=user_access_level)
         return AgentResult(
             answer_text="",
             answer_mode="RAG_DOC",
