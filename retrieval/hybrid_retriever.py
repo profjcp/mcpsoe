@@ -74,16 +74,24 @@ class HybridRetriever:
         query: str,
         user_access_level: str = "publico",
         rrf_k: int = 60,
-    ) -> Tuple[List[Dict[str, Any]], float]:
+    ) -> Tuple[List[Dict[str, Any]], float, Dict[str, Any]]:
         """
-        Ejecuta la búsqueda híbrida y devuelve los top_k chunks autorizados.
+        Ejecuta la búsqueda híbrida y devuelve (top_k_chunks, elapsed_ms, retrieval_metrics).
         """
         t0 = time.time()
         user_level_val = ACCESS_HIERARCHY.get(user_access_level.lower(), 1)
         total_chunks = len(self.chunks)
 
+        empty_metrics = {
+            "bm25_count": 0,
+            "faiss_count": 0,
+            "dual_hits_count": 0,
+            "mean_rrf_score": 0.0,
+            "blocked_chunks_count": 0,
+        }
+
         if total_chunks == 0:
-            return [], 0.0
+            return [], 0.0, empty_metrics
 
         search_n = min(total_chunks, max(self.top_k * 4, 25))
 
@@ -102,7 +110,10 @@ class HybridRetriever:
             bm25_rank_map = {int(idx): rank for rank, idx in enumerate(top_bm25_indices) if scores[idx] > 0}
 
         # 3. Reciprocal Rank Fusion (RRF)
-        all_candidate_indices = set(vector_rank_map.keys()).union(set(bm25_rank_map.keys()))
+        vector_set = set(vector_rank_map.keys())
+        bm25_set = set(bm25_rank_map.keys())
+        all_candidate_indices = vector_set.union(bm25_set)
+        dual_hits_count = len(vector_set.intersection(bm25_set))
         rrf_scores = {}
 
         for idx in all_candidate_indices:
@@ -118,6 +129,7 @@ class HybridRetriever:
 
         # 4. Filtrado por Nivel de Acceso y Selección de Candidatos
         filtered_results = []
+        blocked_chunks_count = 0
         for idx in sorted_candidates:
             item = self.chunks[idx]
             if isinstance(item, dict):
@@ -135,6 +147,8 @@ class HybridRetriever:
                     "metadata": meta,
                     "rrf_score": rrf_scores[idx],
                 })
+            else:
+                blocked_chunks_count += 1
 
         # 5. Reranking con Cross-Encoder (si está configurado)
         if self.reranker and len(filtered_results) > 1:
@@ -146,5 +160,16 @@ class HybridRetriever:
                 filtered_results[:search_n], key=lambda x: x.get("rerank_score", 0.0), reverse=True
             )
 
+        top_results = filtered_results[: self.top_k]
+        mean_rrf = float(np.mean([r["rrf_score"] for r in top_results])) if top_results else 0.0
+
+        metrics = {
+            "bm25_count": len(bm25_set),
+            "faiss_count": len(vector_set),
+            "dual_hits_count": dual_hits_count,
+            "mean_rrf_score": round(mean_rrf, 5),
+            "blocked_chunks_count": blocked_chunks_count,
+        }
+
         elapsed_ms = (time.time() - t0) * 1000.0
-        return filtered_results[: self.top_k], elapsed_ms
+        return top_results, elapsed_ms, metrics

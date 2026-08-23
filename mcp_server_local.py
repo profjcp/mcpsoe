@@ -347,6 +347,9 @@ def record_interaction_metrics(
     confidence: float = 0.0,
     timing_ms: dict = None,
     tokens_used: dict = None,
+    grader_reason: str = "",
+    is_contingency_fallback: bool = False,
+    has_citations: bool = False,
 ):
     """Registra métricas por usuario y persiste interacciones para análisis posteriores."""
     bucket, user_key = ensure_user_metrics(user_id)
@@ -387,6 +390,9 @@ def record_interaction_metrics(
             "confidence": float(confidence or 0.0),
             "timing_ms": timing_ms or {},
             "tokens_used": tokens_used or {},
+            "grader_reason": str(grader_reason or ""),
+            "is_contingency_fallback": bool(is_contingency_fallback),
+            "has_citations": bool(has_citations),
         }
     )
 
@@ -516,12 +522,12 @@ async def lifespan(app: FastAPI):
         template = """Eres un asistente académico oficial de posgrado (SoeBOT). Tu deber es responder preguntas basándote ÚNICA Y EXCLUSIVAMENTE en el contexto normativo y documental proporcionado.
 
 REGLAS STRICTAS E INQUEBRANTABLES:
-1. Responde ÚNICA Y EXCLUSIVAMENTE basándote en el "Contexto de documentos" proporcionado a continuación.
-2. NUNCA asumas, deduzcas ni utilices conocimiento previo de otras universidades, normativas o fuentes externas.
-3. Si la respuesta a la pregunta NO está explícita en el contexto, responde EXACTAMENTE con la siguiente frase y nada más:
+1. Responde ÚNICA Y EXCLUSIVAMENTE basándote en la información presente en el "Contexto de documentos".
+2. NUNCA asumas, deduzcas ni utilices conocimiento previo externo que no figure en el contexto.
+3. Si la respuesta a la pregunta NO se encuentra en el contexto proporcionado, responde EXACTAMENTE con la siguiente frase y nada más:
    "No dispongo de esa información en los reglamentos vigentes. Por favor, acude a la Jefatura Académica."
-4. CITA SIEMPRE el artículo, sección o documento específico de donde extraes la respuesta (ej. "[Reglamento General de Posgrado, Art. 12]").
-5. Mantén un tono formal, claro y preciso.
+4. CITA SIEMPRE la fuente, artículo o sección específica del documento de donde extraes la respuesta (ej. "[Reglamento de Posgrado, Art. 12]" o "[FAQ Académica - Módulos]").
+5. Mantén un tono formal, profesional, claro y directo.
 
 Contexto de documentos:
 {context}
@@ -591,7 +597,7 @@ class EmbedRequest(BaseModel):
 class AskRequest(BaseModel):
     question: str
     user_id: str = "anonymous"
-    user_access_level: str = "publico"
+    user_access_level: str = "estudiante"
 
 class FeedbackRequest(BaseModel):
     question: str
@@ -990,9 +996,12 @@ async def ask(request: AskRequest):
         qualitative_metrics["response_times"].append(response_time_val)
 
         # Auditar alucinaciones con el agente evaluador (Fase 3.1)
+        t_audit_0 = time.time()
         is_grounded = True
+        grader_reason = "Auditoría no ejecutada"
         if hallucination_grader:
-            is_grounded, reason = hallucination_grader.grade(knowledge_context, full_response, request.question)
+            is_grounded, grader_reason = hallucination_grader.grade(knowledge_context, full_response, request.question)
+        audit_ms = (time.time() - t_audit_0) * 1000.0
 
         is_hallucinated = not is_grounded or detect_hallucination(full_response, knowledge_context)
         if is_hallucinated:
@@ -1000,6 +1009,10 @@ async def ask(request: AskRequest):
             qualitative_metrics["hallucination_rate"].append(1)
         else:
             qualitative_metrics["hallucination_rate"].append(0)
+
+        fallback_msg = "No dispongo de esa información en los reglamentos vigentes. Por favor, acude a la Jefatura Académica."
+        is_contingency_fallback = fallback_msg.lower() in full_response.lower()
+        has_citations = "[" in full_response and "]" in full_response
 
         global sia
         if sia is None:
@@ -1028,6 +1041,7 @@ async def ask(request: AskRequest):
 
         timing_ms = dict(route_result.timing_ms or {})
         timing_ms["generation"] = float(generation_ms)
+        timing_ms["audit"] = float(audit_ms)
         timing_ms["total"] = float(response_time_val * 1000.0)
 
         prompt_tokens = estimate_token_count(request.question) + estimate_token_count(knowledge_context)
@@ -1051,6 +1065,9 @@ async def ask(request: AskRequest):
             confidence=route_result.confidence,
             timing_ms=timing_ms,
             tokens_used=tokens_used,
+            grader_reason=grader_reason,
+            is_contingency_fallback=is_contingency_fallback,
+            has_citations=has_citations,
         )
 
     return StreamingResponse(stream_rag_doc(), media_type="text/event-stream")

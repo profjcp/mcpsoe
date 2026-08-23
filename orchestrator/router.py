@@ -138,7 +138,8 @@ class MultiAgentOrchestrator:
         routing_trace["rag_used"] = True
         routing_trace["selected_mode"] = "RAG_DOC"
         routing_trace["decision_reason"] = "fallback_to_doc_rag"
-        context, sources, retrieval_ms, q_np = self.doc_rag_agent.retrieve(question, user_access_level=user_access_level)
+        context, sources, retrieval_ms, q_np, retrieval_metrics = self.doc_rag_agent.retrieve(question, user_access_level=user_access_level)
+        routing_trace["retrieval_metrics"] = retrieval_metrics
         return AgentResult(
             answer_text="",
             answer_mode="RAG_DOC",

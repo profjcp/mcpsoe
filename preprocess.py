@@ -57,12 +57,12 @@ DOCUMENT_METADATA_MAP = {
     "faq_academica.txt": {
         "titulo": "Reglamento y FAQ Académica",
         "categoria": "Academica",
-        "nivel_acceso": "estudiante",
+        "nivel_acceso": "publico",
     },
     "faq_investigacion.txt": {
         "titulo": "Reglamento y Guía de Investigación y Tesis",
         "categoria": "Investigacion",
-        "nivel_acceso": "estudiante",
+        "nivel_acceso": "publico",
     },
 }
 

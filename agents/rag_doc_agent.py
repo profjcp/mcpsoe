@@ -43,7 +43,7 @@ class DocRAGAgent:
         )
 
     def retrieve(self, question: str, user_access_level: str = "publico"):
-        results, retrieval_ms = self.hybrid_retriever.search(
+        results, retrieval_ms, retrieval_metrics = self.hybrid_retriever.search(
             query=question,
             user_access_level=user_access_level,
         )
@@ -72,7 +72,7 @@ class DocRAGAgent:
             )
 
         context = "\n\n---\n\n".join(relevant_chunks) if relevant_chunks else "No se encontró información relevante en los documentos a los que tiene acceso."
-        return context, sources, retrieval_ms, q_np
+        return context, sources, retrieval_ms, q_np, retrieval_metrics
 
     async def generate(self, question: str, context: str, few_shot_examples: str = ""):
         t0 = time.time()

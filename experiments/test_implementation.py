@@ -61,13 +61,17 @@ class TestRAGImplementation(unittest.TestCase):
         )
 
         # Usuario 'publico' sólo debe poder ver el chunk de nivel 'publico'
-        public_results, _ = retriever.search("costo matrícula", user_access_level="publico")
+        public_results, _, metrics = retriever.search("costo matrícula", user_access_level="publico")
         self.assertGreaterEqual(len(public_results), 1)
+        self.assertIn("mean_rrf_score", metrics)
+        self.assertIn("dual_hits_count", metrics)
+        self.assertIn("blocked_chunks_count", metrics)
+
         for res in public_results:
             self.assertEqual(res["metadata"]["nivel_acceso"], "publico")
 
         # Usuario 'estudiante' debe poder ver chunks de nivel 'publico' y 'estudiante'
-        student_results, _ = retriever.search("defensa tesis", user_access_level="estudiante")
+        student_results, _, student_metrics = retriever.search("defensa tesis", user_access_level="estudiante")
         self.assertGreaterEqual(len(student_results), 1)
 
     def test_hallucination_grader_fallback(self):

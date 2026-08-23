@@ -1,6 +1,6 @@
 # 🏆 Resumen de Implementación — RAG Académico Seguro (SoeBOT)
 
-Se ha completado la implementación de todas las fases descritas en `PLAN_IMPLEMENTACION_RAG.md` dentro de la base de código del proyecto [mcpsoe](file:///Users/oceanjungle/Sources%20Code/mcpsoe).
+Se ha completado la implementación de todas las fases descritas en `PLAN_IMPLEMENTACION_RAG.md` y la incorporación de las **Métricas de Validación Doctoral** dentro de la base de código del proyecto [mcpsoe](file:///Users/oceanjungle/Sources%20Code/mcpsoe).
 
 ---
 
@@ -22,6 +22,7 @@ Se ha completado la implementación de todas las fases descritas en `PLAN_IMPLEM
 - **Búsqueda Híbrida (BM25 + FAISS + RRF)**:
   - Creado nuevo módulo [retrieval/hybrid_retriever.py](file:///Users/oceanjungle/Sources%20Code/mcpsoe/retrieval/hybrid_retriever.py).
   - Combina la búsqueda de palabras clave exactas (BM25) con búsqueda semántica (FAISS) usando el algoritmo **Reciprocal Rank Fusion (RRF)**.
+  - Extendido para calcular y retornar métricas de telemetría (`mean_rrf_score`, `dual_hits_count`, `blocked_chunks_count`).
 - **Reranker (Cross-Encoder)**:
   - Soporte integrado en `HybridRetriever` para re-clasificación con Cross-Encoder.
 - **Dependencias**:
@@ -29,12 +30,15 @@ Se ha completado la implementación de todas las fases descritas en `PLAN_IMPLEM
 
 ---
 
-### 🟡 Fase 3 — Control de Calidad y Entrada (Grader y Query Rewriter)
+### 🟡 Fase 3 — Control de Calidad, Entrada y Telemetría Doctoral
 - **Hallucination Grader**:
   - Creado módulo [agents/hallucination_grader.py](file:///Users/oceanjungle/Sources%20Code/mcpsoe/agents/hallucination_grader.py).
-  - Integrada la auditoría con LLM en `stream_rag_doc()` dentro de [mcp_server_local.py](file:///Users/oceanjungle/Sources%20Code/mcpsoe/mcp_server_local.py#L989).
+  - Integrada la auditoría con LLM en `stream_rag_doc()` dentro de [mcp_server_local.py](file:///Users/oceanjungle/Sources%20Code/mcpsoe/mcp_server_local.py#L989), midiendo latencia de auditoría (`audit_ms`).
 - **Query Rewriter**:
   - Creado módulo [agents/query_rewriter.py](file:///Users/oceanjungle/Sources%20Code/mcpsoe/agents/query_rewriter.py).
+- **Dashboard Administrativo Doctoral ([app_admin.py](file:///Users/oceanjungle/Sources%20Code/mcpsoe/appclient/app_admin.py))**:
+  - **KPIs Ejecutivos de Tesis**: Access Policy Compliance Rate (APCR=100%), Cobertura de Citas (CCR), Respuestas de Contingencia (CFR) y Score RRF Medio.
+  - **Nueva Pestaña `🎓 Tesis`**: Visualizaciones de Desglose de Latencia por Etapa (`retrieval`, `generation`, `audit`), dictámenes del `HallucinationGrader` y botón para descargar el dataset completo de validación en CSV.
 
 ---
 
@@ -52,15 +56,16 @@ mcpsoe/
 ├── [MODIFY] agents/graph_rag_agent.py
 ├── [MODIFY] orchestrator/router.py
 ├── [MODIFY] mcp_server_local.py
+├── [MODIFY] appclient/app_admin.py
 └── [MODIFY] requirements.txt
 ```
 
 ---
 
 ## 🧪 Verificación y Pruebas
-- Creado el script de pruebas unitarias [experiments/test_implementation.py](file:///Users/oceanjungle/Sources%20Code/mcpsoe/experiments/test_implementation.py).
+- Actualizado el script de pruebas unitarias [experiments/test_implementation.py](file:///Users/oceanjungle/Sources%20Code/mcpsoe/experiments/test_implementation.py).
 - Probados con éxito los mecanismos de:
   1. Tokenización léxica en español.
-  2. Filtrado estricto por `nivel_acceso` (un usuario `publico` no puede acceder a documentos marcados para `estudiante` o `admin`).
+  2. Filtrado estricto por `nivel_acceso` y retorno de métricas extendidas (`mean_rrf_score`, `dual_hits_count`, `blocked_chunks_count`).
   3. Re-ordenamiento Reciprocal Rank Fusion (RRF).
   4. Evaluación de alucinaciones y reescritura de consultas.
