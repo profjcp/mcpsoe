@@ -1,0 +1,243 @@
+---
+document_id: SP-RG-02
+title: "Reglamento Específico del Postgraduante"
+institution: "Universidad Autónoma Gabriel René Moreno (UAGRM)"
+faculty: "Facultad de Ingeniería en Ciencias de la Computación y Telecomunicaciones (F.I.C.C.T.)"
+unit: "Unidad de Postgrado (UPG) / School of Engineering"
+version: "0"
+edition_date: "2017-07-13"
+pages: 8
+scope: "Programas semipresenciales y virtuales de la Unidad de Postgrado FICCT"
+topics:
+  - Requisitos de inscripción y permanencia
+  - Derechos y obligaciones de postgraduantes
+  - Becas, convenios y descuentos
+  - Licencias, suspensiones y abandono
+  - Devoluciones económicas
+  - Criterios de aprobación y reprobación
+  - Faltas disciplinarias y sanciones
+  - Propiedad intelectual, derechos de autor y sanciones por plagio
+---
+
+# REGLAMENTO ESPECÍFICO DEL POSTGRADUANTE
+**Universidad Autónoma Gabriel René Moreno (UAGRM)**  
+**Facultad de Ingeniería en Ciencias de la Computación y Telecomunicaciones (F.I.C.C.T.)**  
+**Unidad de Postgrado - School of Engineering**  
+*Código:* SP-RG-02 | *Versión:* 0 | *Edición:* 13-07-2017  
+
+---
+
+## ÁMBITO DE APLICACIÓN
+El presente reglamento rige para todos los Postgraduantes registrados en programas semipresenciales y virtuales de la Unidad de Postgrado de la Facultad de Ingeniería en Ciencias de la Computación y Telecomunicaciones (F.I.C.C.T.).
+
+---
+
+## CAPÍTULO I: CONSIDERACIONES GENERALES
+
+### Artículo 1 (Objeto y Alcance)
+El presente Reglamento contempla los derechos y las obligaciones de los Postgraduantes inscritos en programas semipresenciales y virtuales de la Unidad de Postgrado de la F.I.C.C.T.
+
+### Artículo 2 (Categorías de Postgraduantes)
+Para los efectos del presente Reglamento se reconocen las siguientes categorías de postgraduantes:
+* **a.** Postgraduantes Activos.
+* **b.** Postgraduantes Pasivos.
+
+### Artículo 3 (Postgraduantes Activos)
+Los Postgraduantes activos, son aquellos que cumplen con todos los requisitos de inscripción exigidos por la Unidad de Postgrado (UPG), y con las obligaciones académicas y económicas establecidas en el presente Reglamento.
+
+### Artículo 4 (Postgraduantes Pasivos)
+Los Postgraduantes Pasivos son los que no han completado los requisitos de inscripción o no cumplen con las obligaciones académicas y económicas establecidas en el presente Reglamento, perdiendo los derechos establecidos en el Capítulo III, Artículo 8 del presente Reglamento.
+
+### Artículo 5 (Conclusión de la Condición de Postgraduante)
+La condición de Postgraduante concluye con la defensa y aprobación del respectivo Trabajo Final de Grado.
+
+---
+
+## CAPÍTULO II: REQUISITOS DE INSCRIPCIÓN Y PERMANENCIA
+
+### Artículo 6 (Requisitos de Inscripción)
+Los requisitos para la inscripción a un programa académico en la Unidad de Postgrado de la F.I.C.C.T. son:
+* **a.** Formulario de solicitud de inscripción.
+* **b.** Dos fotocopias legalizadas del Título académico y/o Fotocopia Legalizada del Título profesional en provisión nacional. Se podrá tener un plazo de un mes, desde que inicia el primer módulo, para presentar las copias legalizadas; caso contrario no será habilitado para el siguiente módulo. Para el caso de postulantes con Título extranjero, deben presentar el documento debidamente legalizado (con los sellos y firmas consulares correspondientes).
+* **c.** Fotocopia de la cédula de identidad.
+* **d.** Cumplimiento de obligaciones económicas.
+* **e.** Currículum Vitae.
+* **f.** Dos fotos tamaño 3x4, con fondo de color rojo.
+* **g.** Documento original que respalde el beneficio de beca o descuento (si corresponde).
+* **h.** Otros que la Unidad de Postgrado de la F.I.C.C.T. considere necesarios.
+
+### Artículo 7 (Requisitos de Permanencia como Postgraduante Activo)
+Para la permanencia en la Unidad de Postgrado de la F.I.C.C.T. en condición de Postgraduante Activo, se deberán cumplir los siguientes requisitos:
+* **a.** Cumplir con los requisitos académicos exigidos en cada módulo.
+* **b.** No incurrir en faltas disciplinarias graves o gravísimas descritas en los artículos 26 y 27.
+* **c.** Cumplir con las normas administrativas y académicas de la Unidad de Postgrado de la F.I.C.C.T.
+* **d.** Pagar oportunamente las obligaciones económicas, no debiendo encontrarse en situación de morosidad.
+  * **i.** El incumplimiento del plan de pago dará lugar a la depuración de las listas de asistencia del docente y la pérdida del beneficio o descuento que se tenga.
+  * **ii.** Los pagos son mensuales, NO son por módulo; deben realizarse estrictamente según su Plan de Pago, incluyendo los meses de diciembre y enero de cada año.
+  * **iii.** La depuración de la lista de asistencia del docente se considera falta, aún si el estudiante estuviera presente en el aula, y una acumulación mayor al 25% de faltas significa pérdida del módulo.
+  * **iv.** El beneficio para las cuotas futuras se recupera cuando el Postgraduante cancela la cuota atrasada. En las cuotas atrasadas se determina el monto considerando la pérdida de beneficio, exceptuando los casos de faltas disciplinarias.
+  * **v.** El horario de atención de caja de la Unidad de Postgrado de la F.I.C.C.T. es de 08:00 a 15:30, de lunes a viernes. Cuando el último día de su plan de pago coincida con un domingo o feriado, se habilitará el primer día hábil siguiente para su cancelación sin pérdida de beneficio.
+
+---
+
+## CAPÍTULO III: DERECHOS Y OBLIGACIONES DE LOS POSTGRADUANTES
+
+### Artículo 8 (Derechos del Postgraduante)
+Los Postgraduantes tienen derecho a:
+* **a.** Cursar el módulo que corresponda a su programa de conformidad a la oferta académica de la Unidad de Postgrado de la F.I.C.C.T.
+* **b.** Ser atendido oportunamente en las sugerencias y/o reclamos que realice formalmente de acuerdo a los mecanismos establecidos en el Sistema de Gestión de Calidad.
+* **c.** Contar con aulas, mobiliario y equipos en condiciones óptimas para pasar clases.
+* **d.** Hacer uso de la Biblioteca virtual de la Unidad de Postgrado de la F.I.C.C.T., cumpliendo los requisitos exigidos para ello.
+* **e.** Ser atendido en forma oportuna y eficaz en aspectos relacionados con el desarrollo académico.
+* **f.** Participar de las conferencias y otras actividades académicas y/o sociales organizadas por la Unidad de Postgrado de la F.I.C.C.T., previa inscripción respectiva.
+* **g.** Solicitar notas y certificaciones de avance de los módulos cumpliendo los requisitos exigidos por la Unidad de Postgrado de la F.I.C.C.T.
+* **h.** Acceder a la información de su nota de módulo cursado, a partir de los 15 días posteriores a su conclusión.
+* **i.** Solicitar la revisión de nota en caso de inconformidad con la misma. Dicha revisión solo será considerada en un plazo máximo de 30 días calendario posteriores a la finalización del módulo; pasado este plazo, todo reclamo será improcedente.
+* **j.** Recibir apoyo metodológico para la elaboración del Trabajo Final de Grado (de acuerdo a reglamentos específicos).
+* **k.** Solicitar el nombramiento de Director de Trabajo Final de Grado, una vez cumplidos los requisitos exigidos.
+* **l.** Utilizar la infraestructura de la Unidad de Postgrado de la F.I.C.C.T. para fines académicos, previa autorización por escrito.
+* **m.** Recibir cualquier otro beneficio que a futuro se implemente en la Unidad de Postgrado de la F.I.C.C.T. a favor de los Postgraduantes Activos.
+* **n.** En caso de que existan titulaciones intermedias, obtener las mismas una vez cumplidas las respectivas obligaciones académicas y económicas. En particular, un estudiante que no haya cancelado el monto correspondiente a todo el programa académico, no podrá optar por las titulaciones intermedias del mismo.
+
+### Artículo 9 (Obligaciones del Postgraduante)
+Se consideran obligaciones del postgraduante las siguientes:
+* **a.** Asistir a clases en los días y horarios establecidos.
+* **b.** Cumplir a cabalidad con las exigencias académicas de cada módulo.
+* **c.** Cumplir con las obligaciones económicas de acuerdo al compromiso y plan de pagos.
+* **d.** Cumplir con un mínimo del setenta y cinco por ciento (75%) de asistencia en cada módulo.
+* **e.** Mantener una dirección segura de correo electrónico que permita la comunicación continua.
+* **f.** Sujetarse en forma estricta a las normas académicas y administrativas establecidas por la Unidad de Postgrado de la F.I.C.C.T. Es responsabilidad del Postgraduante conocer las disposiciones académicas y económicas que tienen que ver con el programa que está desarrollando, NO pudiendo aducir su desconocimiento.
+* **g.** Acatar las disposiciones académicas de la Unidad de Postgrado en cuanto a planificación de módulos y designación de docentes. En particular, no se podrá cambiar a un docente una vez iniciado el módulo.
+* **h.** En caso de que el alumno no curse el módulo en las fechas programadas o por haber reprobado el mismo, tendrá que cancelar 2.500.- Bs. adicionales a su plan de pagos para realizar el módulo.
+
+---
+
+## CAPÍTULO IV: BECAS Y OTROS BENEFICIOS OTORGADOS A LOS POSTGRADUANTES
+
+*Nota de Sostenibilidad:* Los beneficios de descuentos para los programas de Maestrías y Diplomados están condicionados primeramente a la sostenibilidad económica del programa académico, según el análisis financiero realizado por la Unidad de Postgrado de la F.I.C.C.T.
+
+### Artículo 10 (Requisitos Generales de Beneficios)
+Para que los beneficios de becas, convenios, subvenciones y cualquier otro tratamiento especial se hagan efectivos en la Unidad de Postgrado de la F.I.C.C.T., los Postgraduantes deberán cumplir con todos los requisitos exigidos.
+
+### Artículo 11 (Presentación Extemporánea de Documentos)
+En caso de que se presenten los documentos mencionados con posterioridad a la fecha de inscripción, el beneficio se aplicará a partir del mes o cuota subsiguiente a la fecha de la aprobación de su solicitud por la Unidad de Postgrado de la F.I.C.C.T. El Postgraduante no podrá exigir tal beneficio con retroactividad a la aprobación de su solicitud.
+
+### Artículo 12 (Efectividad de los Beneficios y Mora)
+Los beneficios de becas, matrícula pública, convenios, subvenciones y cualquier otro tratamiento se harán efectivos en el momento del pago de las mensualidades de las cuotas. Si el postgraduante incumple su plan de pagos, no podrá exigir tal beneficio ni gozará del beneficio en las cuotas retrasadas.
+
+---
+
+## CAPÍTULO V: LICENCIAS Y SUSPENSIONES
+
+### Artículo 13 (Definición de Licencia)
+Se considera licencia a toda solicitud de ausencia a clases efectuada por el postgraduante por motivo de fuerza mayor, la cual debe informarse antes del inicio de clases y ser aprobada expresamente por la Unidad de Postgrado de la F.I.C.C.T.
+
+### Artículo 14 (Definición de Suspensión)
+Se considera suspensión cuando el Postgraduante solicita por escrito no cursar un módulo por motivos de fuerza mayor, debiendo informar antes del inicio del módulo y ser aprobada expresamente por la Unidad de Postgrado de la F.I.C.C.T.
+
+### Artículo 15 (Asistencia Mínima con Licencia)
+La solicitud de licencia no excluye la obligación de asistir al 75% de las clases programadas para cada módulo.
+
+### Artículo 16 (Plazo y Tramitación de Licencias y Suspensiones)
+Las solicitudes de licencias de clases y suspensión de módulo deberán realizarse con 15 días de anticipación y acompañarse de documentación respaldatoria. Las situaciones especiales serán analizadas por el Consejo Directivo de Postgrado.
+
+---
+
+## CAPÍTULO VI: ABANDONO DEL MÓDULO O PROGRAMA
+
+### Artículo 17 (Abandono del Módulo)
+Se considera abandono del módulo a toda inasistencia mayor al 25% permitido (es decir, asistencia menor al 75%).
+
+### Artículo 18 (Abandono del Programa)
+Se considera abandono del programa cuando el Postgraduante deja de cursar, sin aviso alguno, más de dos (2) módulos continuos.
+
+---
+
+## CAPÍTULO VII: DEVOLUCIONES ECONÓMICAS
+
+### Artículo 19 (Cancelación de Inicio de Programa)
+Cuando el abandono o retiro esté motivado por la causa de no inicio del programa, la Unidad de Postgrado de la F.I.C.C.T. hará la devolución de todo pago realizado por el Postgraduante.
+
+### Artículo 20 (Retiro por Causas Personales)
+Cuando el abandono o retiro se deba a causas personales del Postgraduante, la Unidad de Postgrado de la F.I.C.C.T. no realizará devoluciones económicas.
+
+### Artículo 21 (Improcedencia de Devolución tras Inicio)
+Una vez iniciado el programa, NO se procederá a ningún tipo de devolución económica.
+
+### Artículo 22 (Insumisión de Transferencias)
+No se permiten transferencias económicas entre postgraduantes.
+
+---
+
+## CAPÍTULO IX: REQUISITOS PARA APROBAR EL MÓDULO
+
+### Artículo 23 (Criterios de Aprobación del Módulo)
+La aprobación del módulo requiere:
+* **a.** Obtener una nota de aprobación mínima de **64/100** (de acuerdo al Art. 141 inc. c del Reglamento General del Sistema de Postgrado).
+* **b.** Estar en la lista de habilitados (no estar depurado) y asistir al mínimo del **75%** de las clases programadas.
+
+### Artículo 24 (Límite de Reprobación de Módulos)
+Según el Art. 142 del Reglamento General de la Escuela de Postgrado de la U.A.G.R.M., se admite la reprobación de hasta dos (2) módulos del programa respectivo.
+
+### Artículo 25 (Efectos de Reprobar Más de Dos Módulos)
+Si un Postgraduante reprueba más de dos módulos, no podrá titularse en el programa, pero podrá cursar los módulos que desee, obteniendo la respectiva certificación de participación.
+
+---
+
+## CAPÍTULO X: FALTAS DISCIPLINARIAS Y SANCIONES
+
+### Artículo 26 (Tipificación de Faltas Disciplinarias)
+Se consideran faltas disciplinarias a las infracciones realizadas por el Postgraduante, entre las cuales se citan:
+* **a.** Incumplimiento de las obligaciones económicas.
+* **b.** Abandono de uno o más módulos, sin autorización por escrito por parte de la Unidad de Postgrado de la F.I.C.C.T.
+* **c.** Agresiones verbales y/o físicas a los Postgraduantes, docentes o al personal administrativo de la Unidad de Postgrado de la F.I.C.C.T.
+* **d.** Atentar contra la seguridad e integridad de las personas e instalaciones de la Unidad de Postgrado de la F.I.C.C.T.
+* **e.** Apropiarse de los bienes de la Unidad de Postgrado de la F.I.C.C.T. o de bienes ajenos, aun cuando se trate de objetos olvidados.
+* **f.** Conducta inapropiada dentro de la Unidad de Postgrado de la F.I.C.C.T.
+* **g.** Trato irrespetuoso al personal docente y administrativo de la Unidad de Postgrado de la F.I.C.C.T.
+* **h.** Asistir a clases o a las actividades académicas en estado inconveniente o inapropiado.
+* **i.** Generar un clima inadecuado para pasar clases o promover el descontento entre los Postgraduantes por cualquier motivo.
+* **j.** Causar daños materiales a los bienes de la Unidad de Postgrado de la F.I.C.C.T.
+* **k.** Acoso psicológico o de cualquier otra índole a docentes, postgraduantes o personal administrativo.
+
+### Artículo 27 (Régimen de Sanciones Disciplinarias)
+Se consideran sanciones a las consecuencias de una conducta que constituye la infracción de una norma:
+* **a. Sanciones por falta económica (inciso a del Art. 26):**
+  * **i.** Suspensión de beneficios de descuentos.
+  * **ii.** Pérdida de derecho de asistir a clases.
+  * **iii.** Pérdida de rendir examen del módulo en curso.
+  * **iv.** Suspensión de toda clase de certificaciones emitidas por la Unidad de Postgrado de la F.I.C.C.T.
+* **b. Sanciones por faltas de la 'b' a la 'k' (Art. 26):**
+  * Serán analizadas y determinadas por el Consejo Directivo de la Unidad de Postgrado.
+
+---
+
+## CAPÍTULO XI: DERECHOS DE AUTOR, PLAGIO Y SANCIONES
+
+### Artículo 28 (Derechos de Autor o Copyright)
+Derecho de autor es un conjunto de normas y principios que regulan los derechos morales y patrimoniales que la ley concede a los autores por el solo hecho de la creación de una obra literaria, artística o científica, esté publicada o inédita.
+
+### Artículo 29 (Definición de Plagio)
+El plagio consiste en hacer que aparezca como propio lo que pertenece a otros, siendo la mala fe del acto realizado y el daño producido el arrebatar esa propiedad intelectual. *"Hay plagio todas las veces que un autor toma algún tipo de información, independientemente si proviene de una obra literaria, artística, musical, científica o de internet, la cual sea propiamente la invención de otro y procura hacerla pasar por suya"*. Puede ser un elemento de fondo, de forma, o una simple frase. Incluye Trabajos de Investigación, Tesis u otros.
+
+### Artículo 30 (Sanciones por Plagio)
+De acuerdo al Código Penal de Bolivia en el Art. 362 (Delitos contra la Propiedad Intelectual) y el Art. 363 (Alteración, Acceso y Uso Indebido de Datos Informáticos), el plagio constituye una falta gravísima, la cual será sancionada según la siguiente escala:
+* **a. En fase inicial (DTFG):** Si el plagio es detectado en la fase inicial del desarrollo del documento por el Director de Trabajo Final de Grado (DTFG), la sanción corresponderá a una **amonestación escrita**, cuando el DTFG lo haga conocer a la Coordinación de Investigación.
+* **b. En evaluación por Tribunal:** Si en el proceso de evaluación por parte del Tribunal Evaluador se detecta algún indicio parcial o total de plagio en uno o más capítulos, la sanción será la **suspensión de todos los derechos del postgraduante hasta por 180 días**. Una vez cumplida la suspensión, será readmitido en la Unidad de Postgrado de la F.I.C.C.T. y deberá desarrollar un **nuevo documento** como trabajo final de grado.
+* **c. Reincidencia:** Si en el desarrollo de un nuevo documento el postgraduante vuelve a cometer algún indicio parcial o total de plagio, la sanción será la **pérdida total y definitiva de derechos académicos y económicos**, quedando consolidado todo pago realizado a favor de la Unidad de Postgrado, sin opción a readmisión posterior en ningún programa de la Unidad, y pudiendo iniciarse acciones judiciales correspondientes.
+* **d. Plagio en Módulos:** En caso de plagio al presentar un trabajo de investigación requerido en algún módulo, el Postgraduante **perderá el módulo**.
+* **e. Comisión de Sanción:** Toda aplicación de sanción será establecida por una comisión específica nominada por el Comité Académico Científico de la Unidad de Postgrado de la F.I.C.C.T., la cual en un período de **5 días hábiles** deberá emitir una Resolución.
+* **f. Vigencia de la Resolución:** La Resolución de la Comisión entrará en vigencia y aplicación a partir de su comunicación por escrito al Postgraduante.
+
+---
+
+## DISPOSICIONES COMPLEMENTARIAS
+
+### Artículo 32 (Interpretación del Reglamento)
+Es atribución del Comité Académico Científico de la Unidad de Postgrado de la F.I.C.C.T. la interpretación de los artículos y la definición de aspectos no contemplados en el presente reglamento para resolver las situaciones que se presenten.
+
+### Artículo 33 (Vinculación Contractual)
+El presente Reglamento y el Reglamento del manejo de la plataforma virtual forman parte del *Compromiso de Pago y Reconocimiento de Obligaciones*.
+
+### Artículo 34 (Condición para Beneficios)
+Ningún beneficio podrá aplicarse si el postulante/postgraduante no ha cumplido con todos los requisitos de inscripción y los establecidos para obtener dicho beneficio.
