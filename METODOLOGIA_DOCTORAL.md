@@ -45,24 +45,25 @@ Este documento describe la metodología de investigación empleada en el desarro
 **Hipótesis H1c**: La tasa de alucinaciones del sistema híbrido es significativamente menor que sistemas RAG puros (< 5% vs. 15-25%)
 
 **Métricas**:
-- `hallucination_rate`: Porcentaje de respuestas con alucinaciones detectadas
-- `hallucinations_total`: Contador absoluto de casos
-- `error_type_distribution`: Clasificación de errores (Incomplete, Incorrect, Irrelevant)
+### Ecuaciones Matemáticas Formales del Artefacto (v6.0)
 
-**Algoritmo de Detección**:
-```python
-def detect_hallucination(response: str, context: str) -> bool:
-    """
-    Heurística basada en overlap léxico
-    - Tokenización de respuesta y contexto
-    - Cálculo de intersección de palabras
-    - Umbral: < 10% overlap → probable alucinación
-    """
-    context_words = set(context.lower().split())
-    response_words = set(response.lower().split())
-    overlap = len(context_words.intersection(response_words))
-    return overlap < len(response_words) * 0.1
-```
+#### 1. Cumplimiento de Políticas de Acceso (Access Policy Compliance Rate - APCR)
+$$\text{APCR} = \frac{\sum_{i=1}^N \mathbb{I}(\text{nivel\_acceso}_{\text{chunk}, i} \le \text{nivel\_acceso}_{\text{usuario}, i})}{N} \times 100\%$$
+- **Objetivo**: Demostrar que el pre-filtrado en `HybridRetriever` garantiza un **100%** de aislamiento de información confidencial o restrictiva por rol.
+
+#### 2. Tasa de Alucinación Auditada (Audited Hallucination Rate - AHR)
+$$\text{AHR} = \frac{\sum_{i=1}^N \mathbb{I}(\text{HallucinationGrader\_Grade}_i = \text{False})}{N} \times 100\%$$
+- **Objetivo**: Evaluar mediante un modelo juez independiente la fidelidad del texto generado respecto al contexto recuperado ($\text{AHR} \le 2\%$).
+
+#### 3. Fusión de Rango Recíproco (Reciprocal Rank Fusion - RRF)
+$$RRF(d) = \sum_{m \in \{\text{FAISS}, \text{BM25}\}} \frac{1}{k + r_m(d)} \quad \text{con } k=60$$
+- **Objetivo**: Maximizar el valor medio $\bar{S}_{\text{RRF}}$ combinando la precisión de términos exactos en artículos normativos (BM25) con la recuperación conceptual semántica (FAISS).
+
+#### 4. Tasa de Cobertura de Citas (Citation Coverage Rate - CCR)
+$$\text{CCR} = \frac{\sum_{i=1}^N \mathbb{I}(\text{Respuesta}_i \text{ contiene cita } [\text{Doc}, \text{Art}])}{N_{\text{RAG\_DOC}}} \times 100\%$$
+
+#### 5. Tasa de Contingencia Determinista (Contingency Fallback Rate - CFR)
+$$\text{CFR} = \frac{\sum_{i=1}^M \mathbb{I}(\text{Respuesta}_i = \text{Frase de Contingencia Por Defecto})}{M_{\text{vacío\_normativo}}} \times 100\%$$
 
 ### RQ4: Satisfacción del Usuario
 **Pregunta**: ¿Los usuarios de programas de posgrado expresan mayor satisfacción con respuestas directas (FAQ) que con respuestas generadas contextualmente?

@@ -107,60 +107,51 @@ Si es tu **primera vez** visitando el proyecto:
 
 ## 🗂️ Estructura de Archivos Clave
 
-```
 mcpsoe/
-├── 📄 Documentación (v5.0)
-│   ├── README.md                       ⭐ EMPIEZA AQUÍ - Guía técnica completa
-│   ├── METODOLOGIA_DOCTORAL.md         🎓 NUEVO - Marco científico y experimental
-│   ├── CAMBIOS_METRICAS.md             📊 Historia de versiones (v1.0 → v5.0)
+├── 📄 Documentación (v6.0)
+│   ├── README.md                       ⭐ EMPIEZA AQUÍ - Guía técnica completa (v6.0)
+│   ├── METODOLOGIA_DOCTORAL.md         🎓 Marco científico, ecuaciones LaTeX y diseño
+│   ├── CAMBIOS_METRICAS.md             📊 Historia de versiones y esquema JSONL (v6.0)
+│   ├── WALKTHROUGH_IMPLEMENTACION.md   📋 Informe técnico de implementación
 │   └── INDICE_DOCUMENTACION.md         📚 Estás aquí - Mapa de navegación
 │
-├── 🤖 Backend (Servidor FastAPI)
-│   ├── mcp_server_local.py             🎯 Servidor RAG híbrido (~420 líneas)
-│   │   ├─ Sistema FAQ semántico (líneas 196-243)
-│   │   ├─ Categorización multi-dominio (línea 196)
-│   │   ├─ Endpoints: /ask, /feedback, /metrics, /health
-│   │   ├─ Métricas Prometheus (8 contadores)
-│   │   └─ Detección de alucinaciones + análisis de sentimiento
-│   │
-│   ├── rag.py                          🤖 Agente RAG generativo (~200 líneas)
-│   ├── preprocess.py                   🔄 Procesamiento de documentos (~150 líneas)
+├── 🤖 Backend y Agentes (FastAPI Multiagente)
+│   ├── mcp_server_local.py             🎯 Servidor RAG híbrido seguro (~1100 líneas)
+│   ├── retrieval/
+│   │   └── hybrid_retriever.py         🔍 Recuperación híbrida BM25 + FAISS + RRF + Access Control
+│   ├── agents/
+│   │   ├── rag_doc_agent.py            📄 Agente RAG para documentos normativos
+│   │   ├── graph_rag_agent.py          🕸️ Agente RAG relacional
+│   │   ├── hallucination_grader.py     🛡️ Auditor LLM de alucinaciones en streaming
+│   │   └── query_rewriter.py           🔄 Reescritor y expansor técnico de consultas
+│   ├── orchestrator/
+│   │   └── router.py                   🧭 Router y orquestador pre-LLM con roles
+│   ├── preprocess.py                   🔄 Procesamiento de documentos con metadatos
 │   └── shared_client.py                🔗 Utilidades compartidas
 │
 ├── 💬 Frontend (Clientes Streamlit)
 │   └── appclient/
 │       ├── app_client.py               💬 Cliente Gemini-style (~300 líneas)
-│       │   ├─ Layout de dos columnas (sidebar + main)
-│       │   ├─ Gestión de conversaciones con IDs
-│       │   ├─ Mensajes con burbujas estilizadas
-│       │   ├─ Visualización de tiempos de respuesta
-│       │   └─ Sistema de feedback integrado
-│       │
-│       └── app_admin.py                📊 Dashboard de tesis (~350 líneas)
-│           ├─ Sección 1: Eficiencia (cache, latencia, recursos)
-│           ├─ Sección 2: Claridad (distribución, casos bajos)
-│           ├─ Sección 3: Veracidad (alucinaciones, errores)
-│           ├─ Sección 4: Satisfacción (tendencia, comentarios)
-│           └─ Exportación CSV por criterio
+│       └── app_admin.py                📊 Dashboard de Tesis Doctoral (~900 líneas, 9 pestañas)
+│           ├─ 📌 Resumen (KPIs: APCR 100%, CCR, CFR, Score RRF)
+│           ├─ 📈 Cuantitativo & ✨ Cualitativo
+│           ├─ 👤 Usuarios & 🧭 Routing (Desglose de latencia)
+│           ├─ 🎓 Tesis (Validación científica, auditorías y exportación CSV)
+│           ├─ 🧮 Método & 🧪 RAGAS & 🗂️ Datos
+│
+├── 🧪 Pruebas y Experimentos
+│   └── experiments/
+│       └── test_implementation.py     🧪 Suite de pruebas unitarias
 │
 ├── 📚 Base de Conocimiento
-│   └── documentos/
-│       ├── faq_atencion_cliente.txt    📞 12 Q&A (costos, inscripción)
-│       ├── faq_academica.txt           🎓 29 Q&A (programas, requisitos)
-│       ├── faq_investigacion.txt       🔬 11 Q&A (tesis, tutores)
-│       ├── Preguntas_Frecuentes.txt    📋 Documento base general
-│       └── Esquema/
-│           └── ArqAi.xml               🏗️ Esquema arquitectónico
+│   └── documentos/                     📚 Textos normativos y FAQs con nivel_acceso
 │
-├── 💾 Persistencia y Cache
-│   ├── faiss_index.bin                 📍 Índice FAISS de chunks documentales
-│   ├── qa_faiss_index.bin              📍 Índice FAISS de pares Q&A
-│   ├── chunks.pkl                      💾 Chunks procesados (pickle)
-│   ├── qa_cache.pkl                    💾 Cache de respuestas (pickle)
-│   ├── feedback.jsonl                  📊 Base de datos de feedback (JSON Lines)
-│   ├── user_histories.json             💬 Historiales de conversaciones
-│   ├── users.json                      👤 Base de usuarios con hashing
-│   └── metrics.log                     📋 Logs del servidor (timestamped)
+└── 💾 Persistencia y Telemetría
+    ├── interaction_log.jsonl           📊 Registro en tiempo real de interacciones
+    ├── feedback.jsonl                  📊 Evaluaciones cualitativas de usuarios
+    └── user_histories.json             💬 Historial de chats
+    ├── users.json                      👤 Base de usuarios con hashing
+    └── metrics.log                     📋 Logs del servidor (timestamped)
 │
 ├── 🚀 Deployment
 │   ├── run.sh                          🚀 Script de orquestación (~150 líneas)

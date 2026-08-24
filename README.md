@@ -1,6 +1,6 @@
-# SoeBOT - Arquitectura Pipeline Multiagente Basado en LLM y RAG para Optimización Académica
+# SoeBOT v6.0 - Arquitectura Pipeline Multiagente Basado en LLM y RAG Académico Seguro para Optimización Universitaria
 
-[![Python](https://img.shields.io/badge/Python-3.12+-blue.svg)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.119.0-green.svg)](https://fastapi.tiangolo.com/)
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.31.1-red.svg)](https://streamlit.io/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -9,18 +9,17 @@
 
 ## 📋 Descripción General
 
-**SoeBOT** es una **arquitectura pipeline multiagente** desarrollada como plataforma de investigación doctoral para la Unidad de Posgrado de la School of Engineering (SOE). El sistema utiliza agentes especializados (FAQAgent, DocRAGAgent) controlados por un Orchestrator con lógica de routing pre-LLM, implementando un marco de validación cuantitativa y cualitativa para evaluar sistemas conversacionales en contextos educativos de posgrado.
+**SoeBOT v6.0** es una **arquitectura RAG híbrida y multiagente segura** desarrollada como plataforma de investigación doctoral para la Unidad de Posgrado de la School of Engineering (SOE-UAGRM). El sistema integra búsqueda dual léxica y semántica mediante **Reciprocal Rank Fusion (RRF)**, **pre-filtrado estricto de seguridad basado en roles**, guardrails de alucinaciones post-generación (**HallucinationGrader**), reescritura de consultas (**QueryRewriter**) y un completo marco de validación empírica en tiempo real.
 
 ### Características Distintivas del Sistema
 
-- 🎓 **Arquitectura Pipeline Multiagente**: Routing pre-LLM con FAQAgent, DocRAGAgent y Guardrails para evitar falsos positivos en tesis/investigación
-- 🤖 **LLM Optimizado**: Ollama con Llama 3.1 8B (Q4_K_M) y embeddings nomic-embed-text para máxima eficiencia
-- 📊 **Marco de Evaluación Doctoral**: Sistema de métricas alineado con criterios de tesis (eficiencia, claridad, veracidad, satisfacción)
-- 💬 **Interfaz UX Avanzada**: Cliente estilo Gemini con gestión conversacional, sidebar de historial y visualización de métricas en tiempo real
-- 📈 **Dashboard Analítico**: Visualización estratificada por criterios de tesis con exportación CSV para análisis estadístico
-- 🔍 **Búsqueda Semántica Dual**: FAISS para chunks documentales y Q&A cache con umbrales configurables (0.82 para FAQ)
-- 💾 **Sistema de Aprendizaje Continuo**: Persistencia de interacciones (Redis + archivos JSON) para refinamiento iterativo
-- 🧠 **Categorización Multi-dominio**: Clasificación automática con soporte multi-categoría y guardrails léxicos
+- 🎓 **Arquitectura RAG Híbrida Segura**: Fusión BM25 léxico + FAISS semántico (RRF) con pre-filtrado de seguridad por nivel de acceso (`publico`, `estudiante`, `docente`, `admin`).
+- 🛡️ **Grounding Estricto y Auditoría Post-Generación**: Prompt de cero alucinación respaldado por el agente **HallucinationGrader** que evalúa la fidelidad del texto contra los documentos recuperados.
+- 🔄 **Reescritura de Consultas (QueryRewriter)**: Expansión conceptual y contextualización de preguntas vagas previo a la fase de recuperación.
+- 🤖 **LLM Local de Alto Rendimiento**: Ollama ejecutando Llama 3 Typhoon v1.5 (8B Q4_K_M) y `nomic-embed-text` para embeddings semánticos.
+- 📊 **Marco de Evaluación Doctoral Enriquecido**: Medición en tiempo real de APCR (Access Policy Compliance Rate = 100%), AHR (Audited Hallucination Rate), CCR (Citation Coverage Rate), CFR (Contingency Fallback Rate) y Score RRF Medio.
+- 💬 **Interfaz UX Avanzada**: Cliente estilo Gemini con gestión conversacional, sidebar de historial y visualización de tiempos de respuesta por componente.
+- 📈 **Dashboard Administrativo Doctoral (9 Pestañas)**: Visualización analítica integral (`📌 Res.`, `📈 Cuant.`, `✨ Cual.`, `👤 Usrs`, `🧭 Routing`, `🎓 Tesis`, `🧮 Método`, `🧪 RAGAS`, `🗂️ Datos`) con exportación de datasets a CSV.
 
 ---
 
@@ -30,10 +29,10 @@
 
 Este proyecto constituye el sistema experimental de una **tesis doctoral** enfocada en validar la eficacia de arquitecturas pipeline multiagente basadas en LLM y RAG en contextos educativos de posgrado SOE-UAGRM. La investigación busca responder las siguientes preguntas de investigación:
 
-1. **RQ1 (Eficiencia)**: ¿Un pipeline multiagente con routing pre-LLM reduce la latencia comparado con mono-agente RAG?
-2. **RQ2 (Claridad)**: ¿El agente FAQAgent con threshold elevado mejora la claridad percibida vs. DocRAGAgent?
-3. **RQ3 (Veracidad)**: ¿Los guardrails léxicos reducen la tasa de falsos positivos en tesis/defensa?
-4. **RQ4 (Satisfacción)**: ¿Los usuarios de posgrado prefieren respuestas de FAQAgent sobre DocRAGAgent?
+1. **RQ1 (Eficiencia y Fusión)**: ¿La búsqueda híbrida BM25 + FAISS (RRF) y el pre-filtrado por rol optimizan el tiempo de recuperación sin degradar la precisión normada?
+2. **RQ2 (Seguridad de Acceso - APCR)**: ¿El pre-filtrado por metadatos garantiza un 100% de cumplimiento de políticas de aislamiento de datos sensibles según el perfil de usuario?
+3. **RQ3 (Veracidad y Grounding - AHR)**: ¿La combinación del prompt estricto + Hallucination Grader reduce las alucinaciones por debajo del 2% y garantiza contingencia determinista ante vacío documental?
+4. **RQ4 (Satisfacción del Usuario)**: ¿Los usuarios de posgrado perciben mayor claridad y confianza ante respuestas respaldadas por citas normativas explícitas?
 
 ### Hipótesis de Investigación
 

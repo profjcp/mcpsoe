@@ -1,12 +1,61 @@
-# 📊 Cambios Implementados - Sistema RAG Híbrido con Validación Doctoral (v5.0)
+# 📊 Cambios Implementados - Sistema RAG Híbrido con Validación Doctoral (v6.0)
 
 ## Resumen Ejecutivo
 
-Se ha implementado un **sistema RAG híbrido FAQ-first** con **marco de validación doctoral** completo. El sistema integra búsqueda semántica sobre FAQs categorizadas por dominio, interfaz estilo Gemini, y dashboard analítico estructurado según los cuatro criterios de tesis: eficiencia, claridad, veracidad y satisfacción. Diseñado para sustentar investigación doctoral con datos empíricos rigurosos.
+Se ha implementado el **sistema RAG híbrido y multiagente seguro (v6.0)** con **marco de validación doctoral**. El sistema integra búsqueda dual léxica (BM25) y semántica (FAISS) combinadas vía **Reciprocal Rank Fusion (RRF)**, **pre-filtrado estricto por nivel de acceso (`publico`, `estudiante`, `docente`, `admin`)**, guardrail de auditoría de alucinaciones (**HallucinationGrader**), reescritura de consultas (**QueryRewriter**) y un **Dashboard Administrativo de 9 pestañas** con la nueva sección `🎓 Tesis`.
 
 ---
 
-## � Novedades de v5.0 (2026-02-17)
+## 🚀 Novedades de v6.0 (2026-08)
+
+### 1. Búsqueda Híbrida RRF y Pre-filtrado por Roles
+- **Implementación**: [retrieval/hybrid_retriever.py](file:///Users/oceanjungle/Sources%20Code/mcpsoe/retrieval/hybrid_retriever.py)
+- **Fusión RRF**: Combina el ranking del índice BM25 (palabras clave exactas, resoluciones, números de artículo) con el índice FAISS (embeddings semánticos `nomic-embed-text`) usando constante $k=60$.
+- **Control de Acceso (APCR)**: Filtra fragmentos documentales comparando `nivel_acceso` del chunk contra `user_access_level`.
+- **Métricas Retornadas**: `bm25_count`, `faiss_count`, `dual_hits_count`, `mean_rrf_score` y `blocked_chunks_count`.
+
+### 2. Guardrail de Auditoría de Alucinaciones (HallucinationGrader)
+- **Implementación**: [agents/hallucination_grader.py](file:///Users/oceanjungle/Sources%20Code/mcpsoe/agents/hallucination_grader.py)
+- **Mecanismo**: Evaluación en tiempo real post-generación utilizando un prompt de verificación de hechos sobre el contexto recuperado.
+- **Campos registrados**: `is_grounded` (booleano), `grader_reason` (explicación cualitativa) y `audit_ms` (tiempo de procesamiento del grader).
+
+### 3. Esquema Enriquecido de Telemetría JSONL (`interaction_log.jsonl`)
+```json
+{
+  "timestamp": "2026-08-24T00:15:00.123456",
+  "user_id": "usr_estudiante_01",
+  "question": "¿Cuál es la ponderación de la defensa de tesis?",
+  "categories": ["Investigacion"],
+  "source": "RAG_DOC",
+  "response_time_s": 2.145,
+  "hallucinated": false,
+  "grader_reason": "Respuesta respaldada completamente por el Artículo 15 de la Guía de Tesis.",
+  "is_contingency_fallback": false,
+  "has_citations": true,
+  "timing_ms": {
+    "retrieval": 142.5,
+    "generation": 1820.1,
+    "audit": 182.4,
+    "total": 2145.0
+  },
+  "routing_trace": {
+    "rag_used": true,
+    "selected_mode": "RAG_DOC",
+    "decision_reason": "fallback_to_doc_rag",
+    "retrieval_metrics": {
+      "bm25_count": 8,
+      "faiss_count": 10,
+      "dual_hits_count": 4,
+      "mean_rrf_score": 0.0245,
+      "blocked_chunks_count": 0
+    }
+  }
+}
+```
+
+---
+
+## 📌 Novedades de v5.0 (2026-02-17)
 
 ### 1. Sistema de FAQs Semántico por Dominio
 
