@@ -3,6 +3,7 @@ import streamlit as st
 import requests
 import json
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 import time
 import os
@@ -424,19 +425,22 @@ if metrics:
 
             t_ms = row.get("timing_ms")
             if isinstance(t_ms, dict):
-                if t_ms.get("retrieval"):
-                    t_retrieval_list.append(t_ms["retrieval"])
-                if t_ms.get("generation"):
-                    t_generation_list.append(t_ms["generation"])
-                if t_ms.get("audit"):
-                    t_audit_list.append(t_ms["audit"])
+                try:
+                    if t_ms.get("retrieval") is not None:
+                        t_retrieval_list.append(float(t_ms["retrieval"]))
+                    if t_ms.get("generation") is not None:
+                        t_generation_list.append(float(t_ms["generation"]))
+                    if t_ms.get("audit") is not None:
+                        t_audit_list.append(float(t_ms["audit"]))
+                except (ValueError, TypeError):
+                    pass
 
     citation_rate = round((citations_count / view_total_queries) * 100, 1) if view_total_queries else 0.0
     contingency_rate = round((contingency_count / view_total_queries) * 100, 1) if view_total_queries else 0.0
-    mean_rrf_overall = round(float(np.mean(rrf_scores_list)), 4) if rrf_scores_list else 0.0
-    avg_t_retrieval = round(float(np.mean(t_retrieval_list)), 1) if t_retrieval_list else 0.0
-    avg_t_generation = round(float(np.mean(t_generation_list)), 1) if t_generation_list else 0.0
-    avg_t_audit = round(float(np.mean(t_audit_list)), 1) if t_audit_list else 0.0
+    mean_rrf_overall = round(float(sum(rrf_scores_list) / len(rrf_scores_list)), 4) if rrf_scores_list else 0.0
+    avg_t_retrieval = round(float(sum(t_retrieval_list) / len(t_retrieval_list)), 1) if t_retrieval_list else 0.0
+    avg_t_generation = round(float(sum(t_generation_list) / len(t_generation_list)), 1) if t_generation_list else 0.0
+    avg_t_audit = round(float(sum(t_audit_list) / len(t_audit_list)), 1) if t_audit_list else 0.0
 
     st.header("Dashboard analítico para tesis")
     st.caption("Vista reorganizada para explorar métricas cuantitativas y cualitativas sin saturar la pantalla.")
