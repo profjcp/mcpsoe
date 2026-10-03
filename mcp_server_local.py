@@ -519,23 +519,30 @@ async def lifespan(app: FastAPI):
 
     # 6. Inicializar agentes y orquestador Sprint 1+2 (GUIDANCE -> FAQ -> CACHE -> RAG_DOC/GRAPH_RAG)
     def _build_chain():
-        template = """Eres un asistente académico oficial de posgrado (SoeBOT). Tu deber es responder preguntas basándote ÚNICA Y EXCLUSIVAMENTE en el contexto normativo y documental proporcionado.
+        template = """<rol_y_mision>
+Eres SoeBOT, asistente académico oficial de posgrado. Tu función es responder consultas de estudiantes y docentes basándote ÚNICA Y EXCLUSIVAMENTE en la normativa provista en <contexto_normativo>.
+</rol_y_mision>
 
-REGLAS STRICTAS E INQUEBRANTABLES:
-1. Responde ÚNICA Y EXCLUSIVAMENTE basándote en la información presente en el "Contexto de documentos".
-2. NUNCA asumas, deduzcas ni utilices conocimiento previo externo que no figure en el contexto.
-3. Si la respuesta a la pregunta NO se encuentra en el contexto proporcionado, responde EXACTAMENTE con la siguiente frase y nada más:
-   "No dispongo de esa información en los reglamentos vigentes. Por favor, acude a la Jefatura Académica."
-4. CITA SIEMPRE la fuente, artículo o sección específica del documento de donde extraes la respuesta (ej. "[Reglamento de Posgrado, Art. 12]" o "[FAQ Académica - Módulos]").
-5. Mantén un tono formal, profesional, claro y directo.
-
-Contexto de documentos:
+<contexto_normativo>
 {context}
+</contexto_normativo>
 
-Ejemplos de preguntas y respuestas anteriores:
+<ejemplos_referencia>
 {few_shot_examples}
+</ejemplos_referencia>
 
-Pregunta actual: {question}
+<recordatorio_formato_y_citas>
+REGLAS OBLIGATORIAS ANTES DE GENERAR LA RESPUESTA:
+1. Responde ÚNICA Y EXCLUSIVAMENTE con la información presente en <contexto_normativo>. NUNCA asumas ni inventes datos externos.
+2. Si la respuesta NO se encuentra en el contexto, responde EXACTAMENTE con esta frase y nada más:
+   "No dispongo de esa información en los reglamentos vigentes. Por favor, acude a la Jefatura Académica."
+3. OBLIGATORIO: CITA SIEMPRE la fuente o artículo del documento al sustentar tu respuesta usando corchetes, por ejemplo: [Reglamento General, Art. 12] o [FAQ Académica, Sección 1].
+4. Mantén un tono formal, profesional, conciso y directo, sin saludos ni rodeos.
+</recordatorio_formato_y_citas>
+
+<pregunta_usuario>
+{question}
+</pregunta_usuario>
 
 Respuesta:
 """
@@ -555,7 +562,7 @@ Respuesta:
         chunks=chunks,
         embed_query_fn=embeddings.embed_query,
         build_chain_fn=_build_chain,
-        top_k=5,
+        top_k=3,
     )
 
     graph_rag_agent = GraphRAGAgent(
@@ -563,7 +570,7 @@ Respuesta:
         chunks=chunks,
         graph_index=graph_index,
         embed_query_fn=embeddings.embed_query,
-        top_k=5,
+        top_k=3,
         max_neighbors_per_chunk=2,
     ) if ENABLE_GRAPH_RAG else None
 
@@ -961,20 +968,21 @@ async def ask(request: AskRequest):
     question_embedding_np = route_result.question_embedding_np
     if question_embedding_np is None:
         question_embedding_np = np.array([embeddings.embed_query(request.question)], dtype="float32")
-    similar_qa_examples = ""
+    similar_qa_examples = "Sin ejemplos previos."
 
     qa_keys = list(qa_cache.keys())
     if qa_faiss_index.ntotal > 0 and len(qa_keys) > 0:
-        k = min(3, qa_faiss_index.ntotal, len(qa_keys))
+        k = min(2, qa_faiss_index.ntotal, len(qa_keys))
         distances, indices = qa_faiss_index.search(question_embedding_np, k=k)
         example_list = []
         for i in indices[0]:
             if 0 <= i < len(qa_keys):
                 q = qa_keys[i]
                 if q in qa_cache:
-                    example_list.append(f"Pregunta: {q}\nRespuesta: {qa_cache[q]}")
+                    ans_preview = str(qa_cache[q])[:250].strip()
+                    example_list.append(f"<ejemplo>\n<pregunta>{q}</pregunta>\n<respuesta>{ans_preview}</respuesta>\n</ejemplo>")
         if example_list:
-            similar_qa_examples = "\n\n---\n\nEjemplos de preguntas y respuestas anteriores:\n\n" + "\n\n".join(example_list)
+            similar_qa_examples = "\n".join(example_list)
 
     async def stream_rag_doc():
         full_response = ""

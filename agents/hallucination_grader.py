@@ -35,24 +35,32 @@ class HallucinationGrader:
             is_valid = ratio >= 0.2
             return is_valid, f"Solapamiento heurístico: {ratio:.2f}"
 
-        prompt = f"""Eres un auditor estricto de control de calidad para un asistente universitario de posgrado.
-Tu tarea es verificar si la RESPONSABILIDAD GENERADA contiene ÚNICAMENTE información respaldada por el CONTEXTO DE DOCUMENTOS.
+        context_snippet = context[:2000] + ("..." if len(context) > 2000 else "")
+        prompt = f"""<rol>
+Eres un auditor estricto de control de calidad para un asistente universitario de posgrado.
+Tu tarea es verificar si la RESPUESTA GENERADA contiene ÚNICAMENTE información respaldada por el CONTEXTO DE DOCUMENTOS.
+</rol>
 
-CONTEXTO DE DOCUMENTOS:
-{context}
+<contexto_normativo>
+{context_snippet}
+</contexto_normativo>
 
-PREGUNTA DEL USUARIO:
+<pregunta_usuario>
 {question}
+</pregunta_usuario>
 
-RESPUESTA GENERADA:
+<respuesta_a_evaluar>
 {response}
+</respuesta_a_evaluar>
 
-INSTRUCCIONES:
-1. Analiza si CADA afirmación de la RESPUESTAS GENERADA tiene respaldo directo o implícito evidente en el CONTEXTO.
-2. Si la respuesta contiene datos inventados, números de teléfono, correos o reglas que NO están en el contexto, responde 'NO'.
-3. Responde ÚNICAMENTE con la palabra 'SI' (si está respaldada) o 'NO' (si contiene alucinaciones).
+<instrucciones>
+1. Analiza si las afirmaciones principales de la RESPUESTA tienen sustento directo en <contexto_normativo>.
+2. Si la respuesta contiene hechos inventados o información ausente en el contexto, responde 'NO'.
+3. Si la respuesta está respaldada o es la respuesta formal de contingencia por ausencia de datos, responde 'SI'.
+4. Responde ÚNICAMENTE con una sola palabra: 'SI' o 'NO'.
+</instrucciones>
 
-RESPUESTA AUDITADA (SI/NO):"""
+DICTAMEN (SI/NO):"""
 
         try:
             eval_result = str(self.llm.invoke(prompt)).strip().upper()

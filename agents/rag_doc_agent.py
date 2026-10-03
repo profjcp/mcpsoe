@@ -26,7 +26,7 @@ class DocRAGAgent:
         chunks: List[Any],
         embed_query_fn: Callable[[str], List[float]],
         build_chain_fn: Callable[[], Any],
-        top_k: int = 5,
+        top_k: int = 3,
         reranker_model_name: str = None,
     ):
         self.faiss_index = faiss_index
@@ -55,15 +55,23 @@ class DocRAGAgent:
         sources = []
 
         for rank, res in enumerate(results):
-            chunk_text = res.get("text", "")
+            raw_text = res.get("text", "").strip()
+            # Podado de longitud para optimizar tokens y tiempo de ingesta prefill
+            chunk_text = raw_text[:1200] + ("..." if len(raw_text) > 1200 else "")
             meta = res.get("metadata", {})
-            relevant_chunks.append(chunk_text)
+            doc_title = meta.get("titulo", "Documento Normativo")
+            doc_section = meta.get("articulo", f"Sección {rank+1}")
+            
+            # Formato enriquecido con etiqueta de citación explícita para que el LLM copie la cita
+            chunk_with_header = f"[{doc_title}, {doc_section}]:\n{chunk_text}"
+            relevant_chunks.append(chunk_with_header)
+            
             sources.append(
                 {
                     "source_type": "hybrid_chunk",
                     "doc_id": meta.get("doc_id", f"chunk_{res.get('chunk_index', rank)}"),
-                    "title": meta.get("titulo", "Documento Normativo"),
-                    "section": meta.get("articulo", f"rank_{rank+1}"),
+                    "title": doc_title,
+                    "section": doc_section,
                     "categoria": meta.get("categoria", "General"),
                     "nivel_acceso": meta.get("nivel_acceso", "publico"),
                     "rrf_score": res.get("rrf_score", 0.0),

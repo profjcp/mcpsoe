@@ -32,14 +32,20 @@ class QueryRewriter:
                 return f"{question_clean} {' '.join(extra_keywords)}"
             return question_clean
 
-        prompt = f"""Eres un experto en recuperar información académica. Reescribe la siguiente consulta de usuario para optimizar la búsqueda semántica y léxica en la base documental de posgrado.
+        prompt = f"""<rol>
+Eres un asistente de búsqueda académica de posgrado. Tu función es optimizar la consulta del usuario para el índice de documentos normativos.
+</rol>
 
-REGLAS:
-- Conserva la intención original de la pregunta.
-- Agrega términos normativos precisos (ej. 'reglamento', 'posgrado', 'requisitos').
-- Devuelve ÚNICAMENTE la consulta reescrita en una sola línea.
+<instrucciones>
+1. Conserva la intención original.
+2. Agrega términos normativos relevantes ('reglamento', 'requisitos', 'procedimiento').
+3. Devuelve ÚNICAMENTE la consulta reescrita en una sola línea sin explicaciones.
+</instrucciones>
 
-Pregunta original: {question_clean}
+<consulta_original>
+{question_clean}
+</consulta_original>
+
 Consulta optimizada:"""
 
         try:
