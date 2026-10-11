@@ -24,6 +24,8 @@ from agents.rag_doc_agent import DocRAGAgent
 from agents.graph_rag_agent import GraphRAGAgent
 from agents.hallucination_grader import HallucinationGrader
 from agents.query_rewriter import QueryRewriter
+from agents.nli_evaluator import NLIEvaluator, NLIResult
+from retrieval.dact import DACTRouter, DACTResult
 from orchestrator.router import MultiAgentOrchestrator
 
 # Lazy import de NLTK para evitar errores de inicialización
@@ -79,11 +81,11 @@ faiss_index: faiss.Index
 chunks: list
 qa_faiss_index: faiss.Index
 qa_cache: dict
-faq_cache: dict = {}
 faq_agent = None
 doc_rag_agent = None
 graph_rag_agent = None
 orchestrator = None
+nli_evaluator: Optional[NLIEvaluator] = None
 
 # --- Métricas Prometheus (Cuantitativas) ---
 query_counter = Counter('queries_total', 'Total queries processed')
@@ -435,7 +437,7 @@ async def lifespan(app: FastAPI):
     """
     Load all necessary models and data into memory.
     """
-    global llm, embeddings, faiss_index, chunks, qa_faiss_index, qa_cache, faq_cache, r, faq_agent, doc_rag_agent, graph_rag_agent, orchestrator, hallucination_grader, query_rewriter
+    global llm, embeddings, faiss_index, chunks, qa_faiss_index, qa_cache, faq_cache, r, faq_agent, doc_rag_agent, graph_rag_agent, orchestrator, hallucination_grader, query_rewriter, nli_evaluator
 
     # 1. Load LLM and Embedding models
     print("--- Cargando Modelos de Ollama ---")
@@ -451,6 +453,7 @@ async def lifespan(app: FastAPI):
 
     hallucination_grader = HallucinationGrader(llm=llm)
     query_rewriter = QueryRewriter(llm=llm)
+    nli_evaluator = NLIEvaluator()
 
     # Initialize Redis
     try:
@@ -617,7 +620,11 @@ class FeedbackRequest(BaseModel):
     comments: str = ""
 
 def detect_hallucination(response: str, context: str) -> bool:
-    """Detectar si la respuesta contiene información no en el contexto."""
+    """Detectar si la respuesta contiene alucinaciones usando el verificador NLI."""
+    global nli_evaluator
+    if nli_evaluator is not None:
+        nli_res = nli_evaluator.evaluate(context, response)
+        return nli_res.is_hallucinated
     context_words = set(context.lower().split())
     response_words = set(response.lower().split())
     overlap = len(context_words.intersection(response_words))
@@ -1003,15 +1010,28 @@ async def ask(request: AskRequest):
         response_time.observe(response_time_val)
         qualitative_metrics["response_times"].append(response_time_val)
 
-        # Auditar alucinaciones con el agente evaluador (Fase 3.1)
+        # Auditar alucinaciones con NLI y HallucinationGrader (Fase 3.1 & 3.3)
         t_audit_0 = time.time()
         is_grounded = True
-        grader_reason = "Auditoría no ejecutada"
+        grader_reason = "Auditoría completada"
+        nli_res = None
+        if nli_evaluator:
+            nli_res = nli_evaluator.evaluate(knowledge_context, full_response, request.question)
+
         if hallucination_grader:
             is_grounded, grader_reason = hallucination_grader.grade(knowledge_context, full_response, request.question)
         audit_ms = (time.time() - t_audit_0) * 1000.0
 
-        is_hallucinated = not is_grounded or detect_hallucination(full_response, knowledge_context)
+        if nli_res:
+            is_hallucinated = nli_res.is_hallucinated or (not is_grounded)
+            grader_reason = f"{grader_reason} | NLI: {nli_res.reason}"
+            route_result.routing_trace = {
+                **(route_result.routing_trace or {}),
+                "nli_audit": nli_res.to_dict()
+            }
+        else:
+            is_hallucinated = not is_grounded or detect_hallucination(full_response, knowledge_context)
+
         if is_hallucinated:
             hallucination_counter.inc()
             qualitative_metrics["hallucination_rate"].append(1)

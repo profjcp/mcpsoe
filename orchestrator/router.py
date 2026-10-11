@@ -82,11 +82,13 @@ class MultiAgentOrchestrator:
         routing_trace["faq_checked"] = True
         faq_result = self.faq_agent.run(question, categories)
         routing_trace["faq_confidence"] = float(faq_result.confidence)
+        if getattr(faq_result, "dact_metrics", None):
+            routing_trace["dact_metrics"] = faq_result.dact_metrics
         routing_trace["decision_timing_ms"]["faq_check"] = (time.time() - t_faq) * 1000.0
 
         if faq_result.found:
             routing_trace["selected_mode"] = "FAQ"
-            routing_trace["decision_reason"] = "faq_match_found"
+            routing_trace["decision_reason"] = "dact_faq_match" if routing_trace.get("dact_metrics") else "faq_match_found"
             return AgentResult(
                 answer_text=faq_result.answer,
                 answer_mode="FAQ",

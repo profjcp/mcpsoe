@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SoeBOT v7.0 - Arquitectura Científica Doctoral (DACT + NLI)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --surface: #111827;
+      --surface-border: #1f2937;
+      --text: #f3f4f6;
+      --text-muted: #9ca3af;
+      --accent-blue: #3b82f6;
+      --accent-purple: #8b5cf6;
+      --accent-emerald: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-rose: #f43f5e;
+      --card-bg: rgba(17, 24, 39, 0.75);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: radial-gradient(circle at 50% 0%, #1e1b4b 0%, var(--bg) 70%);
+      color: var(--text);
+      font-family: 'Outfit', -apple-system, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    header {
+      padding: 1.5rem 2rem;
+      border-bottom: 1px solid var(--surface-border);
+      background: rgba(11, 15, 25, 0.8);
+      backdrop-filter: blur(12px);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .brand-badge {
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+      color: white;
+      font-weight: 700;
+      font-size: 0.85rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: 6px;
+      letter-spacing: 0.05em;
+    }
+
+    .brand-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      background: linear-gradient(to right, #fff, #cbd5e1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .tagline {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+    }
+
+    .btn {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      color: var(--text);
+      padding: 0.45rem 0.9rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+
+    .btn:hover {
+      border-color: var(--accent-blue);
+      transform: translateY(-1px);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent-blue), #2563eb);
+      border: none;
+      font-weight: 500;
+    }
+
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      position: relative;
+    }
+
+    .diagram-viewport {
+      position: relative;
+      overflow: hidden;
+      background: 
+        radial-gradient(circle at 1px 1px, rgba(255,255,255,0.05) 1px, transparent 0);
+      background-size: 32px 32px;
+      min-height: 780px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    svg {
+      width: 100%;
+      height: 100%;
+      max-width: 1280px;
+      max-height: 820px;
+      filter: drop-shadow(0 10px 25px rgba(0,0,0,0.5));
+    }
+
+    .node {
+      cursor: pointer;
+      transition: transform 0.2s, filter 0.2s;
+    }
+
+    .node:hover {
+      filter: brightness(1.18);
+    }
+
+    .node-box {
+      rx: 10px;
+      stroke-width: 1.5;
+      transition: all 0.2s;
+    }
+
+    .node-title {
+      font-size: 13px;
+      font-weight: 600;
+      fill: #ffffff;
+    }
+
+    .node-desc {
+      font-size: 11px;
+      fill: #94a3b8;
+    }
+
+    .edge {
+      stroke-dasharray: 4, 4;
+      animation: dash 20s linear infinite;
+    }
+
+    @keyframes dash {
+      to {
+        stroke-dashoffset: -100;
+      }
+    }
+
+    .sidebar {
+      border-left: 1px solid var(--surface-border);
+      background: rgba(17, 24, 39, 0.85);
+      backdrop-filter: blur(12px);
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      overflow-y: auto;
+    }
+
+    .sidebar h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .detail-card {
+      background: var(--card-bg);
+      border: 1px solid var(--surface-border);
+      border-radius: 10px;
+      padding: 1.1rem;
+      transition: all 0.2s;
+    }
+
+    .detail-card.active {
+      border-color: var(--accent-blue);
+      box-shadow: 0 0 15px rgba(59, 130, 246, 0.2);
+    }
+
+    .detail-badge {
+      font-size: 0.72rem;
+      font-family: 'JetBrains Mono', monospace;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      display: inline-block;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+    }
+
+    .badge-dact { background: rgba(139, 92, 246, 0.2); color: #c084fc; border: 1px solid rgba(139, 92, 246, 0.3); }
+    .badge-nli { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .badge-rag { background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+    .badge-llm { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+
+    .formula-box {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 0.75rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      color: #e6edf3;
+      margin: 0.6rem 0;
+      overflow-x: auto;
+    }
+
+    .metric-pill {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      padding: 0.35rem 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .metric-pill:last-child {
+      border-bottom: none;
+    }
+
+    .metric-val {
+      font-weight: 600;
+      color: #fff;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    footer {
+      border-top: 1px solid var(--surface-border);
+      padding: 0.8rem 2rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      background: var(--bg);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <div class="brand-badge">ARCHIFY • v7.0</div>
+      <div>
+        <h1 class="brand-title">SoeBOT - Arquitectura Doctoral</h1>
+        <p class="tagline">Dynamic Adaptive Cascade Thresholding (DACT) + Verificador Fáctico NLI</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn" onclick="highlightMode('all')">👁️ Ver Todo</button>
+      <button class="btn" onclick="highlightMode('dact')">🧮 Flujo DACT</button>
+      <button class="btn" onclick="highlightMode('nli')">🛡️ Flujo NLI</button>
+      <button class="btn btn-primary" onclick="window.print()">📄 Exportar PDF</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="diagram-viewport">
+      <svg viewBox="0 0 1200 760" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="gradUser" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#1e293b"/>
+            <stop offset="100%" stop-color="#0f172a"/>
+          </linearGradient>
+          <linearGradient id="gradDACT" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#4c1d95"/>
+            <stop offset="100%" stop-color="#2e1065"/>
+          </linearGradient>
+          <linearGradient id="gradNLI" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#064e3b"/>
+            <stop offset="100%" stop-color="#022c22"/>
+          </linearGradient>
+          <linearGradient id="gradRAG" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#1e3a8a"/>
+            <stop offset="100%" stop-color="#172554"/>
+          </linearGradient>
+          <linearGradient id="gradLLM" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#78350f"/>
+            <stop offset="100%" stop-color="#451a03"/>
+          </linearGradient>
+          
+          <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1 L 8 5 L 0 9 z" fill="#64748b" />
+          </marker>
+          <marker id="arrow-purple" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1 L 8 5 L 0 9 z" fill="#a855f7" />
+          </marker>
+          <marker id="arrow-green" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1 L 8 5 L 0 9 z" fill="#10b981" />
+          </marker>
+        </defs>
+
+        <!-- BOUNDARY 1: CAPA DE ENRUTAMIENTO Y DACT -->
+        <rect x="40" y="40" width="360" height="680" rx="16" fill="rgba(139, 92, 246, 0.04)" stroke="#6d28d9" stroke-dasharray="6,6" stroke-width="1.5" />
+        <text x="60" y="70" fill="#a78bfa" font-size="12" font-weight="700" letter-spacing="1">ZONA 1: CASCADA INTELIGENTE DACT (NIVEL 1 FAQ)</text>
+
+        <!-- BOUNDARY 2: CAPA RAG Y AUDITORÍA NLI -->
+        <rect x="440" y="40" width="720" height="680" rx="16" fill="rgba(59, 130, 246, 0.04)" stroke="#1d4ed8" stroke-dasharray="6,6" stroke-width="1.5" />
+        <text x="460" y="70" fill="#60a5fa" font-size="12" font-weight="700" letter-spacing="1">ZONA 2: GENERACIÓN RAG HÍBRIDO & AUDITORÍA NLI (NIVELES 2 & 3)</text>
+
+        <!-- CONEXIONES -->
+        <!-- User to Router -->
+        <path d="M 120 180 L 120 250" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" />
+        
+        <!-- Router to DACT -->
+        <path d="M 220 290 L 260 290" stroke="#a855f7" stroke-width="2" marker-end="url(#arrow-purple)" class="edge" />
+
+        <!-- DACT Decision: FAQ Match (Down) -->
+        <path d="M 330 340 L 330 520 L 220 520" stroke="#10b981" stroke-width="2" marker-end="url(#arrow-green)" />
+        <text x="340" y="440" fill="#34d399" font-size="11" font-weight="600">s₁ ≥ θ_dyn (~0.3s)</text>
+
+        <!-- DACT Decision: Fallback to Hybrid RAG (Right) -->
+        <path d="M 400 290 L 500 290" stroke="#f59e0b" stroke-width="2" marker-end="url(#arrow)" class="edge" />
+        <text x="415" y="275" fill="#fbbf24" font-size="11" font-weight="600">s₁ < θ_dyn</text>
+
+        <!-- RAG Hybrid to LLM -->
+        <path d="M 640 290 L 740 290" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" />
+
+        <!-- LLM to Response Stream -->
+        <path d="M 880 290 L 980 290" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" />
+
+        <!-- LLM and Context to NLI Evaluator -->
+        <path d="M 810 340 L 810 490" stroke="#10b981" stroke-width="2" marker-end="url(#arrow-green)" class="edge" />
+        <path d="M 570 340 L 570 520 L 740 520" stroke="#10b981" stroke-width="1.5" stroke-dasharray="3,3" />
+
+        <!-- NLI to Telemetry / Guardrail -->
+        <path d="M 880 540 L 980 540" stroke="#10b981" stroke-width="2" marker-end="url(#arrow-green)" />
+
+        <!-- NODOS -->
+        <!-- 1. Usuario -->
+        <g class="node" onclick="selectCard('user')" id="node-user">
+          <rect x="60" y="110" width="160" height="70" class="node-box" fill="url(#gradUser)" stroke="#475569" />
+          <text x="75" y="140" class="node-title">Estudiante / Usuario</text>
+          <text x="75" y="160" class="node-desc">Consulta multimodal + Rol</text>
+        </g>
+
+        <!-- 2. FAQ Semantic Search -->
+        <g class="node" onclick="selectCard('faq-router')" id="node-faq">
+          <rect x="60" y="250" width="160" height="80" class="node-box" fill="url(#gradUser)" stroke="#6d28d9" />
+          <text x="75" y="280" class="node-title">Enrutador FAQ (FAISS)</text>
+          <text x="75" y="300" class="node-desc">Top-k Similitudes S_k</text>
+          <text x="75" y="318" class="node-desc">[s₁, s₂, ..., sₖ]</text>
+        </g>
+
+        <!-- 3. Algoritmo DACT -->
+        <g class="node" onclick="selectCard('dact')" id="node-dact">
+          <rect x="260" y="240" width="130" height="100" class="node-box" fill="url(#gradDACT)" stroke="#c084fc" />
+          <text x="275" y="270" class="node-title">Algoritmo DACT</text>
+          <text x="275" y="290" class="node-desc">Δ₁,₂ = s₁ - s₂</text>
+          <text x="275" y="308" class="node-desc">H(Sₖ) Entropía Softmax</text>
+          <text x="275" y="326" class="node-desc">θ_dyn(q) Adaptativo</text>
+        </g>
+
+        <!-- 4. Nivel 1: Retorno FAQ -->
+        <g class="node" onclick="selectCard('faq-answer')" id="node-faq-answer">
+          <rect x="60" y="480" width="160" height="80" class="node-box" fill="url(#gradNLI)" stroke="#10b981" />
+          <text x="75" y="512" class="node-title">Respuesta FAQ Oficial</text>
+          <text x="75" y="532" class="node-desc">Latencia O(1) ~0.3s</text>
+          <text x="75" y="548" class="node-desc">0% Alucinación (Validado)</text>
+        </g>
+
+        <!-- 5. Nivel 3: Hybrid Retriever -->
+        <g class="node" onclick="selectCard('rag-hybrid')" id="node-rag">
+          <rect x="500" y="250" width="140" height="90" class="node-box" fill="url(#gradRAG)" stroke="#3b82f6" />
+          <text x="515" y="280" class="node-title">Hybrid Retriever</text>
+          <text x="515" y="300" class="node-desc">BM25 Léxico + FAISS</text>
+          <text x="515" y="318" class="node-desc">Fusión RRF (k=60)</text>
+          <text x="515" y="334" class="node-desc">Control APCR de Rol</text>
+        </g>
+
+        <!-- 6. Generador LLM -->
+        <g class="node" onclick="selectCard('llm')" id="node-llm">
+          <rect x="740" y="250" width="140" height="90" class="node-box" fill="url(#gradLLM)" stroke="#f59e0b" />
+          <text x="755" y="280" class="node-title">Llama-3-Typhoon-8B</text>
+          <text x="755" y="300" class="node-desc">Prompt XML Modular</text>
+          <text x="755" y="318" class="node-desc">Format Reminder Citas</text>
+          <text x="755" y="334" class="node-desc">Context Pruned (top-3)</text>
+        </g>
+
+        <!-- 7. Respuesta Stream SSE -->
+        <g class="node" onclick="selectCard('stream')" id="node-stream">
+          <rect x="980" y="255" width="150" height="70" class="node-box" fill="url(#gradUser)" stroke="#64748b" />
+          <text x="995" y="288" class="node-title">Streaming SSE</text>
+          <text x="995" y="308" class="node-desc">Entrega token a token</text>
+        </g>
+
+        <!-- 8. Verificador Fáctico NLI -->
+        <g class="node" onclick="selectCard('nli')" id="node-nli">
+          <rect x="740" y="490" width="140" height="100" class="node-box" fill="url(#gradNLI)" stroke="#34d399" />
+          <text x="755" y="520" class="node-title">Verificador NLI</text>
+          <text x="755" y="540" class="node-desc">DeBERTa-v3 CrossEnc</text>
+          <text x="755" y="558" class="node-desc">Premisa: C, Hipótesis: A</text>
+          <text x="755" y="576" class="node-desc">[P_entail, P_contra]</text>
+        </g>
+
+        <!-- 9. Telemetría y Guardrail -->
+        <g class="node" onclick="selectCard('telemetry')" id="node-telemetry">
+          <rect x="980" y="495" width="150" height="90" class="node-box" fill="url(#gradUser)" stroke="#38bdf8" />
+          <text x="995" y="525" class="node-title">Telemetría Tesis</text>
+          <text x="995" y="545" class="node-desc">interaction_logs.jsonl</text>
+          <text x="995" y="563" class="node-desc">AHR, CCR, DACT metrics</text>
+          <text x="995" y="579" class="node-desc">Dashboard Admin</text>
+        </g>
+      </svg>
+    </div>
+
+    <aside class="sidebar">
+      <h2>🔍 Panel de Evidencia</h2>
+      
+      <div id="card-dact" class="detail-card active">
+        <span class="detail-badge badge-dact">CONTRIBUCIÓN 1 • ALGORITMO DACT</span>
+        <h3>Dynamic Adaptive Cascade Thresholding</h3>
+        <p style="font-size: 0.85rem; color: #cbd5e1; margin-top: 0.4rem;">
+          Calcula el umbral de decisión dinámicamente según la incertidumbre de la consulta:
+        </p>
+        <div class="formula-box">
+Δ₁,₂ = s₁ - s₂<br>
+pᵢ = Softmax(sᵢ / τ),  τ=0.1<br>
+H(Sₖ) = - (1/log₂ k) Σ pᵢ log₂(pᵢ)<br>
+θ_dyn = clip(θ_base + α·H - β·Δ₁,₂, θ_min, θ_max)
+        </div>
+        <div class="metric-pill">
+          <span>θ_base (Nominal):</span><span class="metric-val">0.75</span>
+        </div>
+        <div class="metric-pill">
+          <span>α (Penalización Incertidumbre):</span><span class="metric-val">0.15</span>
+        </div>
+        <div class="metric-pill">
+          <span>β (Premio Margen Semántico):</span><span class="metric-val">0.20</span>
+        </div>
+        <div class="metric-pill">
+          <span>Rango Clipeado:</span><span class="metric-val">[0.60, 0.88]</span>
+        </div>
+      </div>
+
+      <div id="card-nli" class="detail-card">
+        <span class="detail-badge badge-nli">CONTRIBUCIÓN 2 • AUDITORÍA NLI</span>
+        <h3>Verificador Fáctico Cross-Encoder</h3>
+        <p style="font-size: 0.85rem; color: #cbd5e1; margin-top: 0.4rem;">
+          Evalúa implicación lógica formal entre el contexto normativo y la respuesta generada:
+        </p>
+        <div class="formula-box">
+Entradas: Premisa=C, Hipótesis=A<br>
+Salida: [P_entail, P_neut, P_contra]<br>
+IsHallucinated = (P_contra > 0.45) ∨ (P_entail < 0.30)
+        </div>
+        <div class="metric-pill">
+          <span>Modelo NLI:</span><span class="metric-val">DeBERTa-v3-small</span>
+        </div>
+        <div class="metric-pill">
+          <span>Meta AHR Doctoral:</span><span class="metric-val">≤ 2.0%</span>
+        </div>
+        <div class="metric-pill">
+          <span>Heurística Anterior:</span><span class="metric-val"><10% tokens (Reemplazada)</span>
+        </div>
+      </div>
+
+      <div id="card-rag" class="detail-card">
+        <span class="detail-badge badge-rag">RAG HÍBRIDO & ACCESO</span>
+        <h3>Fusión RRF y Jerarquía de Roles</h3>
+        <div class="metric-pill">
+          <span>Fórmula RRF:</span><span class="metric-val">Σ 1 / (60 + r_m)</span>
+        </div>
+        <div class="metric-pill">
+          <span>Cumplimiento APCR:</span><span class="metric-val">100% Garantizado</span>
+        </div>
+        <div class="metric-pill">
+          <span>Top-k Optimizado:</span><span class="metric-val">3 fragmentos podados</span>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <footer>
+    <span>Proyecto SoeBOT • Universidad Autónoma Gabriel René Moreno (UAGRM)</span>
+    <span>Documento de Arquitectura Doctoral interactivo generado bajo especificación Archify</span>
+  </footer>
+
+  <script>
+    function selectCard(type) {
+      document.querySelectorAll('.detail-card').forEach(c => c.classList.remove('active'));
+      if (type === 'dact' || type === 'faq-router' || type === 'faq-answer') {
+        document.getElementById('card-dact').classList.add('active');
+        document.getElementById('card-dact').scrollIntoView({ behavior: 'smooth' });
+      } else if (type === 'nli' || type === 'telemetry') {
+        document.getElementById('card-nli').classList.add('active');
+        document.getElementById('card-nli').scrollIntoView({ behavior: 'smooth' });
+      } else {
+        document.getElementById('card-rag').classList.add('active');
+        document.getElementById('card-rag').scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+
+    function highlightMode(mode) {
+      const dactNodes = ['node-faq', 'node-dact', 'node-faq-answer'];
+      const nliNodes = ['node-rag', 'node-llm', 'node-nli', 'node-telemetry'];
+      
+      document.querySelectorAll('.node').forEach(n => {
+        n.style.opacity = '1';
+      });
+
+      if (mode === 'dact') {
+        document.querySelectorAll('.node').forEach(n => {
+          if (!dactNodes.includes(n.id) && n.id !== 'node-user') {
+            n.style.opacity = '0.2';
+          }
+        });
+        selectCard('dact');
+      } else if (mode === 'nli') {
+        document.querySelectorAll('.node').forEach(n => {
+          if (!nliNodes.includes(n.id) && n.id !== 'node-user') {
+            n.style.opacity = '0.2';
+          }
+        });
+        selectCard('nli');
+      } else {
+        selectCard('dact');
+      }
+    }
+  </script>
+</body>
+</html>

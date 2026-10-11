@@ -19,4 +19,7 @@ nltk==3.9
 matplotlib==3.9.0
 pandas==2.2.0
 rank-bm25
-sentence-transformers
+sentence-transformers>=2.3.0
+scipy>=1.11.0
+transformers>=4.36.0
+torch>=2.1.0

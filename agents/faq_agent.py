@@ -1,8 +1,10 @@
 from dataclasses import dataclass, field
-from typing import Callable, List, Dict, Any, Optional
+from typing import Callable, List, Dict, Any, Optional, Tuple
 import unicodedata
 import re
 import numpy as np
+
+from retrieval.dact import DACTRouter, DACTResult
 
 
 @dataclass
@@ -21,13 +23,13 @@ class FAQAgentResult:
     confidence: float = 0.0
     matched_category: str = ""
     sources: List[Dict[str, Any]] = field(default_factory=list)
+    dact_metrics: Dict[str, Any] = field(default_factory=dict)
 
 
 class FAQAgent:
     """
-    Agente FAQ semántico.
-    Nota: no acopla lógica de carga; recibe callbacks para mantener compatibilidad
-    con el backend existente.
+    Agente FAQ semántico optimizado con el Algoritmo DACT (Dynamic Adaptive Cascade Thresholding).
+    Calcula el umbral dinámicamente mediante la entropía y el margen semántico del top-k de FAISS.
     """
 
     def __init__(
@@ -35,14 +37,16 @@ class FAQAgent:
         faq_files: Dict[str, str],
         load_faqs_fn: Callable[[str, Callable[[str], List[float]]], List[Dict[str, Any]]],
         embed_query_fn: Callable[[str], List[float]],
-        threshold: float = 0.82,
+        threshold: float = 0.75,
         min_token_overlap: int = 2,
+        dact_router: Optional[DACTRouter] = None,
     ):
         self.faq_files = faq_files
         self.load_faqs_fn = load_faqs_fn
         self.embed_query_fn = embed_query_fn
         self.threshold = threshold
         self.min_token_overlap = min_token_overlap
+        self.dact_router = dact_router or DACTRouter(theta_base=self.threshold)
 
     @staticmethod
     def _cosine_similarity(vec_a: np.ndarray, vec_b: np.ndarray) -> float:
@@ -75,29 +79,38 @@ class FAQAgent:
         overlap = q_tokens.intersection(f_tokens)
         return len(overlap) >= self.min_token_overlap
 
-    def _search_in_category(self, question: str, category: str) -> Optional[FAQAgentResult]:
+    def _search_in_category(self, question: str, category: str) -> Tuple[Optional[FAQAgentResult], Dict[str, Any]]:
         faq_path = self.faq_files.get(category)
         if not faq_path:
-            return None
+            return None, {}
 
         faqs = self.load_faqs_fn(faq_path, self.embed_query_fn)
         if not faqs:
-            return None
+            return None, {}
 
         q_emb = np.array(self.embed_query_fn(question), dtype="float32")
-        best_score = -1.0
-        best_item = None
+        scored_candidates = []
 
         for item in faqs:
             emb = np.array(item.get("embedding", []), dtype="float32")
             if emb.size == 0:
                 continue
             score = self._cosine_similarity(q_emb, emb)
-            if score > best_score:
-                best_score = score
-                best_item = item
+            scored_candidates.append((score, item))
 
-        if best_item and best_score >= self.threshold and self._passes_lexical_guardrail(question, best_item.get("pregunta", "")):
+        if not scored_candidates:
+            return None, {}
+
+        # Ordenar candidatos descendentemente por similitud coseno
+        scored_candidates.sort(key=lambda x: x[0], reverse=True)
+        scores = [sc[0] for sc in scored_candidates]
+        best_score, best_item = scored_candidates[0]
+
+        # Evaluación con Algoritmo DACT (Top-k = 3)
+        dact_res = self.dact_router.compute_threshold(scores, k=3)
+        dact_dict = dact_res.to_dict()
+
+        if dact_res.should_serve_faq and self._passes_lexical_guardrail(question, best_item.get("pregunta", "")):
             answer = f"Pregunta: {best_item.get('pregunta', '')}\nRespuesta: {best_item.get('respuesta', '')}"
             source = AgentSource(
                 source_type="faq",
@@ -109,20 +122,25 @@ class FAQAgent:
             return FAQAgentResult(
                 found=True,
                 answer=answer,
-                confidence=best_score,
+                confidence=dact_res.s1,
                 matched_category=category,
                 sources=[source.__dict__],
-            )
-        return None
+                dact_metrics=dact_dict,
+            ), dact_dict
+
+        return None, dact_dict
 
     def run(self, question: str, categories: List[str]) -> FAQAgentResult:
         checked = set()
         normalized_categories = categories or ["Otro"]
         needs_strict_rag_fallback = any(cat in {"Investigacion", "Academica"} for cat in normalized_categories)
+        latest_dact_metrics = {}
 
         for category in normalized_categories:
             checked.add(category)
-            result = self._search_in_category(question, category)
+            result, dact_info = self._search_in_category(question, category)
+            if dact_info:
+                latest_dact_metrics = dact_info
             if result and result.found:
                 # Guardrail adicional: para categorías académicas/investigación,
                 # no aceptar FAQ cruzado de AtenciónCliente.
@@ -130,15 +148,16 @@ class FAQAgent:
                     continue
                 return result
 
-        # Solo permitir fallback global cuando NO hay categorización útil.
-        # Evita falsos positivos cross-category (ej: investigación -> FAQ ubicación).
+        # Fallback global cuando NO hay categorización útil.
         has_specific_categories = any(cat != "Otro" for cat in normalized_categories)
         if not has_specific_categories:
             for category in self.faq_files.keys():
                 if category in checked:
                     continue
-                result = self._search_in_category(question, category)
+                result, dact_info = self._search_in_category(question, category)
+                if dact_info:
+                    latest_dact_metrics = dact_info
                 if result and result.found:
                     return result
 
-        return FAQAgentResult(found=False)
+        return FAQAgentResult(found=False, dact_metrics=latest_dact_metrics)
