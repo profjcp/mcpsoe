@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SoeBOT v7.0 - Arquitectura Integral y RAG DACT</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090d16;
+      --surface: #101726;
+      --surface-border: #1e293b;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent-blue: #38bdf8;
+      --accent-purple: #a855f7;
+      --accent-emerald: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-rose: #f43f5e;
+      --accent-cyan: #06b6d4;
+      --card-bg: rgba(16, 23, 38, 0.85);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: radial-gradient(circle at 50% 0%, #1e1b4b 0%, var(--bg) 70%);
+      color: var(--text);
+      font-family: 'Outfit', -apple-system, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      padding: 1.25rem 2rem;
+      border-bottom: 1px solid var(--surface-border);
+      background: rgba(9, 13, 22, 0.85);
+      backdrop-filter: blur(12px);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .brand-badge {
+      background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+      color: #fff;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.25rem 0.6rem;
+      border-radius: 6px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .brand h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+
+    .view-controls {
+      display: flex;
+      gap: 0.5rem;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 0.25rem;
+      border-radius: 8px;
+      border: 1px solid var(--surface-border);
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+
+    .tab-btn.active {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--surface-border);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      min-height: calc(100vh - 72px);
+    }
+
+    .viewport {
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      background: 
+        radial-gradient(circle at 1px 1px, rgba(255,255,255,0.06) 1px, transparent 0);
+      background-size: 32px 32px;
+      overflow: auto;
+    }
+
+    .diagram-container {
+      width: 100%;
+      max-width: 1100px;
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .diagram-container.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    svg {
+      width: 100%;
+      height: auto;
+      filter: drop-shadow(0 15px 30px rgba(0,0,0,0.5));
+    }
+
+    .node {
+      cursor: pointer;
+      transition: transform 0.2s, filter 0.2s;
+    }
+
+    .node:hover {
+      filter: brightness(1.2);
+    }
+
+    .node-box {
+      rx: 10px;
+      stroke-width: 1.5;
+    }
+
+    .node-title {
+      font-size: 13px;
+      font-weight: 600;
+      fill: #ffffff;
+    }
+
+    .node-sub {
+      font-size: 11px;
+      fill: #94a3b8;
+    }
+
+    .edge-animated {
+      stroke-dasharray: 6, 6;
+      animation: flow 18s linear infinite;
+    }
+
+    @keyframes flow {
+      to { stroke-dashoffset: -120; }
+    }
+
+    .sidebar {
+      border-left: 1px solid var(--surface-border);
+      background: rgba(16, 23, 38, 0.95);
+      backdrop-filter: blur(12px);
+      padding: 1.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      overflow-y: auto;
+    }
+
+    .sidebar h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .panel-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--surface-border);
+      border-radius: 12px;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .pill-tag {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      display: inline-block;
+      width: fit-content;
+    }
+
+    .tag-dact { background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); }
+    .tag-nli { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); }
+    .tag-client { background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); }
+
+    .formula-code {
+      background: #050811;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+      padding: 0.75rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      color: #38bdf8;
+      line-height: 1.45;
+      overflow-x: auto;
+    }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      padding: 0.4rem 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .stat-lbl { color: var(--text-muted); }
+    .stat-val { font-weight: 600; color: #fff; font-family: 'JetBrains Mono', monospace; }
+
+    footer {
+      padding: 1rem 2rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      border-top: 1px solid var(--surface-border);
+      background: var(--bg);
+      display: flex;
+      justify-content: space-between;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <span class="brand-badge">Archify v3.0</span>
+      <h1>SoeBOT v7.0 • Modelado Arquitectónico Doctoral</h1>
+    </div>
+    <div class="view-controls">
+      <button class="tab-btn active" onclick="switchView('system')">🏛️ Arquitectura Global del Sistema</button>
+      <button class="tab-btn" onclick="switchView('dact-rag')">🧮 RAG Propuesto con DACT & NLI</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="viewport">
+
+      <!-- ========================================== -->
+      <!-- VISTA 1: ARQUITECTURA GLOBAL DEL SISTEMA    -->
+      <!-- ========================================== -->
+      <div id="view-system" class="diagram-container active">
+        <svg viewBox="0 0 1000 680" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="gradClient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#0284c7" />
+              <stop offset="100%" stop-color="#0369a1" />
+            </linearGradient>
+            <linearGradient id="gradAdmin" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#7c3aed" />
+              <stop offset="100%" stop-color="#5b21b6" />
+            </linearGradient>
+            <linearGradient id="gradServer" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#1e293b" />
+              <stop offset="100%" stop-color="#0f172a" />
+            </linearGradient>
+            <linearGradient id="gradCore" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#0f766e" />
+              <stop offset="100%" stop-color="#115e59" />
+            </linearGradient>
+            <linearGradient id="gradData" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#9a3412" />
+              <stop offset="100%" stop-color="#7c2d12" />
+            </linearGradient>
+            <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1 L 8 5 L 0 9 z" fill="#64748b" />
+            </marker>
+            <marker id="arrow-active" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1 L 8 5 L 0 9 z" fill="#38bdf8" />
+            </marker>
+          </defs>
+
+          <!-- Límites de Capas -->
+          <rect x="30" y="30" width="940" height="150" rx="16" fill="rgba(255,255,255,0.015)" stroke="#334155" stroke-dasharray="4,4" />
+          <text x="50" y="55" fill="#64748b" font-size="12" font-weight="600">CAPA DE PRESENTACIÓN E INTERACCIÓN DE USUARIO</text>
+
+          <rect x="30" y="210" width="940" height="250" rx="16" fill="rgba(255,255,255,0.015)" stroke="#334155" stroke-dasharray="4,4" />
+          <text x="50" y="235" fill="#64748b" font-size="12" font-weight="600">CAPA DE SERVICIOS Y ORQUESTACIÓN MULTIAGENTE (FASTAPI / MCP)</text>
+
+          <rect x="30" y="490" width="940" height="160" rx="16" fill="rgba(255,255,255,0.015)" stroke="#334155" stroke-dasharray="4,4" />
+          <text x="50" y="515" fill="#64748b" font-size="12" font-weight="600">CAPA DE PERSISTENCIA, ÍNDICES VECTORIALES Y TELEMETRÍA</text>
+
+          <!-- Nodos Presentación -->
+          <!-- Chatbot appclient -->
+          <g class="node" onclick="updateSidebar('client')" id="sys-client">
+            <rect x="70" y="75" width="260" height="85" class="node-box" fill="url(#gradClient)" stroke="#38bdf8" />
+            <text x="95" y="105" class="node-title">Chatbot Usuario (appclient)</text>
+            <text x="95" y="125" class="node-sub">Streamlit Port 8500 • Streaming SSE</text>
+            <text x="95" y="142" class="node-sub">Estudiantes, Docentes, Postulantes</text>
+          </g>
+
+          <!-- Admin Dashboard appadmin -->
+          <g class="node" onclick="updateSidebar('admin')" id="sys-admin">
+            <rect x="670" y="75" width="260" height="85" class="node-box" fill="url(#gradAdmin)" stroke="#a855f7" />
+            <text x="695" y="105" class="node-title">Admin Dashboard (appadmin)</text>
+            <text x="695" y="125" class="node-sub">Streamlit Port 8501 • Validación Tesis</text>
+            <text x="695" y="142" class="node-sub">Simulador DACT & Auditoría NLI</text>
+          </g>
+
+          <!-- Gateway MCP Server -->
+          <g class="node" onclick="updateSidebar('server')" id="sys-gateway">
+            <rect x="380" y="250" width="240" height="75" class="node-box" fill="url(#gradServer)" stroke="#94a3b8" />
+            <text x="405" y="280" class="node-title">Servidor Local MCP / FastAPI</text>
+            <text x="405" y="300" class="node-sub">Endpoints: /ask, /feedback, /metrics</text>
+            <text x="405" y="315" class="node-sub">Port 9000 • Streaming Uvicorn</text>
+          </g>
+
+          <!-- Orquestador & DACT Router -->
+          <g class="node" onclick="updateSidebar('dact')" id="sys-dact">
+            <rect x="80" y="355" width="240" height="85" class="node-box" fill="url(#gradCore)" stroke="#2dd4bf" />
+            <text x="100" y="385" class="node-title">Enrutador Adaptativo DACT</text>
+            <text x="100" y="405" class="node-sub">Entropía H(Sk) + Margen Δ + Feedback</text>
+            <text x="100" y="422" class="node-sub">Decisión: FAQ O(1) vs Fallback RAG</text>
+          </g>
+
+          <!-- Motor RAG Híbrido -->
+          <g class="node" onclick="updateSidebar('rag')" id="sys-rag">
+            <rect x="380" y="355" width="240" height="85" class="node-box" fill="url(#gradServer)" stroke="#60a5fa" />
+            <text x="405" y="385" class="node-title">Motor RAG Híbrido (BM25 + FAISS)</text>
+            <text x="405" y="405" class="node-sub">Reciprocal Rank Fusion (k=60)</text>
+            <text x="405" y="422" class="node-sub">Filtro APCR por Rol de Usuario</text>
+          </g>
+
+          <!-- Verificador NLI & LLM -->
+          <g class="node" onclick="updateSidebar('nli')" id="sys-nli">
+            <rect x="680" y="355" width="240" height="85" class="node-box" fill="url(#gradCore)" stroke="#34d399" />
+            <text x="705" y="385" class="node-title">Verificador Fáctico NLI & Grader</text>
+            <text x="705" y="405" class="node-sub">Cross-Encoder DeBERTa-v3-small</text>
+            <text x="705" y="422" class="node-sub">Auditoría AHR: [Pent, Pneut, Pcontra]</text>
+          </g>
+
+          <!-- Persistencia: FAISS & Docs -->
+          <g class="node" onclick="updateSidebar('storage')" id="sys-storage">
+            <rect x="80" y="535" width="380" height="90" class="node-box" fill="url(#gradData)" stroke="#fb923c" />
+            <text x="105" y="565" class="node-title">Corpus Normativo & Índices FAISS</text>
+            <text x="105" y="585" class="node-sub">Reglamento UAGRM (14 Docs) • Embeddings 768d</text>
+            <text x="105" y="605" class="node-sub">faiss_index.bin • qa_cache.pkl • BM25 Index</text>
+          </g>
+
+          <!-- Persistencia: Logs & Feedback -->
+          <g class="node" onclick="updateSidebar('logs')" id="sys-logs">
+            <rect x="540" y="535" width="380" height="90" class="node-box" fill="url(#gradData)" stroke="#fb923c" />
+            <text x="565" y="565" class="node-title">Logs de Interacción y Feedback Doctoral</text>
+            <text x="565" y="585" class="node-sub">interaction_logs.jsonl (routing_trace, dact, nli)</text>
+            <text x="565" y="605" class="node-sub">feedback.jsonl (satisfacción, claridad, fallos)</text>
+          </g>
+
+          <!-- Conexiones -->
+          <!-- Client -> Gateway -->
+          <path d="M 200 160 L 200 287 L 380 287" fill="none" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow-active)" class="edge-animated" />
+          <!-- Gateway -> DACT -->
+          <path d="M 450 325 L 450 345 L 200 345 L 200 355" fill="none" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#arrow)" />
+          <!-- Gateway -> RAG -->
+          <path d="M 500 325 L 500 355" fill="none" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#arrow)" />
+          <!-- RAG -> NLI -->
+          <path d="M 620 397 L 680 397" fill="none" stroke="#34d399" stroke-width="2" marker-end="url(#arrow)" />
+          <!-- Admin <- Logs -->
+          <path d="M 730 535 L 730 160" fill="none" stroke="#a855f7" stroke-width="2" marker-end="url(#arrow)" class="edge-animated" />
+          <!-- Gateway -> Logs -->
+          <path d="M 620 287 L 850 287 L 850 535" fill="none" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#arrow)" />
+        </svg>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- VISTA 2: RAG PROPUESTO CON DACT & NLI       -->
+      <!-- ========================================== -->
+      <div id="view-dact-rag" class="diagram-container">
+        <svg viewBox="0 0 1000 680" xmlns="http://www.w3.org/2000/svg">
+          <!-- Flujo detallado DACT -->
+          <rect x="50" y="40" width="900" height="600" rx="16" fill="rgba(255,255,255,0.01)" stroke="#334155" />
+
+          <!-- Consulta Usuario -->
+          <g class="node" onclick="updateSidebar('q-input')">
+            <rect x="380" y="70" width="240" height="60" class="node-box" fill="#0284c7" stroke="#38bdf8" />
+            <text x="420" y="100" class="node-title">Consulta de Usuario (q)</text>
+            <text x="420" y="118" class="node-sub">Embedding 768d + Categorización</text>
+          </g>
+
+          <!-- FAISS Top-k -->
+          <g class="node" onclick="updateSidebar('faiss-topk')">
+            <rect x="380" y="170" width="240" height="70" class="node-box" fill="#1e293b" stroke="#94a3b8" />
+            <text x="410" y="200" class="node-title">Top-k FAISS (k=3)</text>
+            <text x="410" y="218" class="node-sub">Candidatos S_k = [s₁, s₂, s₃]</text>
+            <text x="410" y="232" class="node-sub">Similitud Coseno Normalizada</text>
+          </g>
+
+          <!-- Núcleo DACT -->
+          <g class="node" onclick="updateSidebar('dact')">
+            <rect x="330" y="280" width="340" height="110" class="node-box" fill="#581c87" stroke="#c084fc" />
+            <text x="350" y="310" class="node-title">Algoritmo DACT (Incertidumbre Contextual)</text>
+            <text x="350" y="332" class="node-sub">1. Margen Semántico: Δ₁,₂ = s₁ - s₂</text>
+            <text x="350" y="350" class="node-sub">2. Softmax con Temp (τ=0.1) & Entropía H(Sₖ)</text>
+            <text x="350" y="368" class="node-sub">3. θ_dyn = clip(θ_base + α·H - β·Δ + γ·Φ_fb)</text>
+          </g>
+
+          <!-- Bifurcación Decision -->
+          <polygon points="500,420 590,465 500,510 410,465" fill="#312e81" stroke="#818cf8" stroke-width="2" />
+          <text x="450" y="470" fill="#fff" font-size="12" font-weight="600">¿ s₁ ≥ θ_dyn ?</text>
+
+          <!-- Rama FAQ Aceptado -->
+          <g class="node" onclick="updateSidebar('faq-pass')">
+            <rect x="80" y="440" width="250" height="85" class="node-box" fill="#065f46" stroke="#34d399" />
+            <text x="100" y="470" class="node-title">NIVEL 1: FAQ OFICIAL ACEPTADA</text>
+            <text x="100" y="490" class="node-sub">Latencia Inmediata ~0.3s • 0 Tokens LLM</text>
+            <text x="100" y="508" class="node-sub">Certeza Semántica Validada por DACT</text>
+          </g>
+
+          <!-- Rama Salto RAG -->
+          <g class="node" onclick="updateSidebar('rag-jump')">
+            <rect x="670" y="440" width="250" height="85" class="node-box" fill="#1e3a8a" stroke="#60a5fa" />
+            <text x="690" y="470" class="node-title">NIVEL 3: RAG GENERATIVO</text>
+            <text x="690" y="490" class="node-sub">Incertidumbre o Ambigüedad Competitiva</text>
+            <text x="690" y="508" class="node-sub">Recuperación Híbrida + Generación LLM</text>
+          </g>
+
+          <!-- Verificador NLI -->
+          <g class="node" onclick="updateSidebar('nli')">
+            <rect x="670" y="555" width="250" height="65" class="node-box" fill="#14532d" stroke="#4ade80" />
+            <text x="690" y="582" class="node-title">Auditoría Fáctica NLI (DeBERTa)</text>
+            <text x="690" y="602" class="node-sub">IsHallucinated = (Pcontra > 0.45) ∨ (Pent < 0.30)</text>
+          </g>
+
+          <!-- Flechas -->
+          <path d="M 500 130 L 500 170" fill="none" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow)" />
+          <path d="M 500 240 L 500 280" fill="none" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)" />
+          <path d="M 500 390 L 500 420" fill="none" stroke="#c084fc" stroke-width="2" marker-end="url(#arrow)" />
+
+          <!-- SÍ -> FAQ -->
+          <path d="M 410 465 L 330 465" fill="none" stroke="#34d399" stroke-width="2.5" marker-end="url(#arrow-active)" />
+          <text x="345" y="455" fill="#34d399" font-size="12" font-weight="700">SÍ (Match)</text>
+
+          <!-- NO -> RAG -->
+          <path d="M 590 465 L 670 465" fill="none" stroke="#60a5fa" stroke-width="2.5" marker-end="url(#arrow)" />
+          <text x="605" y="455" fill="#60a5fa" font-size="12" font-weight="700">NO (Incertidumbre)</text>
+
+          <!-- RAG -> NLI -->
+          <path d="M 795 525 L 795 555" fill="none" stroke="#4ade80" stroke-width="2" marker-end="url(#arrow)" />
+        </svg>
+      </div>
+
+    </div>
+
+    <!-- Panel Lateral de Detalles Académicos -->
+    <aside class="sidebar">
+      <h2>🔍 Especificación Arquitectónica</h2>
+
+      <div id="side-content" class="panel-card">
+        <span class="pill-tag tag-dact">CONTRIBUCIÓN DOCTORAL 1</span>
+        <h3 id="panel-title" style="font-size: 1.05rem;">Algoritmo DACT</h3>
+        <p id="panel-desc" style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;">
+          Optimización Dinámica de Umbrales de Cascada Mediante Incertidumbre Contextual y Entropía Semántica. Reemplaza umbrales rígidos estáticos (θ = 0.75).
+        </p>
+        <div class="formula-code" id="panel-formula">
+θ_dyn = clip(θ_base + α·H(Sk) - β·Δ₁,₂ + γ·Φ_fb, θ_min, θ_max)
+
+Δ₁,₂ = s₁ - s₂ (Margen de confianza)
+H(Sk) = Entropía normalizada de Shannon
+Φ_fb = Penalización empírica de feedback
+        </div>
+        <div class="stat-row">
+          <span class="stat-lbl">Umbral Base (θ_base):</span>
+          <span class="stat-val">0.750</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-lbl">Rango Clipeado:</span>
+          <span class="stat-val">[0.60, 0.88]</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-lbl">Latencia FAQ vs RAG:</span>
+          <span class="stat-val">~0.3s vs ~3.2s</span>
+        </div>
+      </div>
+
+      <div class="panel-card">
+        <span class="pill-tag tag-nli">CONTRIBUCIÓN DOCTORAL 2</span>
+        <h3 style="font-size: 1rem;">Verificador Fáctico NLI</h3>
+        <p style="font-size: 0.83rem; color: var(--text-muted); line-height: 1.45;">
+          Auditoría de Inferencia en Lenguaje Natural mediante Cross-Encoder (DeBERTa-v3-small).
+        </p>
+        <div class="formula-code">
+IsHallucinated = (P_contra > 0.45) ∨ (P_entail < 0.30)
+Meta Tesis: AHR ≤ 2.0%
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <footer>
+    <span>SoeBOT v7.0 • Tesis Doctoral en Informática / Inteligencia Artificial</span>
+    <span>Universidad Autónoma Gabriel René Moreno (UAGRM) • Metodología Design Science Research (DSR)</span>
+  </footer>
+
+  <script>
+    function switchView(viewName) {
+      document.querySelectorAll('.diagram-container').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+
+      if (viewName === 'system') {
+        document.getElementById('view-system').classList.add('active');
+        event.target.classList.add('active');
+      } else {
+        document.getElementById('view-dact-rag').classList.add('active');
+        event.target.classList.add('active');
+      }
+    }
+
+    function updateSidebar(component) {
+      const title = document.getElementById('panel-title');
+      const desc = document.getElementById('panel-desc');
+      const formula = document.getElementById('panel-formula');
+
+      if (component === 'client') {
+        title.innerText = 'Chatbot Usuario (appclient)';
+        desc.innerText = 'Interfaz de usuario para estudiantes y docentes basada en Streamlit. Conecta vía SSE streaming al puerto 9000 para respuestas en tiempo real con latencia perceptible de ~0.3s en FAQs.';
+        formula.innerText = 'Endpoint: POST /ask\nPayload: {question, user_id, user_access_level}\nTransporte: Server-Sent Events (SSE)';
+      } else if (component === 'admin') {
+        title.innerText = 'Panel de Administración (appadmin)';
+        desc.innerText = 'Centro de observabilidad doctoral y gobierno institucional. Incluye auditoría DACT en tiempo real, desglose de métricas CCR, APCR, AHR, y simulador interactivo de hiperparámetros.';
+        formula.innerText = 'Puerto: 8501\nMétricas: CCR > 80%, AHR <= 2.0%, APCR = 100%\nHerramientas: Sandbox DACT, Análisis RRF';
+      } else if (component === 'dact') {
+        title.innerText = 'Algoritmo DACT (Enrutamiento Adaptativo)';
+        desc.innerText = 'Calcula dinámicamente el umbral θ_dinámico a partir de la entropía de Shannon del top-3 de FAISS y el historial empírico de insatisfacción.';
+        formula.innerText = 'θ_dyn = clip(θ_base + α·H(Sk) - β·Δ₁,₂ + γ·Φ_fb, θ_min, θ_max)\n\nα = 0.15 (Incertidumbre)\nβ = 0.20 (Margen)\nγ = 0.10 (Feedback)';
+      } else if (component === 'nli') {
+        title.innerText = 'Verificador Fáctico NLI';
+        desc.innerText = 'Reemplaza heurísticas léxicas por un modelo Cross-Encoder que clasifica la implicación lógica entre el contexto C y la respuesta A.';
+        formula.innerText = 'CrossEncoder(Premisa=C, Hipótesis=A)\nSalida: Softmax(Logits) -> [P_entail, P_neut, P_contra]\nCriterio: P_contra > 0.45 ∨ P_entail < 0.30';
+      } else if (component === 'rag') {
+        title.innerText = 'Motor RAG Híbrido (BM25 + FAISS)';
+        desc.innerText = 'Combina recuperación por palabras clave (BM25) y semántica vectorial (FAISS) mediante Reciprocal Rank Fusion y filtrado APCR por nivel de acceso.';
+        formula.innerText = 'Score RRF = Σ 1 / (60 + Rank_m)\nFiltrado: Rol de Usuario (Estudiante, Docente, Admin)';
+      }
+    }
+  </script>
+</body>
+</html>
