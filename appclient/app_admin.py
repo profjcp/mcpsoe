@@ -402,6 +402,18 @@ if metrics:
     t_generation_list = []
     t_audit_list = []
 
+    # Métricas de Contribución DACT y NLI
+    dact_theta_list = []
+    dact_entropy_list = []
+    dact_delta_list = []
+    dact_accepted_count = 0
+    dact_total_count = 0
+
+    nli_entail_list = []
+    nli_contra_list = []
+    nli_hallucinated_count = 0
+    nli_total_count = 0
+
     if not df_interactions_view.empty:
         if "has_citations" in df_interactions_view.columns:
             citations_count = int(df_interactions_view["has_citations"].fillna(False).astype(bool).sum())
@@ -423,6 +435,23 @@ if metrics:
                     if r_meta.get("mean_rrf_score", 0) > 0:
                         rrf_scores_list.append(r_meta.get("mean_rrf_score"))
 
+                dact_meta = trace.get("dact_metrics", {})
+                if isinstance(dact_meta, dict) and "theta_dynamic" in dact_meta:
+                    dact_total_count += 1
+                    dact_theta_list.append(float(dact_meta.get("theta_dynamic", 0.75)))
+                    dact_entropy_list.append(float(dact_meta.get("normalized_entropy", 0.0)))
+                    dact_delta_list.append(float(dact_meta.get("delta_margin", 0.0)))
+                    if dact_meta.get("should_serve_faq"):
+                        dact_accepted_count += 1
+
+                nli_meta = trace.get("nli_audit", {})
+                if isinstance(nli_meta, dict) and "p_entailment" in nli_meta:
+                    nli_total_count += 1
+                    nli_entail_list.append(float(nli_meta.get("p_entailment", 0.0)))
+                    nli_contra_list.append(float(nli_meta.get("p_contradiction", 0.0)))
+                    if nli_meta.get("is_hallucinated"):
+                        nli_hallucinated_count += 1
+
             t_ms = row.get("timing_ms")
             if isinstance(t_ms, dict):
                 try:
@@ -441,6 +470,15 @@ if metrics:
     avg_t_retrieval = round(float(sum(t_retrieval_list) / len(t_retrieval_list)), 1) if t_retrieval_list else 0.0
     avg_t_generation = round(float(sum(t_generation_list) / len(t_generation_list)), 1) if t_generation_list else 0.0
     avg_t_audit = round(float(sum(t_audit_list) / len(t_audit_list)), 1) if t_audit_list else 0.0
+
+    avg_dact_theta = round(float(sum(dact_theta_list) / len(dact_theta_list)), 3) if dact_theta_list else 0.75
+    avg_dact_entropy = round(float(sum(dact_entropy_list) / len(dact_entropy_list)), 3) if dact_entropy_list else 0.0
+    avg_dact_delta = round(float(sum(dact_delta_list) / len(dact_delta_list)), 3) if dact_delta_list else 0.0
+    dact_acceptance_rate = round((dact_accepted_count / dact_total_count) * 100, 1) if dact_total_count else 0.0
+
+    avg_nli_entail = round(float(sum(nli_entail_list) / len(nli_entail_list)), 3) if nli_entail_list else 0.0
+    avg_nli_contra = round(float(sum(nli_contra_list) / len(nli_contra_list)), 3) if nli_contra_list else 0.0
+    nli_hallucination_rate = round((nli_hallucinated_count / nli_total_count) * 100, 1) if nli_total_count else 0.0
 
     st.header("Dashboard analítico para tesis")
     st.caption("Vista reorganizada para explorar métricas cuantitativas y cualitativas sin saturar la pantalla.")
@@ -795,13 +833,31 @@ if metrics:
 
     with tab_tesis:
         st.subheader("🎓 Validación Científica de la Hipótesis Doctoral")
-        st.caption("Métricas empíricas diseñadas para evaluar el artefacto RAG Académico Seguro.")
+        st.caption("Métricas empíricas diseñadas para evaluar el artefacto RAG Académico Seguro (v7.0 DACT + NLI).")
 
         c1, c2, c3, c4 = st.columns(4)
         c1.metric("Compliance Acceso (APCR)", "100%", help="Fragmentos dentro de la jerarquía de permisos del usuario")
-        c2.metric("Tasa de Citación (CCR)", f"{citation_rate}%", help="Respuestas RAG_DOC con citas formales")
+        c2.metric("Tasa de Citación (CCR)", f"{citation_rate}%", help="Respuestas RAG_DOC con citas formales [Doc, Art]")
         c3.metric("Tasa Contingencia (CFR)", f"{contingency_rate}%", help="Respuestas deterministas ante vacío normativo")
-        c4.metric("Score RRF Promedio", mean_rrf_overall, help="Calidad de fusión léxica + semántica")
+        c4.metric("Score RRF Promedio", mean_rrf_overall, help="Calidad de fusión léxica (BM25) + semántica (FAISS)")
+
+        st.markdown("---")
+        st.markdown("### 🧮 Contribución Doctoral 1: Algoritmo DACT (Enrutamiento Adaptativo)")
+        st.caption("Cálculo dinámico de umbral basado en entropía de Shannon y margen semántico del top-k de FAISS.")
+        d1, d2, d3, d4 = st.columns(4)
+        d1.metric("Umbral Dinámico Medio (θ_dyn)", f"{avg_dact_theta}", help="Media de θ_dynamic clipeado en [0.60, 0.88]")
+        d2.metric("Entropía Normalizada Media H(Sk)", f"{avg_dact_entropy}", help="Incertidumbre media sobre el top-k (0=certeza, 1=ambigüedad)")
+        d3.metric("Margen Semántico Medio (Δ₁,₂)", f"{avg_dact_delta}", help="Diferencia promedio de similitud s1 - s2")
+        d4.metric("Tasa Aceptación FAQ DACT", f"{dact_acceptance_rate}%", f"{dact_accepted_count}/{dact_total_count} evaluadas", help="Porcentaje de consultas resueltas directamente por FAQ en ~0.3s")
+
+        st.markdown("---")
+        st.markdown("### 🛡️ Contribución Doctoral 2: Verificador Fáctico NLI (Cross-Encoder DeBERTa-v3)")
+        st.caption("Auditoría de implicación lógica formal entre el contexto normativo y la respuesta generada.")
+        n1, n2, n3, n4 = st.columns(4)
+        n1.metric("Implicación Media P(entailment)", f"{avg_nli_entail}", help="Probabilidad media de respaldo fáctico")
+        n2.metric("Contradicción Media P(contradiction)", f"{avg_nli_contra}", help="Score de alucinación por contradicción lógica")
+        n3.metric("Tasa Alucinación NLI (AHR)", f"{nli_hallucination_rate}%", f"{nli_hallucinated_count}/{nli_total_count} auditadas", help="Porcentaje de respuestas marcadas como alucinadas por NLI")
+        n4.metric("Cumplimiento Meta AHR", "Cumplido" if nli_hallucination_rate <= 2.0 else "Revisar", help="Meta tesis doctoral: AHR <= 2.0%")
 
         st.markdown("---")
         col_left, col_right = st.columns(2)
@@ -811,7 +867,7 @@ if metrics:
             timing_data = {
                 "Recuperación (BM25+FAISS)": avg_t_retrieval,
                 "Generación (LLM)": avg_t_generation,
-                "Auditoría (Grader)": avg_t_audit
+                "Auditoría (Grader/NLI)": avg_t_audit
             }
             fig, ax = plt.subplots(figsize=(6, 3.5))
             ax.bar(timing_data.keys(), timing_data.values(), color=["#3d5a80", "#98c1d9", "#ee6c4d"])
@@ -821,22 +877,28 @@ if metrics:
             st.pyplot(fig)
 
         with col_right:
-            st.markdown("### 🛡️ Auditoría de Alucinación (HallucinationGrader)")
+            st.markdown("### 🛡️ Auditoría de Alucinación (HallucinationGrader / NLI)")
             if not df_interactions_view.empty and "grader_reason" in df_interactions_view.columns:
                 grader_series = df_interactions_view["grader_reason"].fillna("No auditado").astype(str)
-                grader_counts = grader_series.value_counts()
+                grader_counts = grader_series.value_counts().head(5)
                 fig, ax = plt.subplots(figsize=(6, 3.5))
                 ax.bar(grader_counts.index.astype(str), grader_counts.values, color="#2a9d8f")
-                ax.set_title("Dictámenes del Evaluador LLM")
+                ax.set_title("Dictámenes Principales del Evaluador")
                 plt.xticks(rotation=15, ha="right")
                 st.pyplot(fig)
             else:
                 st.info("Sin datos de auditoría de alucinaciones en la vista actual.")
 
         st.markdown("### 📊 Registro para Anexo de Tesis")
-        tesis_cols = [c for c in ["timestamp", "user_id", "question", "source", "response_preview", "hallucinated", "grader_reason", "is_contingency_fallback", "has_citations"] if c in df_interactions_view.columns]
-        if tesis_cols and not df_interactions_view.empty:
-            df_tesis_export = df_interactions_view[tesis_cols].sort_values("timestamp", ascending=False)
+        if not df_interactions_view.empty:
+            df_tesis_view = df_interactions_view.copy()
+            df_tesis_view["dact_theta"] = df_tesis_view["routing_trace"].apply(lambda t: t.get("dact_metrics", {}).get("theta_dynamic") if isinstance(t, dict) else None)
+            df_tesis_view["dact_entropy"] = df_tesis_view["routing_trace"].apply(lambda t: t.get("dact_metrics", {}).get("normalized_entropy") if isinstance(t, dict) else None)
+            df_tesis_view["nli_p_entail"] = df_tesis_view["routing_trace"].apply(lambda t: t.get("nli_audit", {}).get("p_entailment") if isinstance(t, dict) else None)
+            df_tesis_view["nli_p_contra"] = df_tesis_view["routing_trace"].apply(lambda t: t.get("nli_audit", {}).get("p_contradiction") if isinstance(t, dict) else None)
+            
+            tesis_cols = [c for c in ["timestamp", "user_id", "question", "source", "response_preview", "hallucinated", "dact_theta", "dact_entropy", "nli_p_entail", "nli_p_contra", "is_contingency_fallback", "has_citations"] if c in df_tesis_view.columns]
+            df_tesis_export = df_tesis_view[tesis_cols].sort_values("timestamp", ascending=False)
             st.dataframe(df_tesis_export.head(25), use_container_width=True)
             download_dataframe(df_tesis_export, "Descargar Dataset Completo para Validación Tesis", "dataset_validacion_tesis.csv")
 
