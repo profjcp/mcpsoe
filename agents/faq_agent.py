@@ -148,15 +148,18 @@ class FAQAgent:
                     continue
                 return result
 
-        # Fallback global cuando NO hay categorización útil.
-        has_specific_categories = any(cat != "Otro" for cat in normalized_categories)
-        if not has_specific_categories:
+        # Fallback global: si no hubo categoría específica o si las categorías
+        # no correspondían a ningún archivo FAQ disponible (ej. Administracion, Marketing),
+        # evaluar contra todos los archivos FAQ disponibles para calcular DACT
+        if not latest_dact_metrics or not has_specific_categories:
             for category in self.faq_files.keys():
                 if category in checked:
                     continue
                 result, dact_info = self._search_in_category(question, category)
                 if dact_info:
-                    latest_dact_metrics = dact_info
+                    # Conservar el DACT con mayor s1 (mayor similitud)
+                    if not latest_dact_metrics or dact_info.get("s1", 0.0) > latest_dact_metrics.get("s1", 0.0):
+                        latest_dact_metrics = dact_info
                 if result and result.found:
                     return result
 

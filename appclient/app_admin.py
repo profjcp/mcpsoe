@@ -427,6 +427,11 @@ if metrics:
 
         for _, row in df_interactions_view.iterrows():
             trace = row.get("routing_trace")
+            if isinstance(trace, str):
+                try:
+                    trace = json.loads(trace)
+                except Exception:
+                    trace = {}
             if isinstance(trace, dict):
                 r_meta = trace.get("retrieval_metrics", {})
                 if isinstance(r_meta, dict):
@@ -441,7 +446,7 @@ if metrics:
                     dact_theta_list.append(float(dact_meta.get("theta_dynamic", 0.75)))
                     dact_entropy_list.append(float(dact_meta.get("normalized_entropy", 0.0)))
                     dact_delta_list.append(float(dact_meta.get("delta_margin", 0.0)))
-                    if dact_meta.get("should_serve_faq"):
+                    if dact_meta.get("should_serve_faq") or row.get("source") == "FAQ":
                         dact_accepted_count += 1
 
                 nli_meta = trace.get("nli_audit", {})
@@ -892,10 +897,21 @@ if metrics:
         st.markdown("### 📊 Registro para Anexo de Tesis")
         if not df_interactions_view.empty:
             df_tesis_view = df_interactions_view.copy()
-            df_tesis_view["dact_theta"] = df_tesis_view["routing_trace"].apply(lambda t: t.get("dact_metrics", {}).get("theta_dynamic") if isinstance(t, dict) else None)
-            df_tesis_view["dact_entropy"] = df_tesis_view["routing_trace"].apply(lambda t: t.get("dact_metrics", {}).get("normalized_entropy") if isinstance(t, dict) else None)
-            df_tesis_view["nli_p_entail"] = df_tesis_view["routing_trace"].apply(lambda t: t.get("nli_audit", {}).get("p_entailment") if isinstance(t, dict) else None)
-            df_tesis_view["nli_p_contra"] = df_tesis_view["routing_trace"].apply(lambda t: t.get("nli_audit", {}).get("p_contradiction") if isinstance(t, dict) else None)
+            def _extract_trace_dict(t):
+                if isinstance(t, dict):
+                    return t
+                if isinstance(t, str):
+                    try:
+                        return json.loads(t)
+                    except Exception:
+                        return {}
+                return {}
+
+            parsed_traces = df_tesis_view["routing_trace"].apply(_extract_trace_dict)
+            df_tesis_view["dact_theta"] = parsed_traces.apply(lambda t: t.get("dact_metrics", {}).get("theta_dynamic"))
+            df_tesis_view["dact_entropy"] = parsed_traces.apply(lambda t: t.get("dact_metrics", {}).get("normalized_entropy"))
+            df_tesis_view["nli_p_entail"] = parsed_traces.apply(lambda t: t.get("nli_audit", {}).get("p_entailment"))
+            df_tesis_view["nli_p_contra"] = parsed_traces.apply(lambda t: t.get("nli_audit", {}).get("p_contradiction"))
             
             tesis_cols = [c for c in ["timestamp", "user_id", "question", "source", "response_preview", "hallucinated", "dact_theta", "dact_entropy", "nli_p_entail", "nli_p_contra", "is_contingency_fallback", "has_citations"] if c in df_tesis_view.columns]
             df_tesis_export = df_tesis_view[tesis_cols].sort_values("timestamp", ascending=False)

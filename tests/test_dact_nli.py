@@ -103,6 +103,24 @@ class TestFAQAgentWithDACT(unittest.TestCase):
         self.assertEqual(result.dact_metrics.get("decision"), "FAQ_ACCEPTED")
         self.assertGreater(result.dact_metrics.get("s1", 0), 0.9)
 
+    def test_faq_agent_dact_with_unmapped_category(self):
+        # Consulta de área Administracion/Marketing sin archivo propio
+        dummy_faqs = [
+            {"pregunta": "¿Cómo tramitar certificados?", "respuesta": "Acuda a caja", "embedding": [0.85] * 768},
+        ]
+        agent = FAQAgent(
+            faq_files={"AtencionCliente": "dummy_path"},
+            load_faqs_fn=lambda path, embed_fn: dummy_faqs,
+            embed_query_fn=lambda q: [0.85] * 768,
+            threshold=0.75,
+            min_token_overlap=1,
+        )
+
+        result = agent.run("¿Cómo tramitar certificados?", ["Administracion"])
+        self.assertIsNotNone(result.dact_metrics)
+        self.assertIn("theta_dynamic", result.dact_metrics)
+        self.assertGreater(result.dact_metrics.get("s1", 0), 0.8)
+
 
 if __name__ == "__main__":
     unittest.main()
