@@ -552,12 +552,38 @@ Respuesta:
         prompt = PromptTemplate.from_template(template)
         return prompt | llm
 
+    def _compute_feedback_penalty(category: str, question: str) -> float:
+        """Calcula Phi_feedback a partir del ratio de insatisfacción en feedback.jsonl."""
+        try:
+            if not os.path.exists(FEEDBACK_LOG_PATH):
+                return 0.0
+            neg_count = 0
+            tot_count = 0
+            with open(FEEDBACK_LOG_PATH, "r", encoding="utf-8") as f:
+                lines = f.readlines()
+            for line in lines[-50:]:
+                if not line.strip():
+                    continue
+                rec = json.loads(line)
+                sat = rec.get("satisfaction")
+                err = rec.get("error_type")
+                if sat is not None:
+                    tot_count += 1
+                    if int(sat) <= 2 or bool(err):
+                        neg_count += 1
+            if tot_count > 0:
+                return float(min(1.0, neg_count / tot_count))
+        except Exception:
+            pass
+        return 0.0
+
     faq_agent = FAQAgent(
         faq_files=faq_files,
         load_faqs_fn=cargar_faqs_con_embeddings,
         embed_query_fn=embeddings.embed_query,
         threshold=0.82,
         min_token_overlap=2,
+        get_feedback_penalty_fn=_compute_feedback_penalty,
     )
 
     doc_rag_agent = DocRAGAgent(

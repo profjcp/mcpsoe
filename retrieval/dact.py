@@ -3,13 +3,14 @@ Algoritmo DACT (Dynamic Adaptive Cascade Thresholding)
 ======================================================
 Contribución Algorítmica Doctoral para Enrutamiento Adaptativo por Incertidumbre.
 Reemplaza umbrales estáticos fijos (θ = 0.75) mediante el análisis de la distribución
-de similitudes del top-k en FAISS, calculando entropía normalizada de Shannon y margen semántico.
+de similitudes del top-k en FAISS y el histórico empírico de feedback, calculando
+entropía normalizada de Shannon, margen semántico y regularización por retroalimentación.
 
 Ecuaciones Formales:
   1. Margen Semántico: Δ₁,₂ = s₁ - s₂
   2. Distribución Softmax con Temperatura: p_i = exp(s_i / τ) / Σ exp(s_j / τ)
   3. Entropía Normalizada: H(S_k) = - (1 / log₂(k)) * Σ p_i * log₂(p_i + ε)
-  4. Umbral Dinámico: θ_dynamic = clip(θ_base + α * H(S_k) - β * Δ₁,₂, θ_min, θ_max)
+  4. Umbral Dinámico: θ_dynamic = clip(θ_base + α * H(S_k) - β * Δ₁,₂ + γ * Φ_feedback, θ_min, θ_max)
 """
 
 from dataclasses import dataclass, field
@@ -26,6 +27,7 @@ class DACTResult:
     normalized_entropy: float
     theta_dynamic: float
     should_serve_faq: bool
+    feedback_penalty: float = 0.0
     probabilities: List[float] = field(default_factory=list)
     top_k_scores: List[float] = field(default_factory=list)
     decision: str = "FALLBACK_RAG"
@@ -37,6 +39,7 @@ class DACTResult:
             "delta_margin": round(float(self.delta_margin), 4),
             "normalized_entropy": round(float(self.normalized_entropy), 4),
             "theta_dynamic": round(float(self.theta_dynamic), 4),
+            "feedback_penalty": round(float(self.feedback_penalty), 4),
             "should_serve_faq": bool(self.should_serve_faq),
             "decision": self.decision,
             "probabilities": [round(float(p), 4) for p in self.probabilities],
@@ -45,7 +48,7 @@ class DACTResult:
 
 class DACTRouter:
     """
-    Enrutador Adaptativo Dinámico basado en Entropía e Incertidumbre.
+    Enrutador Adaptativo Dinámico basado en Entropía, Incertidumbre e Histórico de Feedback.
     """
 
     def __init__(
@@ -53,6 +56,7 @@ class DACTRouter:
         theta_base: float = 0.75,
         alpha: float = 0.15,
         beta: float = 0.20,
+        gamma: float = 0.10,
         theta_min: float = 0.60,
         theta_max: float = 0.88,
         tau: float = 0.10,
@@ -61,16 +65,24 @@ class DACTRouter:
         self.theta_base = float(theta_base)
         self.alpha = float(alpha)
         self.beta = float(beta)
+        self.gamma = float(gamma)
         self.theta_min = float(theta_min)
         self.theta_max = float(theta_max)
         self.tau = float(tau)
         self.epsilon = float(epsilon)
 
-    def compute_threshold(self, scores: List[float], k: int = 3) -> DACTResult:
+    def compute_threshold(
+        self,
+        scores: List[float],
+        k: int = 3,
+        feedback_penalty: float = 0.0,
+    ) -> DACTResult:
         """
-        Calcula el umbral dinámico a partir de la lista de similitudes coseno del top-k.
+        Calcula el umbral dinámico a partir de la lista de similitudes coseno del top-k
+        y la tasa de penalización histórica de feedback (Phi_feedback in [0, 1]).
         Scores debe estar ordenado descendentemente: s1 >= s2 >= ... >= sk.
         """
+        fb_val = max(0.0, min(1.0, float(feedback_penalty or 0.0)))
         if not scores:
             return DACTResult(
                 s1=0.0,
@@ -78,6 +90,7 @@ class DACTRouter:
                 delta_margin=0.0,
                 normalized_entropy=1.0,
                 theta_dynamic=self.theta_max,
+                feedback_penalty=fb_val,
                 should_serve_faq=False,
                 decision="FALLBACK_NO_SCORES",
             )
@@ -106,9 +119,14 @@ class DACTRouter:
         normalized_entropy = float(entropy_raw / (max_entropy + self.epsilon))
         normalized_entropy = max(0.0, min(1.0, normalized_entropy))
 
-        # 4. Umbral Dinámico DACT
-        # theta_dynamic = clip(theta_base + alpha * H - beta * delta, theta_min, theta_max)
-        theta_calc = self.theta_base + (self.alpha * normalized_entropy) - (self.beta * delta_1_2)
+        # 4. Umbral Dinámico DACT con Regularización por Feedback
+        # theta_dynamic = clip(theta_base + alpha * H - beta * delta + gamma * Phi_feedback, theta_min, theta_max)
+        theta_calc = (
+            self.theta_base
+            + (self.alpha * normalized_entropy)
+            - (self.beta * delta_1_2)
+            + (self.gamma * fb_val)
+        )
         theta_dynamic = float(np.clip(theta_calc, self.theta_min, self.theta_max))
 
         # Regla de Decisión Doctoral
@@ -121,6 +139,7 @@ class DACTRouter:
             delta_margin=delta_1_2,
             normalized_entropy=normalized_entropy,
             theta_dynamic=theta_dynamic,
+            feedback_penalty=fb_val,
             should_serve_faq=should_serve_faq,
             probabilities=probabilities.tolist(),
             top_k_scores=s_arr.tolist(),

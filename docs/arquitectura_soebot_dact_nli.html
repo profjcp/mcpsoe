@@ -446,16 +446,19 @@
 Δ₁,₂ = s₁ - s₂<br>
 pᵢ = Softmax(sᵢ / τ),  τ=0.1<br>
 H(Sₖ) = - (1/log₂ k) Σ pᵢ log₂(pᵢ)<br>
-θ_dyn = clip(θ_base + α·H - β·Δ₁,₂, θ_min, θ_max)
+θ_dyn = clip(θ_base + α·H - β·Δ₁,₂ + γ·Φ_fb, θ_min, θ_max)
         </div>
         <div class="metric-pill">
           <span>θ_base (Nominal):</span><span class="metric-val">0.75</span>
         </div>
         <div class="metric-pill">
-          <span>α (Penalización Incertidumbre):</span><span class="metric-val">0.15</span>
+          <span>α (Incertidumbre Entropía):</span><span class="metric-val">0.15</span>
         </div>
         <div class="metric-pill">
           <span>β (Premio Margen Semántico):</span><span class="metric-val">0.20</span>
+        </div>
+        <div class="metric-pill">
+          <span>γ (Regularización Feedback):</span><span class="metric-val">0.10</span>
         </div>
         <div class="metric-pill">
           <span>Rango Clipeado:</span><span class="metric-val">[0.60, 0.88]</span>

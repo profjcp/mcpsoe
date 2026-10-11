@@ -51,6 +51,17 @@ class TestDACTRouter(unittest.TestCase):
         res_high = self.router.compute_threshold(scores_flat, k=3)
         self.assertLessEqual(res_high.theta_dynamic, 0.88)
 
+    def test_feedback_penalty_raises_threshold(self):
+        # Caso base sin feedback negativo
+        scores = [0.80, 0.50, 0.40]
+        res_clean = self.router.compute_threshold(scores, k=3, feedback_penalty=0.0)
+        self.assertTrue(res_clean.should_serve_faq)
+
+        # Mismo caso pero con alto reporte histórico de errores (feedback_penalty=0.8)
+        res_penalized = self.router.compute_threshold(scores, k=3, feedback_penalty=0.8)
+        self.assertGreater(res_penalized.theta_dynamic, res_clean.theta_dynamic)
+        self.assertEqual(res_penalized.feedback_penalty, 0.8)
+
 
 class TestNLIEvaluator(unittest.TestCase):
 

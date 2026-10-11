@@ -40,6 +40,7 @@ class FAQAgent:
         threshold: float = 0.75,
         min_token_overlap: int = 2,
         dact_router: Optional[DACTRouter] = None,
+        get_feedback_penalty_fn: Optional[Callable[[str, str], float]] = None,
     ):
         self.faq_files = faq_files
         self.load_faqs_fn = load_faqs_fn
@@ -47,6 +48,7 @@ class FAQAgent:
         self.threshold = threshold
         self.min_token_overlap = min_token_overlap
         self.dact_router = dact_router or DACTRouter(theta_base=self.threshold)
+        self.get_feedback_penalty_fn = get_feedback_penalty_fn
 
     @staticmethod
     def _cosine_similarity(vec_a: np.ndarray, vec_b: np.ndarray) -> float:
@@ -106,8 +108,15 @@ class FAQAgent:
         scores = [sc[0] for sc in scored_candidates]
         best_score, best_item = scored_candidates[0]
 
-        # Evaluación con Algoritmo DACT (Top-k = 3)
-        dact_res = self.dact_router.compute_threshold(scores, k=3)
+        # Evaluación con Algoritmo DACT (Top-k = 3 con penalización por feedback histórico)
+        fb_penalty = 0.0
+        if self.get_feedback_penalty_fn:
+            try:
+                fb_penalty = float(self.get_feedback_penalty_fn(category, question) or 0.0)
+            except Exception:
+                fb_penalty = 0.0
+
+        dact_res = self.dact_router.compute_threshold(scores, k=3, feedback_penalty=fb_penalty)
         dact_dict = dact_res.to_dict()
 
         if dact_res.should_serve_faq and self._passes_lexical_guardrail(question, best_item.get("pregunta", "")):

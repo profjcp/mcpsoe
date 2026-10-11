@@ -1,63 +1,32 @@
-# 🎓 Marco Teórico, Metodológico y Arquitectónico: SoeBOT v7.0
-## Contribuciones Científicas: Enrutamiento Adaptativo DACT y Verificación Fáctica NLI
+# 🎓 Propuesta de Tesis Doctoral: SoeBOT v7.0
+## Optimización Dinámica de Umbrales de Cascada Mediante Incertidumbre Contextual (Dynamic Adaptive Cascade Thresholding - DACT)
 
 ---
 
-## 📌 Resumen Ejecutivo y Objeto de Estudio
+## 📌 1. Planteamiento de la Investigación Doctoral
 
-Este documento formaliza las contribuciones científicas y arquitectónicas incorporadas a **SoeBOT** (`mcpsoe`), un sistema multiagente de **Generación Aumentada por Recuperación (RAG)** en cascada para entornos universitarios de posgrado. 
+### 1.1. El Problema Científico
+En sistemas RAG híbridos en cascada de múltiples niveles, determinar cuándo saltar de una respuesta estática (FAQ pre-verificada / Caché Q&A) a una generativa (RAG con LLM) utilizando un **umbral escalar fijo** ($\theta = 0.75$) introduce dos deficiencias críticas:
+1. **Falsos Positivos:** Ignora la ambigüedad del dominio cuando múltiples candidatos compiten con similitudes cercanas en el espacio latente, sirviendo respuestas estáticas incorrectas que confunden al usuario.
+2. **Falsos Negativos:** Penaliza consultas válidas pero semánticamente dispersas, provocando caídas innecesarias a la inferencia generativa del LLM con el consiguiente incremento de latencia (de ~0.3s a >3.5s) y consumo computacional.
 
-La investigación se enmarca en la metodología **Design Science Research (DSR)** (Hevner et al., 2004) y el paradigma de **Sistemas de Recuperación de Información Fidedignos**. Resuelve dos vacíos críticos identificados en la literatura contemporánea de RAG (2024–2026):
+El problema radica en que un umbral escalar fijo ignora por completo la **variabilidad semántica de la consulta**, la **incertidumbre contextual de la distribución de candidatos** y el **histórico empírico de satisfacción/fallas de los usuarios**.
 
-1. **Vacío Algorítmico 1 (Rigidez en la Cascada de Recuperación):** Los sistemas en cascada FAQ-RAG tradicionales emplean un umbral estático rígido ($\theta = 0.75$), lo que produce *falsos positivos* en consultas ambiguas y *falsos negativos* (caídas innecesarias a LLM costoso) en consultas válidas pero dispersas léxicamente.
-   - **Solución Propuesta:** Algoritmo **DACT (Dynamic Adaptive Cascade Thresholding)** basado en entropía de Shannon y margen de confianza semántica del top-$k$.
-2. **Vacío Metodológico 3 (Evaluación Débil de Alucinaciones):** El uso de heurísticas léxicas simples (como solapamiento superficial de tokens $< 10\%$) falla ante respuestas paráfraseadas semánticamente correctas y no detecta contradicciones lógicas sutiles.
-   - **Solución Propuesta:** Verificador de **Inferencia del Lenguaje Natural (NLI - Natural Language Inference)** basado en modelos Cross-Encoder ligeros (`DeBERTa-v3`), computando probabilidades formales de implicación lógica ($P_{\text{entailment}}$) y contradicción ($P_{\text{contradiction}}$).
+### 1.2. El Aporte Doctoral
+**Diseñar e implementar un Algoritmo de Enrutamiento Adaptativo Basado en Estimación de Incertidumbre y Entropía Semántica (DACT - Dynamic Adaptive Cascade Thresholding).**
 
----
+En lugar de comparar únicamente una similitud coseno unidimensional contra una constante estática, el sistema:
+1. Modela las distancias relativas entre los $k$ vecinos más cercanos en el espacio latente ($\Delta_{1,2} = s_1 - s_2$).
+2. Computa la distribución de probabilidad Softmax con temperatura $\tau$ y estima la **entropía normalizada de Shannon** $\mathcal{H}(S_k)$ de dicha distribución para cuantificar la incertidumbre semántica de la consulta.
+3. Incorpora el **histórico de feedback** ($\Phi_{\text{feedback}}$) derivado de evaluaciones previas de satisfacción de usuario registradas en el sistema.
+4. Ajusta dinámicamente el umbral de decisión:
+   $$\theta_{\text{dinámico}} = f(\text{Entropía}, \text{Histórico de Feedback}) = \text{clip}\left(\theta_{\text{base}} + \alpha \cdot \mathcal{H}(S_k) - \beta \cdot \Delta_{1,2} + \gamma \cdot \Phi_{\text{feedback}}, \theta_{\text{min}}, \theta_{\text{max}}\right)$$
 
-## 🧮 1. Fundamentación Teórica y Formulación Matemática
+### 1.3. Pregunta de Investigación
+> **¿Cómo influye la adaptación dinámica de umbrales basada en la entropía del espacio de embeddings y el histórico de feedback en la reducción de falsos positivos en la recuperación de FAQs sin incrementar la latencia global del sistema?**
 
-```
-                              CONSULTA USUARIO (q)
-                                       │
-                                       ▼
-                   ┌───────────────────────────────────────┐
-                   │    Nivel 1: Enrutador Semántico FAQ   │
-                   │     Embedding & Búsqueda FAISS        │
-                   └──────────────────┬────────────────────┘
-                                      │ Top-k Similitudes: S_k = [s_1, ..., s_k]
-                                      ▼
-                   ┌───────────────────────────────────────┐
-                   │       ALGORITMO CIENTÍFICO DACT       │
-                   │  1. Margen Semántico: Δ_1,2 = s_1 - s_2│
-                   │  2. Softmax con Temp (τ): p_i         │
-                   │  3. Entropía Normalizada: H(S_k)      │
-                   │  4. Umbral Dinámico: θ_dynamic(q)     │
-                   └──────────────────┬────────────────────┘
-                                      │
-                         ¿ s_1 ≥ θ_dynamic(q) ?
-                                     / \
-                             SÍ     /   \   NO
-                             ───────     ───────
-                            /                   \
-                           ▼                     ▼
-               ┌──────────────────────┐  ┌──────────────────────────────┐
-               │  Respuesta FAQ       │  │ Nivel 2: Caché Q&A           │
-               │  Inmediata (~0.3s)   │  │ Nivel 3: RAG Híbrido (BM25   │
-               └──────────────────────┘  │          + FAISS + RRF)      │
-                                         └──────────────┬───────────────┘
-                                                        │ Generación LLM (A)
-                                                        │ Contexto (C)
-                                                        ▼
-                                         ┌──────────────────────────────┐
-                                         │   VERIFICADOR FÁCTICO NLI    │
-                                         │  Cross-Encoder DeBERTa-v3    │
-                                         │  [P_entail, P_neut, P_contra]│
-                                         └──────────────┬───────────────┘
-                                                        │
-                                           ¿ P_contra > 0.45 o
-                                             P_entail < 0.30 ?
+### 1.4. Hipótesis Científica
+La incorporación de una función adaptativa de umbral $\theta_{\text{dinámico}} = f(\mathcal{H}(S_k), \Phi_{\text{feedback}})$ en el nivel de enrutamiento FAQ reduce en más de un 60% la tasa de falsos positivos frente a umbrales fijos ($\theta=0.75$), manteniendo la latencia media de atención por debajo de 0.5s para consultas de alta certidumbre y derivando oportunamente a RAG generativo verificado por NLI cuando la incertidumbre semántica es elevada.
                                                        / \
                                                SÍ     /   \   NO
                                                ───────     ───────
@@ -91,12 +60,13 @@ $$\mathcal{H}(S_k) = -\frac{1}{\log_2(k)} \sum_{i=1}^k p_i \log_2(p_i + \epsilon
   * $\mathcal{H} \to 1$: Máxima incertidumbre (todos los candidatos tienen similitudes indistinguibles).
 
 #### Ecuación 4: Umbral Dinámico Adaptativo ($\theta_{\text{dynamic}}$)
-$$\theta_{\text{dynamic}}(q) = \text{clip}\left( \theta_{\text{base}} + \alpha \cdot \mathcal{H}(S_k) - \beta \cdot \Delta_{1,2}, \;\theta_{\text{min}}, \;\theta_{\text{max}} \right)$$
+$$\theta_{\text{dynamic}}(q) = \text{clip}\left( \theta_{\text{base}} + \alpha \cdot \mathcal{H}(S_k) - \beta \cdot \Delta_{1,2} + \gamma \cdot \Phi_{\text{feedback}}, \;\theta_{\text{min}}, \;\theta_{\text{max}} \right)$$
 
 * **Parámetros de Calibración:**
   * $\theta_{\text{base}} = 0.75$: Umbral nominal de diseño.
   * $\alpha = 0.15$: Ponderador de penalización por ambigüedad. Si la entropía es alta ($\mathcal{H} \to 1$), el umbral sube automáticamente (hasta $+0.15$) exigiendo mayor similitud para evitar responder erróneamente.
   * $\beta = 0.20$: Ponderador de premio por margen. Si hay un candidato desmarcado ($\Delta_{1,2} \gg 0$), el umbral baja (hasta $-0.20$), permitiendo responder con FAQ en ~0.3s y evitando una costosa llamada al LLM.
+  * $\gamma = 0.10$: Ponderador de regularización por retroalimentación empírica. $\Phi_{\text{feedback}} \in [0, 1]$ mide el ratio de insatisfacción o fallos reportados en interacciones históricas previas del área temática. Si el historial presenta insatisfacción recurrente, el umbral se eleva para exigir mayor precisión y derivar hacia RAG con citaciones.
   * Rango de contención: $\theta_{\text{min}} = 0.60$, $\theta_{\text{max}} = 0.88$.
 
 ---

@@ -7,7 +7,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 import os
+import sys
 from datetime import datetime
+
+base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if base_dir not in sys.path:
+    sys.path.append(base_dir)
+
+try:
+    from retrieval.dact import DACTRouter
+except ImportError:
+    DACTRouter = None
 
 st.set_page_config(page_title="SoeBOT Admin Dashboard", page_icon="📊", layout="wide")
 
@@ -862,7 +872,186 @@ if metrics:
         n1.metric("Implicación Media P(entailment)", f"{avg_nli_entail}", help="Probabilidad media de respaldo fáctico")
         n2.metric("Contradicción Media P(contradiction)", f"{avg_nli_contra}", help="Score de alucinación por contradicción lógica")
         n3.metric("Tasa Alucinación NLI (AHR)", f"{nli_hallucination_rate}%", f"{nli_hallucinated_count}/{nli_total_count} auditadas", help="Porcentaje de respuestas marcadas como alucinadas por NLI")
-        n4.metric("Cumplimiento Meta AHR", "Cumplido" if nli_hallucination_rate <= 2.0 else "Revisar", help="Meta tesis doctoral: AHR <= 2.0%")
+        st.markdown("---")
+        st.markdown("### 🔬 Observabilidad y Simulación de Arquitectura DACT en Tiempo Real")
+        st.caption("Visualiza paso a paso cómo el Enrutador Adaptativo evalúa la incertidumbre contextual de las consultas enviadas desde el chatbot (appclient) o experimenta con el laboratorio interactivo de parámetros.")
+
+        modo_simulacion = st.radio(
+            "Fuente de datos para visualización arquitectónica:",
+            ["📡 En Vivo: Interacciones del Chatbot (appclient)", "🎛️ Sandbox: Simulador Interactivo de Parámetros"],
+            horizontal=True
+        )
+
+        if modo_simulacion == "📡 En Vivo: Interacciones del Chatbot (appclient)":
+            interacciones_recientes = []
+            if not df_interactions_view.empty:
+                for idx, r in df_interactions_view.iterrows():
+                    trace = r.get("routing_trace")
+                    if isinstance(trace, str):
+                        try:
+                            trace = json.loads(trace)
+                        except Exception:
+                            trace = {}
+                    if isinstance(trace, dict):
+                        interacciones_recientes.append({
+                            "idx": idx,
+                            "timestamp": str(r.get("timestamp", ""))[:19],
+                            "user_id": r.get("user_id", "anon"),
+                            "question": str(r.get("question", "")),
+                            "source": r.get("source", "UNKNOWN"),
+                            "response_preview": str(r.get("response_preview", ""))[:200],
+                            "trace": trace
+                        })
+
+            if interacciones_recientes:
+                opciones_preguntas = [f"[{it['timestamp']}] {it['user_id']}: {it['question'][:45]}... ({it['source']})" for it in interacciones_recientes[:30]]
+                seleccion_idx = st.selectbox("Selecciona una consulta del chatbot para auditar su arquitectura:", range(len(opciones_preguntas)), format_func=lambda i: opciones_preguntas[i])
+                item_sel = interacciones_recientes[seleccion_idx]
+                trace_sel = item_sel["trace"]
+                dact_meta = trace_sel.get("dact_metrics", {})
+                nli_meta = trace_sel.get("nli_audit", {})
+
+                st.markdown("#### 🗺️ Flujo de Ejecución Arquitectónico de la Consulta")
+                c_etapa1, c_etapa2, c_etapa3, c_etapa4, c_etapa5 = st.columns(5)
+
+                with c_etapa1:
+                    st.markdown("**1. Entrada (q)**")
+                    st.info(f"**Usuario:** `{item_sel['user_id']}`\n\n**Consulta:** *\"{item_sel['question'][:65]}\"*")
+
+                with c_etapa2:
+                    st.markdown("**2. Top-k FAISS**")
+                    s1 = dact_meta.get("s1", trace_sel.get("faq_confidence", 0.0))
+                    s2 = dact_meta.get("s2", 0.0)
+                    delta = dact_meta.get("delta_margin", 0.0)
+                    st.metric("1er Candidato (s₁)", f"{s1:.3f}" if s1 else "N/A")
+                    st.caption(f"s₂ = {s2:.3f} | Margen Δ₁,₂ = {delta:.3f}")
+
+                with c_etapa3:
+                    st.markdown("**3. Incertidumbre**")
+                    H = dact_meta.get("normalized_entropy", 0.0)
+                    fb = dact_meta.get("feedback_penalty", 0.0)
+                    st.metric("Entropía H(Sₖ)", f"{H:.3f}" if H else "0.0")
+                    st.caption(f"Incertidumbre: {'Alta' if H > 0.5 else 'Baja'} | Feedback Φ: {fb:.2f}")
+
+                with c_etapa4:
+                    st.markdown("**4. Umbral DACT**")
+                    theta_dyn = dact_meta.get("theta_dynamic", 0.75)
+                    st.metric("θ_dinámico", f"{theta_dyn:.3f}")
+                    st.caption(f"θ_estático = 0.75\nCondición: s₁ ≥ θ_dyn")
+
+                with c_etapa5:
+                    st.markdown("**5. Decisión**")
+                    source = item_sel["source"]
+                    if source == "FAQ" or dact_meta.get("should_serve_faq"):
+                        st.success("🟢 FAQ Aceptada\n\n~0.3s | 0 tokens LLM")
+                    else:
+                        st.warning(f"🟠 Salto a {source}\n\nPor Incertidumbre")
+                        if nli_meta:
+                            p_contra = nli_meta.get("p_contradiction", 0.0)
+                            p_entail = nli_meta.get("p_entailment", 0.0)
+                            st.caption(f"NLI: P_ent={p_entail:.2f}, P_contra={p_contra:.2f}")
+
+                if dact_meta and dact_meta.get("top_k_scores"):
+                    fig, ax = plt.subplots(figsize=(6, 2.2))
+                    scores = dact_meta.get("top_k_scores", [s1, s2])
+                    labels = [f"Top-{i+1}" for i in range(len(scores))]
+                    colors = ["#2a9d8f" if sc >= theta_dyn else "#e76f51" for sc in scores]
+                    bars = ax.bar(labels, scores, color=colors, width=0.4)
+                    ax.axhline(theta_dyn, color="#e63946", linestyle="--", linewidth=1.5, label=f"θ_dinámico ({theta_dyn:.3f})")
+                    ax.axhline(0.75, color="#6c757d", linestyle=":", linewidth=1.2, label="θ_fijo (0.750)")
+                    ax.set_ylim(0, 1.05)
+                    ax.set_ylabel("Similitud Coseno")
+                    ax.legend(loc="lower right", fontsize=8)
+                    ax.set_title("Similitudes vs Umbrales DACT", fontsize=10)
+                    st.pyplot(fig)
+            else:
+                st.info("No se han registrado interacciones recientes con traza DACT en los logs. Envía una consulta desde appclient o utiliza el modo Sandbox a continuación.")
+
+        else:
+            st.markdown("#### 🎛️ Laboratorio de Simulación Interactiva DACT")
+            st.caption("Ajusta hiperparámetros y prueba en vivo cómo reacciona el enrutador ante distintos grados de ambigüedad e incertidumbre.")
+
+            c_input1, c_input2 = st.columns([2, 1])
+            with c_input1:
+                escenario = st.selectbox(
+                    "Cargar escenario preconfigurado:",
+                    [
+                        "1. Consulta Clara y Específica (Baja Incertidumbre)",
+                        "2. Consulta Competitiva / Ambigua (Alta Entropía)",
+                        "3. Consulta Fuera de Dominio (Similitudes Bajas)",
+                        "4. Consulta con Historial de Mal Feedback",
+                        "5. Entrada Personalizada"
+                    ]
+                )
+                if "1." in escenario:
+                    default_s1, default_s2, default_s3, default_fb = 0.88, 0.42, 0.35, 0.0
+                elif "2." in escenario:
+                    default_s1, default_s2, default_s3, default_fb = 0.74, 0.73, 0.71, 0.0
+                elif "3." in escenario:
+                    default_s1, default_s2, default_s3, default_fb = 0.38, 0.32, 0.25, 0.0
+                elif "4." in escenario:
+                    default_s1, default_s2, default_s3, default_fb = 0.76, 0.50, 0.40, 0.8
+                else:
+                    default_s1, default_s2, default_s3, default_fb = 0.78, 0.60, 0.45, 0.0
+
+            with c_input2:
+                st.markdown("**Valores de Similitud del Top-3:**")
+                s1_val = st.slider("Similitud 1er Candidato (s₁)", 0.0, 1.0, float(default_s1), 0.01)
+                s2_val = st.slider("Similitud 2do Candidato (s₂)", 0.0, min(1.0, s1_val), float(min(s1_val, default_s2)), 0.01)
+                s3_val = st.slider("Similitud 3er Candidato (s₃)", 0.0, min(1.0, s2_val), float(min(s2_val, default_s3)), 0.01)
+
+            col_p1, col_p2, col_p3, col_p4 = st.columns(4)
+            with col_p1:
+                p_theta_base = st.slider("θ_base (nominal)", 0.60, 0.85, 0.75, 0.01)
+            with col_p2:
+                p_alpha = st.slider("α (peso entropía)", 0.0, 0.30, 0.15, 0.01)
+            with col_p3:
+                p_beta = st.slider("β (peso margen)", 0.0, 0.30, 0.20, 0.01)
+            with col_p4:
+                p_gamma = st.slider("γ (peso feedback)", 0.0, 0.30, 0.10, 0.01)
+
+            p_fb = st.slider("Φ_feedback (Insatisfacción histórica acumulada)", 0.0, 1.0, float(default_fb), 0.05)
+
+            if DACTRouter:
+                router_sim = DACTRouter(
+                    theta_base=p_theta_base,
+                    alpha=p_alpha,
+                    beta=p_beta,
+                    gamma=p_gamma,
+                    theta_min=0.60,
+                    theta_max=0.88,
+                    tau=0.10
+                )
+                res_sim = router_sim.compute_threshold([s1_val, s2_val, s3_val], k=3, feedback_penalty=p_fb)
+
+                st.markdown("#### 🚀 Decisión Arquitectónica Resultante")
+                s_c1, s_c2, s_c3, s_c4, s_c5 = st.columns(5)
+                s_c1.metric("Margen Δ₁,₂", f"{res_sim.delta_margin:.3f}")
+                s_c2.metric("Entropía H(Sₖ)", f"{res_sim.normalized_entropy:.3f}")
+                s_c3.metric("θ_dinámico", f"{res_sim.theta_dynamic:.3f}")
+                s_c4.metric("θ_estático (nominal)", f"{p_theta_base:.3f}")
+
+                with s_c5:
+                    if res_sim.should_serve_faq:
+                        st.success("🟢 FAQ ACEPTADA\n\nRespuesta inmediata ~0.3s")
+                    else:
+                        st.error("🟠 SALTO A RAG\n\nIncertidumbre elevada")
+
+                fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 3.2))
+                bars = ax1.bar(["Candidato 1", "Candidato 2", "Candidato 3"], [s1_val, s2_val, s3_val], color=["#2a9d8f" if s >= res_sim.theta_dynamic else "#e76f51" for s in [s1_val, s2_val, s3_val]])
+                ax1.axhline(res_sim.theta_dynamic, color="#e63946", linestyle="--", linewidth=2, label=f"θ_dinámico ({res_sim.theta_dynamic:.3f})")
+                ax1.axhline(p_theta_base, color="#6c757d", linestyle=":", linewidth=1.5, label=f"θ_estático ({p_theta_base:.3f})")
+                ax1.set_ylim(0, 1.05)
+                ax1.set_ylabel("Similitud Coseno")
+                ax1.set_title("Espacio Latente y Umbrales DACT")
+                ax1.legend(loc="lower right", fontsize=8)
+
+                ax2.bar(["Candidato 1", "Candidato 2", "Candidato 3"], res_sim.probabilities, color="#3d5a80")
+                ax2.set_ylim(0, 1.05)
+                ax2.set_ylabel("Probabilidad Softmax (p_i)")
+                ax2.set_title(f"Distribución de Incertidumbre (H = {res_sim.normalized_entropy:.3f})")
+
+                st.pyplot(fig)
 
         st.markdown("---")
         col_left, col_right = st.columns(2)
