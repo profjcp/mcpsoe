@@ -883,33 +883,101 @@ if metrics:
         )
 
         if modo_simulacion == "📡 En Vivo: Interacciones del Chatbot (appclient)":
+            c_header1, c_header2 = st.columns([3, 1])
+            with c_header1:
+                filtro_alcance = st.radio(
+                    "Alcance de auditoría:",
+                    ["⏱️ En Vivo: Últimas interacciones recibidas", "📅 Rango de Fechas: Auditar consultas históricas"],
+                    horizontal=True,
+                    key="audit_scope_radio"
+                )
+            with c_header2:
+                if st.button("🔄 Refrescar interacciones", use_container_width=True):
+                    st.rerun()
+
+            c_flt1, c_flt2 = st.columns(2)
+            if "Últimas" in filtro_alcance:
+                with c_flt1:
+                    top_n = st.selectbox(
+                        "Cantidad de consultas recientes a listar:",
+                        [5, 10, 20, 50],
+                        index=1,
+                        key="dact_top_n_select"
+                    )
+                rango_audit_fechas = None
+            else:
+                with c_flt1:
+                    rango_audit_fechas = st.date_input(
+                        "Rango de fechas para auditoría:",
+                        value=(default_start, default_end),
+                        key="dact_custom_date_range"
+                    )
+                with c_flt2:
+                    top_n = st.selectbox(
+                        "Límite de resultados a mostrar:",
+                        [10, 25, 50, 100],
+                        index=1,
+                        key="dact_top_n_historic"
+                    )
+
+            # Cargar y ordenar de más reciente a más antigua
+            df_audit = df_interactions.copy() if not df_interactions.empty else pd.DataFrame()
+            if not df_audit.empty and "timestamp" in df_audit.columns:
+                df_audit["timestamp_dt"] = pd.to_datetime(df_audit["timestamp"], errors="coerce")
+                df_audit = df_audit.sort_values("timestamp_dt", ascending=False)
+
+                if rango_audit_fechas and isinstance(rango_audit_fechas, (list, tuple)) and len(rango_audit_fechas) == 2:
+                    d_ini, d_fin = rango_audit_fechas
+                    df_audit = df_audit[(df_audit["timestamp_dt"].dt.date >= d_ini) & (df_audit["timestamp_dt"].dt.date <= d_fin)]
+
+                df_audit = df_audit.head(top_n)
+
             interacciones_recientes = []
-            if not df_interactions_view.empty:
-                for idx, r in df_interactions_view.iterrows():
+            if not df_audit.empty:
+                for idx, r in df_audit.iterrows():
                     trace = r.get("routing_trace")
                     if isinstance(trace, str):
                         try:
                             trace = json.loads(trace)
                         except Exception:
                             trace = {}
-                    if isinstance(trace, dict):
-                        interacciones_recientes.append({
-                            "idx": idx,
-                            "timestamp": str(r.get("timestamp", ""))[:19],
-                            "user_id": r.get("user_id", "anon"),
-                            "question": str(r.get("question", "")),
-                            "source": r.get("source", "UNKNOWN"),
-                            "response_preview": str(r.get("response_preview", ""))[:200],
-                            "trace": trace
-                        })
+                    if not isinstance(trace, dict):
+                        trace = {}
+                    interacciones_recientes.append({
+                        "idx": idx,
+                        "timestamp": str(r.get("timestamp", ""))[:19],
+                        "user_id": str(r.get("user_id", "anon")),
+                        "question": str(r.get("question", "")),
+                        "source": str(r.get("source", "UNKNOWN")),
+                        "response_preview": str(r.get("response_preview", ""))[:200],
+                        "trace": trace
+                    })
 
             if interacciones_recientes:
-                opciones_preguntas = [f"[{it['timestamp']}] {it['user_id']}: {it['question'][:45]}... ({it['source']})" for it in interacciones_recientes[:30]]
-                seleccion_idx = st.selectbox("Selecciona una consulta del chatbot para auditar su arquitectura:", range(len(opciones_preguntas)), format_func=lambda i: opciones_preguntas[i])
+                opciones_preguntas = []
+                for i, it in enumerate(interacciones_recientes):
+                    ts_fmt = it['timestamp'].replace("T", " ")
+                    prefix = "🔴 [ACTUAL / EN VIVO]" if (i == 0 and "Últimas" in filtro_alcance) else f"[{i+1}]"
+                    q_crop = (it['question'][:42] + "...") if len(it['question']) > 42 else it['question']
+                    opciones_preguntas.append(f"{prefix} {ts_fmt} | {it['user_id']}: \"{q_crop}\" → {it['source']}")
+
+                seleccion_idx = st.selectbox(
+                    f"Selecciona la consulta a auditar ({len(interacciones_recientes)} disponibles, ordenada de más reciente a más antigua):",
+                    range(len(opciones_preguntas)),
+                    format_func=lambda i: opciones_preguntas[i],
+                    key="select_dact_interaction_box"
+                )
                 item_sel = interacciones_recientes[seleccion_idx]
                 trace_sel = item_sel["trace"]
                 dact_meta = trace_sel.get("dact_metrics", {})
                 nli_meta = trace_sel.get("nli_audit", {})
+
+                # Si no trae dact_metrics, calcular fallback con DACTRouter de referencia
+                if not dact_meta and DACTRouter:
+                    conf = float(trace_sel.get("faq_confidence", 0.0) or 0.0)
+                    r_eval = DACTRouter(theta_base=0.75)
+                    res_eval = r_eval.compute_threshold([conf, max(0.0, conf - 0.15)], k=2)
+                    dact_meta = res_eval.to_dict()
 
                 st.markdown("#### 🗺️ Flujo de Ejecución Arquitectónico de la Consulta")
                 c_etapa1, c_etapa2, c_etapa3, c_etapa4, c_etapa5 = st.columns(5)
@@ -965,7 +1033,7 @@ if metrics:
                     ax.set_title("Similitudes vs Umbrales DACT", fontsize=10)
                     st.pyplot(fig)
             else:
-                st.info("No se han registrado interacciones recientes con traza DACT en los logs. Envía una consulta desde appclient o utiliza el modo Sandbox a continuación.")
+                st.info("No se encontraron interacciones en el rango o criterio seleccionado. Envía una consulta desde appclient o ajusta el filtro.")
 
         else:
             st.markdown("#### 🎛️ Laboratorio de Simulación Interactiva DACT")
