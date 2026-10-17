@@ -1,25 +1,62 @@
-# SoeBOT v6.0 - Arquitectura Pipeline Multiagente Basado en LLM y RAG Académico Seguro para Optimización Universitaria
+# SoeBOT v7.0 - CLODA-RAG: Inferencia Adaptativa DACT + NLI y Aprendizaje Continuo en Bucle Cerrado
 
 [![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.119.0-green.svg)](https://fastapi.tiangolo.com/)
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.31.1-red.svg)](https://streamlit.io/)
+[![Ollama](https://img.shields.io/badge/Ollama-llama3.2:3b-purple.svg)](https://ollama.ai/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
 
-## 📋 Descripción General
+## 📋 Descripción General (v7.0)
 
-**SoeBOT v6.0** es una **arquitectura RAG híbrida y multiagente segura** desarrollada como plataforma de investigación doctoral para la Unidad de Posgrado de la School of Engineering (SOE-UAGRM). El sistema integra búsqueda dual léxica y semántica mediante **Reciprocal Rank Fusion (RRF)**, **pre-filtrado estricto de seguridad basado en roles**, guardrails de alucinaciones post-generación (**HallucinationGrader**), reescritura de consultas (**QueryRewriter**) y un completo marco de validación empírica en tiempo real.
+**SoeBOT v7.0 (CLODA-RAG: Closed-Loop Observability-Driven Adaptive RAG)** es una arquitectura científica doctoral desarrollada para la Unidad de Posgrado de la Facultad de Ingeniería en Ciencias de la Computación y Telecomunicaciones (SOE-UAGRM). Supera el paradigma convencional de bucle abierto mediante:
 
-### Características Distintivas del Sistema
+1. **Inferencia Adaptativa:** Enrutador dinámico **DACT** (basado en margen semántico $\Delta$ y entropía de Shannon $\mathcal{H}$) + Verificador Fáctico Cross-Encoder **NLI** (DeBERTa-v3) con mitigación contingente.
+2. **Aprendizaje Continuo en Bucle Cerrado:** Detector de deriva semántica en ventana deslizante ($W=50$), minería autónoma de preferencias **DPO/SFT**, reentrenamiento continuo **LoRA** en CPU multihilo (`nice +15`, 16 hilos) y **Hot-Reload** atómico en memoria sin tiempo de inactividad.
 
-- 🎓 **Arquitectura RAG Híbrida Segura**: Fusión BM25 léxico + FAISS semántico (RRF) con pre-filtrado de seguridad por nivel de acceso (`publico`, `estudiante`, `docente`, `admin`).
-- 🛡️ **Grounding Estricto y Auditoría Post-Generación**: Prompt de cero alucinación respaldado por el agente **HallucinationGrader** que evalúa la fidelidad del texto contra los documentos recuperados.
-- 🔄 **Reescritura de Consultas (QueryRewriter)**: Expansión conceptual y contextualización de preguntas vagas previo a la fase de recuperación.
-- 🤖 **LLM Local de Alto Rendimiento**: Ollama ejecutando Llama 3 Typhoon v1.5 (8B Q4_K_M) y `nomic-embed-text` para embeddings semánticos.
-- 📊 **Marco de Evaluación Doctoral Enriquecido**: Medición en tiempo real de APCR (Access Policy Compliance Rate = 100%), AHR (Audited Hallucination Rate), CCR (Citation Coverage Rate), CFR (Contingency Fallback Rate) y Score RRF Medio.
-- 💬 **Interfaz UX Avanzada**: Cliente estilo Gemini con gestión conversacional, sidebar de historial y visualización de tiempos de respuesta por componente.
-- 📈 **Dashboard Administrativo Doctoral (9 Pestañas)**: Visualización analítica integral (`📌 Res.`, `📈 Cuant.`, `✨ Cual.`, `👤 Usrs`, `🧭 Routing`, `🎓 Tesis`, `🧮 Método`, `🧪 RAGAS`, `🗂️ Datos`) con exportación de datasets a CSV.
+```mermaid
+graph TD
+    subgraph INFERENCIA_EN_PRODUCCION ["⚡ 1. Inferencia Adaptativa en Tiempo Real"]
+        U["👤 Usuario / Estudiante"] -->|Pregunta| DACT["🧭 Enrutador Adaptativo DACT<br/>(Margen Δ + Entropía Shannon H)"]
+        DACT -->|s1 ≥ θdyn<br/>Atajo ~0.3s| FAQ["⚡ FAQ Institucional Directa"]
+        DACT -->|s1 < θdyn<br/>Incertidumbre| RAG["🔍 RAG Híbrido (BM25 + FAISS)<br/>+ SLM Llama 3.2 3B"]
+        RAG -->|Respuesta Generada| NLI["🛡️ Verificador NLI (DeBERTa-v3)"]
+        NLI -->|Pentail ≥ 0.30| PASS["✅ Respuesta Fáctica Aprobada"]
+        NLI -->|Pcontra > 0.45| CONT["⚠️ Mitigación por Contingencia Institucional"]
+    end
+
+    subgraph OBSERVABILIDAD_Y_DERIVA ["📡 2. Observabilidad y Detección de Deriva"]
+        PASS & CONT --> LOGS[("📝 Logs de Interacción<br/>interaction_logs.jsonl")]
+        U -.->|Calificación 1-5 + Error| FEEDBACK[("⭐ Feedback de Usuario<br/>feedback.jsonl")]
+        LOGS & FEEDBACK --> DRIFT{"📊 Detector de Deriva (W=50)<br/>• AHR > 15% • Likert < 3.2 • H > 0.65"}
+    end
+
+    subgraph ADAPTACION_Y_RECARGA ["🔄 3. Aprendizaje Continuo (Bucle Cerrado)"]
+        DRIFT -->|🚨 Señal de Deriva Disparada| CURATOR["⛏️ Curador Autónomo DPO/SFT<br/>(DatasetCurator)"]
+        CURATOR --> TRAINER["🧠 Motor LoRA CPU Multihilo<br/>(TrainWorker - 16 Hilos, nice +15)"]
+        TRAINER --> REGISTRY["📋 Registro de Versiones Modelfile<br/>(ModelRegistry soebot:v*)"]
+        REGISTRY -->|🔥 Hot-Reload Atómico| OLLAMA["🦙 Servidor Local Ollama<br/>(llama3.2:latest + Adaptador Activo)"]
+        OLLAMA -.->|Conmutación sin Downtime| RAG
+    end
+
+    style DACT fill:#1e3a8a,stroke:#3b82f6,stroke-width:2px,color:#fff
+    style NLI fill:#065f46,stroke:#10b981,stroke-width:2px,color:#fff
+    style DRIFT fill:#7c2d12,stroke:#f97316,stroke-width:2px,color:#fff
+    style CURATOR fill:#581c87,stroke:#a855f7,stroke-width:2px,color:#fff
+    style TRAINER fill:#831843,stroke:#ec4899,stroke-width:2px,color:#fff
+    style OLLAMA fill:#14532d,stroke:#22c55e,stroke-width:2px,color:#fff
+```
+
+### Características Distintivas del Sistema (v7.0)
+
+- 🔄 **Bucle Cerrado CLODA-RAG**: Detección continua de derivas y reentrenamiento autónomo sin intervención humana.
+- 🧮 **Algoritmo DACT**: Salto óptimo FAQ-vs-RAG con latencia de ~0.3s y reducción de inferencia generativa innecesaria.
+- 🛡️ **Verificador Fáctico NLI**: Clasificación Cross-Encoder de premisa-hipótesis para reducir la tasa de alucinación ($\text{AHR} \le 1.0\%$).
+- ⚡ **LoRA en CPU Multihilo**: Entrenamiento ligero adaptativo en servidor de 24 núcleos sin necesidad de GPUs dedicadas.
+- 🦙 **SLM Base Llama 3.2 3B**: Modelo compacto nativo en español ejecutado localmente en Ollama.
+- 📊 **Matriz de Validación Doctoral de 3 Momentos**: Contrastación formal $C_0$ (Baseline) vs $C_1$ (Inferencia Adaptativa) vs $C_2$ (Bucle Cerrado) con pruebas de McNemar y Mann-Whitney.
+- 📈 **Dashboard Administrativo Doctoral**: Consola en Streamlit (puerto 8502) con telemetría en vivo, visualizador de deriva y control de hot-reload.
 
 ---
 

@@ -20,6 +20,80 @@ Los sistemas RAG convencionales son de **bucle abierto**: la observabilidad (Pro
 3. Se entrena de forma continua y autónoma un adaptador ligero (LoRA) sobre el SLM local (Llama 3.2 3B) directamente en CPU.
 4. El nuevo modelo se recarga en caliente en Ollama sin interrumpir el servicio.
 
+### 1.2 Esquema del Bucle Cerrado (Closed-Loop Architecture)
+
+```mermaid
+graph TD
+    subgraph INFERENCIA_EN_PRODUCCION ["⚡ 1. Plano de Inferencia Adaptativa en Tiempo Real"]
+        U["👤 Usuario / Estudiante"] -->|Pregunta q| DACT["🧭 Enrutador Adaptativo DACT<br/>(Margen Δ + Entropía Shannon H)"]
+        DACT -->|s1 ≥ θdyn<br/>Atajo Rápido ~0.3s| FAQ["⚡ Respuesta FAQ Directa"]
+        DACT -->|s1 < θdyn<br/>Incertidumbre| RAG["🔍 RAG Híbrido (BM25 + FAISS)<br/>+ SLM Llama 3.2 3B"]
+        RAG -->|Respuesta Generada| NLI["🛡️ Verificador Cross-Encoder NLI<br/>(DeBERTa-v3)"]
+        NLI -->|Pentail ≥ 0.30| PASS["✅ Respuesta Fáctica Aprobada"]
+        NLI -->|Pcontra > 0.45| CONT["⚠️ Mitigación por Contingencia Institucional"]
+    end
+
+    subgraph OBSERVABILIDAD_Y_DERIVA ["📡 2. Plano de Observabilidad y Detección de Deriva"]
+        PASS & CONT --> LOGS[("📝 Logs de Interacción<br/>interaction_logs.jsonl")]
+        U -.->|Calificación 1-5 + Error| FEEDBACK[("⭐ Feedback de Usuario<br/>feedback.jsonl")]
+        LOGS & FEEDBACK --> DRIFT{"📊 Detector de Deriva Continua<br/>(Ventana Deslizante W=50)<br/>• Tasa Alucinación AHR > 15%<br/>• Satisfacción Likert < 3.2<br/>• Entropía DACT H > 0.65"}
+    end
+
+    subgraph ADAPTACION_Y_RECARGA ["🔄 3. Plano de Aprendizaje Continuo (Bucle Cerrado)"]
+        DRIFT -->|🚨 Señal de Deriva Disparada| CURATOR["⛏️ Curador Autónomo de Datos<br/>(DatasetCurator)<br/>• Minería DPO: Chosen vs Rejected<br/>• Exportación SFT de Casos NLI"]
+        CURATOR --> TRAINER["🧠 Motor de Entrenamiento LoRA CPU<br/>(TrainWorker - 16 Hilos, nice +15)<br/>• Optimización por CPU sin GPU<br/>• Sin colapso ni saturación de RAM"]
+        TRAINER --> REGISTRY["📋 Registro de Modelos y Modelfile<br/>(ModelRegistry)<br/>• Control de Versiones soebot:v*"]
+        REGISTRY -->|🔥 Hot-Reload Atómico en Memoria| OLLAMA["🦙 Servidor Local Ollama<br/>(llama3.2:latest + Adaptador Activo)"]
+        OLLAMA -.->|Actualización de Pesos sin Downtime| RAG
+    end
+
+    style DACT fill:#1e3a8a,stroke:#3b82f6,stroke-width:2px,color:#fff
+    style NLI fill:#065f46,stroke:#10b981,stroke-width:2px,color:#fff
+    style DRIFT fill:#7c2d12,stroke:#f97316,stroke-width:2px,color:#fff
+    style CURATOR fill:#581c87,stroke:#a855f7,stroke-width:2px,color:#fff
+    style TRAINER fill:#831843,stroke:#ec4899,stroke-width:2px,color:#fff
+    style OLLAMA fill:#14532d,stroke:#22c55e,stroke-width:2px,color:#fff
+```
+
+```
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                        CIRCUITO CERRADO CLODA-RAG (SoeBOT v7.0)                       │
+├────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                        │
+│   [ Usuario ] ───► (1. Consulta) ───► [ DACT Router (θ_dyn) ]                          │
+│                                                │                                       │
+│                                ┌───────────────┴───────────────┐                       │
+│                                ▼ (Atajo FAQ)                   ▼ (Incertidumbre)       │
+│                         [ FAQ ~0.3s ]                  [ RAG Híbrido + SLM ]           │
+│                                                                │                       │
+│                                                                ▼                       │
+│                                                   [ Verificador NLI (DeBERTa) ]        │
+│                                                                │                       │
+│                                                   ┌────────────┴────────────┐          │
+│                                                   ▼ (Factual)               ▼ (Aluc.)  │
+│                                              [ Respuesta OK ]        [ Contingencia ]  │
+│                                                   │                         │          │
+│                                                   └────────────┬────────────┘          │
+│                                                                ▼                       │
+│                                                  [ Telemetría & Feedback ]             │
+│                                                                │                       │
+│                                                                ▼                       │
+│                                                  [ Detector de Deriva (W=50) ]         │
+│                                                                │                       │
+│                                                  ¿Alucinación o Deriva?                │
+│                                                                │ SÍ                    │
+│                                                                ▼                       │
+│                                                  [ Minería DPO/SFT (Curator) ]         │
+│                                                                │                       │
+│                                                                ▼                       │
+│                                                  [ TrainWorker (LoRA en CPU) ]         │
+│                                                                │                       │
+│                                                                ▼                       │
+│   [ Inferencia Actualizada ] ◄──── (Hot-Reload) ◄──── [ ModelRegistry (Ollama) ]       │
+│                                                                                        │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
 ---
 
 ## 🧭 2. Guía de Supervisión: Las 6 Fases de Ejecución
