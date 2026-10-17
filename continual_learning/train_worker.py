@@ -114,9 +114,15 @@ class TrainWorker:
         # 3. Configurar PyTorch si está disponible
         try:
             import torch
-            torch.set_num_threads(self.config.cpu_threads)
-            if hasattr(torch, "set_num_interop_threads"):
-                torch.set_num_interop_threads(max(1, self.config.cpu_threads // 4))
+            try:
+                torch.set_num_threads(self.config.cpu_threads)
+            except Exception as e:
+                logging.debug(f"TrainWorker: torch.set_num_threads omitido: {e}")
+            try:
+                if hasattr(torch, "set_num_interop_threads"):
+                    torch.set_num_interop_threads(max(1, self.config.cpu_threads // 4))
+            except Exception as e:
+                logging.debug(f"TrainWorker: torch.set_num_interop_threads ya establecido u omitido: {e}")
             logging.info(f"TrainWorker: PyTorch configurado con {self.config.cpu_threads} hilos CPU")
         except ImportError:
             pass

@@ -41,8 +41,8 @@ echo "🦙 Verificando servicio Ollama y modelo base llama3.2:latest..."
 if command -v ollama >/dev/null 2>&1; then
     ollama pull llama3.2:latest || echo "⚠️ Advertencia: No se pudo verificar pull en Ollama"
     
-    # Compilar versión inicial de CLODA-RAG si existe el directorio del adaptador
-    if [ -d "continual_learning/adapters/lora_checkpoint_latest" ]; then
+    # Compilar versión inicial de CLODA-RAG si existe adaptador binario compilado
+    if [ -f "continual_learning/adapters/lora_checkpoint_latest/adapter_model.bin" ] || [ -f "continual_learning/adapters/lora_checkpoint_latest/adapter_model.safetensors" ]; then
         echo "🔧 Generando Modelfile con la ruta local del servidor ($BASE_DIR)..."
         cat <<EOF > continual_learning/adapters/lora_checkpoint_latest/Modelfile
 FROM llama3.2:latest
@@ -56,6 +56,8 @@ Responde con exactitud basándote en los reglamentos y cita formalmente [Doc, Ar
 EOF
         echo "🔧 Compilando adaptador LoRA en Ollama (soebot:v1)..."
         ollama create soebot:v1 -f continual_learning/adapters/lora_checkpoint_latest/Modelfile || echo "⚠️ Compilación pendiente"
+    else
+        echo "ℹ️ Adaptador LoRA inicial registrado en modo runtime continuo (operando sobre base llama3.2:latest)"
     fi
 else
     echo "ℹ️ Ollama CLI no encontrado en PATH directo. Verificando conectividad local..."

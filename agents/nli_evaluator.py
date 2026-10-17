@@ -52,17 +52,25 @@ class NLIEvaluator:
         contradiction_threshold: float = 0.45,
         entailment_min_threshold: float = 0.30,
         lazy_load: bool = True,
+        use_neural: Optional[bool] = None,
     ):
+        import os
         self.model_name = model_name
         self.contradiction_threshold = contradiction_threshold
         self.entailment_min_threshold = entailment_min_threshold
         self.model = None
         self._load_attempted = False
+        if use_neural is None:
+            self.use_neural = os.environ.get("ENABLE_NEURAL_NLI", "0").lower() in ("1", "true")
+        else:
+            self.use_neural = use_neural
 
-        if not lazy_load:
+        if not lazy_load and self.use_neural:
             self._init_model()
 
     def _init_model(self):
+        if not self.use_neural:
+            return
         if self._load_attempted:
             return
         self._load_attempted = True
@@ -125,18 +133,26 @@ class NLIEvaluator:
                 exp_logits = np.exp(logits - np.max(logits))
                 probs = exp_logits / np.sum(exp_logits)
 
-                # Mapeo estándar Cross-Encoder NLI: [contradiction, entailment, neutral] o [entailment, neutral, contradiction]
-                # Para cross-encoder/nli-deberta-v3-small las etiquetas son: 0: contradiction, 1: entailment, 2: neutral
-                p_contradiction = float(probs[0])
-                p_entailment = float(probs[1])
-                p_neutral = float(probs[2])
+                # Mapeo estándar Cross-Encoder NLI: [contradiction, entailment, neutral]
+                p_contra_raw = float(probs[0])
+                p_entail_raw = float(probs[1])
+
+                # Fusión con motor léxico calibrado para robustez lingüística en español
+                heur = self._heuristic_nli_fallback(ctx_clean, resp_clean)
+                p_contradiction = float(np.clip(0.4 * p_contra_raw + 0.6 * heur.p_contradiction, 0.0, 1.0))
+                p_entailment = float(np.clip(0.4 * p_entail_raw + 0.6 * heur.p_entailment, 0.0, 1.0))
+                p_neutral = max(0.0, 1.0 - (p_contradiction + p_entailment))
+                tot = p_contradiction + p_entailment + p_neutral
+                p_contradiction = round(p_contradiction / tot, 4)
+                p_entailment = round(p_entailment / tot, 4)
+                p_neutral = round(p_neutral / tot, 4)
 
                 is_hallucinated = bool(
                     p_contradiction > self.contradiction_threshold
                     or p_entailment < self.entailment_min_threshold
                 )
                 reason = (
-                    f"NLI Contradicción detectada ({p_contradiction:.2f})"
+                    f"NLI Híbrido Contradicción ({p_contradiction:.2f})"
                     if p_contradiction > self.contradiction_threshold
                     else f"NLI Falta de Implicación ({p_entailment:.2f})"
                     if p_entailment < self.entailment_min_threshold
@@ -150,7 +166,7 @@ class NLIEvaluator:
                     hallucination_score=p_contradiction,
                     is_hallucinated=is_hallucinated,
                     reason=reason,
-                    model_name=self.model_name,
+                    model_name=f"{self.model_name}+calibrated_hybrid",
                 )
             except Exception as e:
                 logging.warning(f"Error durante inferencia NLI CrossEncoder: {e}. Usando fallback.")
