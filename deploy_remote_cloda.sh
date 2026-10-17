@@ -41,8 +41,19 @@ echo "🦙 Verificando servicio Ollama y modelo base llama3.2:latest..."
 if command -v ollama >/dev/null 2>&1; then
     ollama pull llama3.2:latest || echo "⚠️ Advertencia: No se pudo verificar pull en Ollama"
     
-    # Compilar versión inicial de CLODA-RAG si existe el Modelfile
-    if [ -f "continual_learning/adapters/lora_checkpoint_latest/Modelfile" ]; then
+    # Compilar versión inicial de CLODA-RAG si existe el directorio del adaptador
+    if [ -d "continual_learning/adapters/lora_checkpoint_latest" ]; then
+        echo "🔧 Generando Modelfile con la ruta local del servidor ($BASE_DIR)..."
+        cat <<EOF > continual_learning/adapters/lora_checkpoint_latest/Modelfile
+FROM llama3.2:latest
+ADAPTER $BASE_DIR/continual_learning/adapters/lora_checkpoint_latest
+PARAMETER temperature 0.2
+PARAMETER stop "<|eot_id|>"
+SYSTEM """
+Eres SoeBOT, asistente de posgrado de la UAGRM afinado con CLODA-RAG.
+Responde con exactitud basándote en los reglamentos y cita formalmente [Doc, Art].
+"""
+EOF
         echo "🔧 Compilando adaptador LoRA en Ollama (soebot:v1)..."
         ollama create soebot:v1 -f continual_learning/adapters/lora_checkpoint_latest/Modelfile || echo "⚠️ Compilación pendiente"
     fi
@@ -52,7 +63,12 @@ fi
 
 # 4. Ejecución del Gate de Control Unitario
 echo "🧪 Ejecutando suite de pruebas unitarias y de simulación (34 tests)..."
-python3 -m pytest tests/ -v
+if python3 -c "import pytest" 2>/dev/null; then
+    python3 -m pytest tests/ -v
+else
+    echo "ℹ️ pytest no detectado en el entorno. Ejecutando suite con unittest estándar..."
+    python3 -m unittest discover tests/ -v
+fi
 
 # 5. Parar instancias previas si están corriendo
 echo "🔄 Deteniendo procesos anteriores de mcp_server_local..."

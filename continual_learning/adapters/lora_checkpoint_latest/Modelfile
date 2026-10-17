@@ -1,5 +1,5 @@
 FROM llama3.2:latest
-ADAPTER /Users/oceanjungle/Sources Code/mcpsoe/continual_learning/adapters/lora_checkpoint_latest
+ADAPTER ./continual_learning/adapters/lora_checkpoint_latest
 PARAMETER temperature 0.2
 PARAMETER stop "<|eot_id|>"
 SYSTEM """

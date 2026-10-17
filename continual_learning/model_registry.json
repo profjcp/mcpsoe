@@ -21,7 +21,7 @@
       "model_name": "soebot:v1",
       "base_model": "llama3.2:latest",
       "adapter_dir": "continual_learning/adapters/lora_checkpoint_latest",
-      "modelfile_path": "/Users/oceanjungle/Sources Code/mcpsoe/continual_learning/adapters/lora_checkpoint_latest/Modelfile",
+      "modelfile_path": "continual_learning/adapters/lora_checkpoint_latest/Modelfile",
       "created_at": "2026-10-17T15:56:28Z",
       "is_active": true,
       "compilation_status": "emulated",
