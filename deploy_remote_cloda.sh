@@ -72,10 +72,22 @@ else
     python3 -m unittest discover tests/ -v
 fi
 
-# 5. Parar instancias previas si están corriendo
-echo "🔄 Deteniendo procesos anteriores de mcp_server_local..."
-pkill -f "mcp_server_local.py" 2>/dev/null || true
-sleep 2
+# 5. Parar instancias previas si están corriendo (incluyendo watchdog y liberando puerto 9000)
+echo "🔄 Deteniendo procesos anteriores en puerto 9000 (watchdogs y servidores MCP)..."
+pkill -9 -f "restart_mcp.sh" 2>/dev/null || true
+pkill -9 -f "mcp_server_local.py" 2>/dev/null || true
+fuser -k -9 9000/tcp 2>/dev/null || true
+if command -v lsof >/dev/null 2>&1 && lsof -i :9000 >/dev/null 2>&1; then
+    kill -9 $(lsof -t -i :9000) 2>/dev/null || true
+fi
+sleep 3
+
+# Si systemd tiene soebot corriendo, detenerlo para actualización limpia
+if command -v systemctl >/dev/null 2>&1 && systemctl is-active --quiet soebot 2>/dev/null; then
+    echo "ℹ️ Servicio systemd soebot detectado activo. Deteniendo para actualización limpia..."
+    sudo systemctl stop soebot 2>/dev/null || true
+    sleep 2
+fi
 
 # 6. Arranque de Servidor MCP con asignación de Cores y prioridad nice
 echo "🔥 Arrancando servidor MCP FastAPI con optimización de 24 núcleos..."
@@ -93,21 +105,23 @@ SERVER_PID=$!
 echo "✅ Servidor lanzado con PID: $SERVER_PID"
 
 # 7. Smoke Test de Validación Post-Arranque
-echo "⏳ Esperando arranque del servicio (máximo 60s)..."
+echo "⏳ Esperando arranque del servicio y validación de endpoints CLODA-RAG (máximo 60s)..."
 READY=0
 for i in {1..30}; do
-    if curl -s http://127.0.0.1:9000/health | grep -q "healthy"; then
+    if curl -s http://127.0.0.1:9000/cloda/models | grep -q '"status"'; then
         READY=1
-        echo "🎉 Servidor listo en intento $i!"
+        echo "🎉 Servidor y endpoints CLODA-RAG listos en intento $i!"
         break
     fi
     sleep 2
 done
 
 if [ $READY -eq 1 ]; then
-    echo "🔍 Verificando endpoints CLODA-RAG..."
+    echo "🔍 Verificando respuestas de endpoints CLODA-RAG:"
+    echo "--- GET /cloda/models ---"
     curl -s http://127.0.0.1:9000/cloda/models || true
     echo ""
+    echo "--- GET /cloda/drift ---"
     curl -s http://127.0.0.1:9000/cloda/drift || true
     echo ""
     echo "=============================================================================="
