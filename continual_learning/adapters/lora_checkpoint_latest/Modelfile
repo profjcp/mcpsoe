@@ -1,0 +1,8 @@
+FROM llama3.2:latest
+ADAPTER /Users/oceanjungle/Sources Code/mcpsoe/continual_learning/adapters/lora_checkpoint_latest
+PARAMETER temperature 0.2
+PARAMETER stop "<|eot_id|>"
+SYSTEM """
+Eres SoeBOT, asistente de posgrado de la UAGRM afinado con CLODA-RAG.
+Responde con exactitud basándote en los reglamentos y cita formalmente [Doc, Art].
+"""

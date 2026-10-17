@@ -27,6 +27,22 @@ from agents.query_rewriter import QueryRewriter
 from agents.nli_evaluator import NLIEvaluator, NLIResult
 from retrieval.dact import DACTRouter, DACTResult
 from orchestrator.router import MultiAgentOrchestrator
+from typing import Optional, Dict, Any, List
+
+try:
+    from continual_learning.drift_detector import DriftDetector, DriftThresholds, TriggerEvent
+    from continual_learning.dataset_curator import DatasetCurator
+    from continual_learning.train_worker import TrainWorker, TrainConfig
+    from continual_learning.model_registry import ModelRegistry, ModelVersion
+except ImportError:
+    DriftDetector = None
+    DriftThresholds = None
+    TriggerEvent = None
+    DatasetCurator = None
+    TrainWorker = None
+    TrainConfig = None
+    ModelRegistry = None
+    ModelVersion = None
 
 # Lazy import de NLTK para evitar errores de inicialización
 def get_sentiment_analyzer():
@@ -56,7 +72,7 @@ logging.basicConfig(
 )
 
 # --- Configuration ---
-LLM_MODEL = "promptnow/llama-3-typhoon-v1.5-8b-instruct-q4_k_m"  # Cambiado al nuevo modelo para mejor precisión
+LLM_MODEL = "llama3.2:latest"  # SLM 3B: alta eficiencia en español, baja latencia en CPU y bucle cerrado CLODA-RAG
 EMBEDDING_MODEL = "nomic-embed-text"
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
 REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
@@ -86,6 +102,32 @@ doc_rag_agent = None
 graph_rag_agent = None
 orchestrator = None
 nli_evaluator: Optional[NLIEvaluator] = None
+drift_detector: Optional[Any] = None
+model_registry: Optional[Any] = None
+
+
+def reload_active_model(new_model_name: str) -> bool:
+    """Recarga en caliente la instancia del LLM en memoria sin reiniciar el servidor."""
+    global LLM_MODEL, llm, hallucination_grader, query_rewriter
+    try:
+        logging.info(f"[CLODA-RAG] Ejecutando recarga en caliente hacia: {new_model_name}")
+        old_model = LLM_MODEL
+        LLM_MODEL = new_model_name
+        try:
+            new_llm = OllamaLLM(model=new_model_name, temperature=0.2, top_k=50, top_p=0.95, num_ctx=8192)
+            llm = new_llm
+            if hallucination_grader:
+                hallucination_grader.llm = new_llm
+            if query_rewriter:
+                query_rewriter.llm = new_llm
+            logging.info(f"[CLODA-RAG] Hot-Reload exitoso: {old_model} -> {new_model_name}")
+            return True
+        except Exception as e:
+            logging.warning(f"[CLODA-RAG] No se pudo instanciar {new_model_name} en Ollama ({e}). Variable LLM_MODEL actualizada.")
+            return True
+    except Exception as e:
+        logging.error(f"[CLODA-RAG] Fallo crítico en hot-reload: {e}")
+        return False
 
 # --- Métricas Prometheus (Cuantitativas) ---
 query_counter = Counter('queries_total', 'Total queries processed')
@@ -398,6 +440,20 @@ def record_interaction_metrics(
         }
     )
 
+    if drift_detector:
+        try:
+            drift_detector.record_interaction({
+                "timestamp": datetime.now().isoformat(),
+                "user_id": user_key,
+                "question": question,
+                "source": source,
+                "hallucinated": bool(is_hallucinated),
+                "is_contingency_fallback": bool(is_contingency_fallback),
+                "routing_trace": routing_trace or {},
+            })
+        except Exception as e:
+            logging.warning(f"Error registrando interacción en drift_detector: {e}")
+
 
 def record_feedback_metrics(user_id: str, satisfaction: int, clarity: int, completeness: int, error_type: str):
     """Actualiza las métricas cualitativas por usuario."""
@@ -408,6 +464,18 @@ def record_feedback_metrics(user_id: str, satisfaction: int, clarity: int, compl
     if error_type:
         bucket["errors_total"] += 1
         bucket["error_types"][error_type] = bucket["error_types"].get(error_type, 0) + 1
+
+    if drift_detector:
+        try:
+            drift_detector.record_feedback({
+                "user_id": user_id,
+                "satisfaction": satisfaction,
+                "clarity": clarity,
+                "completeness": completeness,
+                "timestamp": datetime.now().isoformat(),
+            })
+        except Exception as e:
+            logging.warning(f"Error registrando feedback en drift_detector: {e}")
 
 
 def build_per_user_summary():
@@ -617,6 +685,55 @@ Respuesta:
     imported_count = backfill_interaction_logs_from_histories()
     hydrate_metrics_from_persisted_data()
     print(f"Historial persistido inicializado. Interacciones históricas importadas: {imported_count}")
+
+    # 7. Inicializar Detector de Deriva y Registro de Modelos CLODA-RAG (Fases 3 y 4)
+    global drift_detector, model_registry
+    if ModelRegistry:
+        try:
+            model_registry = ModelRegistry()
+            print(f"CLODA-RAG ModelRegistry inicializado (Modelo activo: {model_registry.get_active_model_name()})")
+        except Exception as e:
+            print(f"[WARNING] No se pudo inicializar ModelRegistry: {e}")
+
+    if DriftDetector:
+        try:
+            def _on_drift_triggered(evt):
+                logging.warning(f"🚨 [CLODA-RAG] Activando reentrenamiento autónomo por deriva: {evt.reasons}")
+                try:
+                    curator = DatasetCurator()
+                    curator.mine_from_interaction_logs(INTERACTION_LOG_PATH)
+                    curator.mine_from_simulation_results("simulation_results/resultados_100.json")
+                    dpo_path = "continual_learning/datasets/dpo_train.jsonl"
+                    curator.export_datasets(dpo_path=dpo_path)
+
+                    def _on_training_finished(train_result):
+                        if model_registry:
+                            try:
+                                new_ver = model_registry.register_version(
+                                    adapter_dir=train_result.output_dir,
+                                    metadata=train_result.metadata
+                                )
+                                model_registry.activate_version(new_ver.version_id, reload_callback=reload_active_model)
+                                logging.info(f"🎉 [CLODA-RAG] Bucle Cerrado completado: {new_ver.model_name} compilado y activo en caliente.")
+                            except Exception as reg_err:
+                                logging.error(f"[CLODA-RAG] Error registrando nueva versión de modelo: {reg_err}")
+
+                    worker = TrainWorker(TrainConfig(dataset_path=dpo_path))
+                    worker.start_async(on_finish=_on_training_finished)
+                    logging.info("[CLODA-RAG] TrainWorker iniciado en segundo plano exitosamente.")
+                except Exception as ex:
+                    logging.error(f"[CLODA-RAG] Error en disparo autónomo de reentrenamiento: {ex}")
+
+            drift_detector = DriftDetector(
+                thresholds=DriftThresholds(window_size=50, min_samples_to_evaluate=10, max_ahr_threshold=0.15),
+                interaction_log_path=INTERACTION_LOG_PATH,
+                feedback_log_path=FEEDBACK_LOG_PATH,
+                on_trigger_callback=_on_drift_triggered
+            )
+            drift_detector.sync_from_logs()
+            print("CLODA-RAG DriftDetector inicializado y sincronizado con logs.")
+        except Exception as e:
+            print(f"[WARNING] No se pudo inicializar CLODA-RAG DriftDetector: {e}")
 
     yield
 
@@ -1252,6 +1369,58 @@ async def embed(request: EmbedRequest):
     except Exception as e:
         logging.error(f"Error generating embedding: {e}")
         return {"error": str(e)}, 500
+
+@app.get("/cloda/drift")
+async def get_cloda_drift():
+    """Retorna las métricas de deriva en tiempo real y el estado del bucle cerrado."""
+    if not drift_detector:
+        return {"status": "disabled", "message": "DriftDetector no activo"}
+    metrics = drift_detector.evaluate_window()
+    return {
+        "status": "active",
+        "window_size": drift_detector.window_size,
+        "total_triggers": drift_detector.total_triggers,
+        "metrics": metrics.to_dict()
+    }
+
+@app.get("/cloda/models")
+async def get_cloda_models():
+    """Retorna las versiones registradas de modelos LoRA y el modelo activo."""
+    if not model_registry:
+        return {"status": "disabled", "active_model": LLM_MODEL, "versions": []}
+    return {
+        "status": "active",
+        "active_model": model_registry.get_active_model_name(),
+        "active_version_id": model_registry.active_version_id,
+        "versions": model_registry.list_versions()
+    }
+
+class ReloadModelRequest(BaseModel):
+    version_id: Optional[str] = None
+    model_name: Optional[str] = None
+
+@app.post("/cloda/reload")
+async def trigger_cloda_reload(request: ReloadModelRequest):
+    """Dispara una recarga en caliente manual hacia una versión específica de modelo."""
+    if not model_registry:
+        return {"success": False, "error": "ModelRegistry no inicializado"}
+
+    target_vid = request.version_id
+    if not target_vid and request.model_name:
+        for vid, ver in model_registry.versions.items():
+            if ver.model_name == request.model_name:
+                target_vid = vid
+                break
+
+    if not target_vid or target_vid not in model_registry.versions:
+        return {"success": False, "error": f"Versión no encontrada: {request.version_id or request.model_name}"}
+
+    success = model_registry.activate_version(target_vid, reload_callback=reload_active_model)
+    return {
+        "success": success,
+        "active_version": target_vid,
+        "active_model": model_registry.get_active_model_name()
+    }
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=9000)

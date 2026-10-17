@@ -30,6 +30,11 @@ from collections import defaultdict
 
 import requests
 
+try:
+    from continual_learning.doctoral_evaluator import DoctoralEvaluator
+except ImportError:
+    DoctoralEvaluator = None
+
 # ---------------------------------------------------------------------------
 # 1. Rutas y configuración
 # ---------------------------------------------------------------------------
@@ -393,6 +398,17 @@ def generar_reporte_tesis_doctoral(resultados):
     total = len(resultados)
     if not total:
         return
+
+    # Si DoctoralEvaluator está disponible, genera el reporte experimental de 3 condiciones con McNemar y Mann-Whitney
+    if DoctoralEvaluator:
+        try:
+            evaluator = DoctoralEvaluator()
+            eval_results = evaluator.evaluate_experimental_battery(resultados)
+            evaluator.generate_doctoral_markdown_report(eval_results, output_path=REPORTE_TESIS_DOCTORAL)
+            print(f"OK Reporte Tesis Doctoral (C0 vs C1 vs C2 + McNemar) guardado: {REPORTE_TESIS_DOCTORAL}")
+            return
+        except Exception as e:
+            print(f"[WARNING] Falló DoctoralEvaluator ({e}). Usando formato fallback.")
 
     ok_resp = [r for r in resultados if r.get("status") == "ok" and r.get("response")]
     total_ok = len(ok_resp)

@@ -16,6 +16,7 @@ feedback.jsonl
 interaction_logs.jsonl
 user_histories.json
 users.json
+continual_learning/drift_events.jsonl
 
 # Local learning/cache artifacts
 qa_cache.pkl
