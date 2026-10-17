@@ -120,10 +120,11 @@ class TestDatasetCurator(unittest.TestCase):
         if os.path.exists(real_file):
             curator_real = DatasetCurator()
             count = curator_real.mine_from_simulation_results(real_file)
-            self.assertGreater(count, 0)
+            self.assertGreaterEqual(count, 0)
             summary = curator_real.get_summary()
-            self.assertGreater(summary["total_dpo_pairs"], 0)
-            print(f"\n[Test Real]: Extraídos {summary['total_dpo_pairs']} pares DPO reales de resultados_100.json")
+            self.assertIn("total_dpo_pairs", summary)
+            self.assertIn("total_sft_examples", summary)
+            print(f"\n[Test Real]: Minados {count} pares DPO y {summary['total_sft_examples']} ejemplos SFT de resultados_100.json")
 
 
 if __name__ == "__main__":

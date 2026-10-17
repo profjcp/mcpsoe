@@ -99,23 +99,35 @@ class DatasetCurator:
                 logging.error(f"DatasetCurator: Error leyendo JSON {json_filepath}: {e}")
                 return 0
 
-        items = data.get("resultados", [])
+        if isinstance(data, list):
+            items = data
+        elif isinstance(data, dict):
+            items = data.get("resultados", [])
+        else:
+            items = []
+
         extracted_dpo = 0
 
         for idx, item in enumerate(items):
             question = item.get("question", "").strip()
             response = item.get("response", "").strip()
             expected = item.get("expected_answer", "").strip()
-            clasificacion = item.get("clasificacion", "")
-            in_context = item.get("in_context", True)
+            clasificacion = str(item.get("clasificacion", "")).lower()
 
             if not question or len(response) < self.min_text_len:
                 continue
 
             prompt = self.format_prompt(question)
 
-            # Caso 1: Posible Alucinación -> Candidato prioritario para DPO
-            if clasificacion == "posible_alucinacion" and expected:
+            # Caso 1: Alucinación o Error -> Candidato prioritario para DPO
+            is_hallucination = (
+                "alucinacion" in clasificacion
+                or clasificacion in ("posible_alucinacion", "incorrecta")
+                or (isinstance(item.get("nli_audit"), dict) and item["nli_audit"].get("is_hallucinated", False))
+                or item.get("hallucinated", False)
+            )
+
+            if is_hallucination and expected:
                 if prompt in self._seen_prompts:
                     continue
 
@@ -141,7 +153,7 @@ class DatasetCurator:
                 extracted_dpo += 1
 
             # Caso 2: Respuesta Correcta con Contexto -> Útil para SFT
-            elif clasificacion == "correcta" and response:
+            elif (clasificacion == "correcta" or not is_hallucination) and response:
                 sft_item = SFTExample(
                     instruction=self.SYSTEM_INSTRUCTION,
                     input=prompt,
