@@ -272,3 +272,129 @@ Cada interacción registra en `interaction_logs.jsonl` y `simulation_results/`:
 ```
 
 Esta telemetría permite generar automáticamente los gráficos de dispersión de $\theta_{\text{dynamic}}$ vs $\mathcal{H}(S_k)$ y las matrices de confusión requeridas para las publicaciones científicas.
+
+---
+
+## 🔄 5. Contribución Doctoral 3: Bucle Cerrado CLODA-RAG y Fine-Tuning del SLM en Caliente
+
+### 5.1 Planteamiento y Cierre del Bucle (Closed-Loop Continuous Adaptation)
+Los esquemas RAG estándar operan en **bucle abierto**: la inferencia genera respuestas, la telemetría grafica métricas de forma pasiva y el reentrenamiento se realiza de forma manual y desconectada. 
+
+**CLODA-RAG (Closed-Loop Observability-Driven Adaptive RAG)** cierra el circuito mediante un pipeline autónomo en 6 etapas:
+
+```
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                        CIRCUITO CERRADO CLODA-RAG (SoeBOT v7.0)                       │
+├────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                        │
+│   [ Usuario ] ───► (1. Consulta) ───► [ DACT Router (θ_dyn) ]                          │
+│                                                │                                       │
+│                                ┌───────────────┴───────────────┐                       │
+│                                ▼ (Atajo FAQ)                   ▼ (Incertidumbre)       │
+│                         [ FAQ ~0.3s ]                  [ RAG Híbrido + SLM ]           │
+│                                                                │                       │
+│                                                                ▼                       │
+│                                                   [ Verificador NLI (DeBERTa) ]        │
+│                                                                │                       │
+│                                                   ┌────────────┴────────────┐          │
+│                                                   ▼ (Factual)               ▼ (Aluc.)  │
+│                                              [ Respuesta OK ]        [ Contingencia ]  │
+│                                                   │                         │          │
+│                                                   └────────────┬────────────┘          │
+│                                                                ▼                       │
+│                                                  [ Telemetría & Feedback ]             │
+│                                                                │                       │
+│                                                                ▼                       │
+│                                                  [ Detector de Deriva (W=50) ]         │
+│                                                                │                       │
+│                                                  ¿Alucinación o Deriva?                │
+│                                                                │ SÍ                    │
+│                                                                ▼                       │
+│                                                  [ Minería DPO/SFT (Curator) ]         │
+│                                                                │                       │
+│                                                                ▼                       │
+│                                                  [ TrainWorker (LoRA en CPU) ]         │
+│                                                                │                       │
+│                                                                ▼                       │
+│   [ Inferencia Actualizada ] ◄──── (Hot-Reload) ◄──── [ ModelRegistry (Ollama) ]       │
+│                                                                                        │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 5.2 Etapa 1: Ingesta en Caliente desde el Motor RAG
+En cada consulta atendida por el nivel generativo:
+1. El motor híbrido recupera los fragmentos normativos más relevantes $C = [c_1, c_2, \dots]$ mediante RRF ($k=60$) y filtrado APCR.
+2. El SLM local (**Meta Llama 3.2 3B Instruct**) sintetiza la respuesta $A$ fundamentada con citas formales `[Documento, Artículo]`.
+3. El verificador Cross-Encoder NLI (DeBERTa-v3) evalúa la implicación lógica entre premisa $C$ e hipótesis $A$:
+   $$[P_{\text{entail}}, P_{\text{neut}}, P_{\text{contra}}] = \text{Softmax}(\text{CrossEncoder}(C, A))$$
+4. Ingesta atómica: la pregunta $q$, los fragmentos $C$, la respuesta $A$, los scores NLI y las métricas DACT se serializan inmediatamente en `interaction_logs.jsonl` y se alimentan al objeto `DriftDetector` en memoria.
+
+### 5.3 Etapa 2: Loop de Retroalimentación Multidimensional
+La observabilidad combina telemetría cuantitativa automatizada y feedback cualitativo directo de los usuarios:
+* **Feedback Cualitativo:** A través de la interfaz de chat, el usuario califica satisfacción (1 a 5), claridad y completitud, y puede reportar anomalías (`informacion_incorrecta`, `desactualizado`, `incompleta`).
+* **Ingesta en Caliente:** El endpoint `POST /feedback` actualiza `feedback.jsonl` y llama a `drift_detector.record_feedback()`.
+
+### 5.4 Etapa 3: Detección de Deriva Semántica (`DriftDetector`)
+El detector monitorea una ventana deslizante de tamaño $W = 50$ interacciones bajo tres condiciones doctorales simultáneas:
+1. **Condición 1 (Tasa de Alucinación Auditada - AHR):**
+   $$\text{AHR}_{\text{window}} = \frac{1}{W} \sum_{i=1}^W \mathbb{I}\left(P_{\text{contra}}^{(i)} > 0.45 \;\lor\; \text{is\_hallucinated}^{(i)} = \text{True}\right) > 0.15$$
+2. **Condición 2 (Satisfacción Media de Usuario):**
+   $$\bar{S}_{\text{window}} = \frac{1}{M} \sum_{j=1}^M \text{Likert}_j < 3.2 / 5.0$$
+3. **Condición 3 (Incertidumbre Contextual DACT Sostenida):**
+   $$\bar{\mathcal{H}}_{\text{window}}(S_k) > 0.65$$
+
+Al cumplirse cualquiera de las condiciones (y habiendo superado el período de enfriamiento de 300s), el detector emite la señal asíncrona `TRIGGER_RETRAINING` sin bloquear los hilos de atención de FastAPI.
+
+### 5.5 Etapa 4: Curación Autónoma y Minería de Preferencias DPO (`DatasetCurator`)
+El curador autónomo extrae los casos fallidos y sintetiza tripletas de Optimización de Preferencias Directas (**Direct Preference Optimization - DPO**):
+* **Prompt:** Formateado en bloques semánticos delimitados:
+  ```xml
+  <context>
+  [Reglamento UAGRM, Art. 12] Requisitos de graduación de posgrado...
+  </context>
+
+  <question>
+  ¿Cuáles son los requisitos de graduación?
+  </question>
+  ```
+* **Rejected ($y_{\text{neg}}$):** La respuesta alucinada o imprecisa producida previamente por el SLM.
+* **Chosen ($y_{\text{pos}}$):** La respuesta canónica fáctica extraída del texto normativo oficial o la cláusula de contingencia formal con cita obligatoria `[Doc, Art]`.
+* Salida: `continual_learning/datasets/dpo_train.jsonl` y `sft_train.jsonl`.
+
+### 5.6 Etapa 5: Motor de Fine-Tuning LoRA Desacoplado en CPU (`TrainWorker`)
+El entrenamiento se ejecuta sobre el hardware del servidor remanente (CPU multihilo) bajo las siguientes especificaciones:
+* **Parámetros LoRA:**
+  * Rank: $r = 8$
+  * LoRA Alpha: $\alpha = 16$
+  * LoRA Dropout: $0.05$
+  * Módulos objetivo: `["q_proj", "v_proj"]`
+* **Optimizador:** AdamW ($\text{lr} = 5 \times 10^{-5}$, max_seq_length = 512, gradient accumulation = 4).
+* **Aislamiento de Cómputo (CPU 24 Cores):**
+  * Prioridad del proceso: `nice +15` (asegura que las consultas concurrentes al servidor RAG tengan prioridad máxima de CPU).
+  * Hilos de PyTorch: `torch.set_num_threads(16)` y paralelismo BLAS/OpenMP configurado explícitamente.
+* **Salida de Artefactos:** Adaptador PEFT compatible (`adapter_config.json`, weights meta, `training_metrics.json`).
+
+### 5.7 Etapa 6: Compilación en Ollama y Recarga en Caliente Atómica (*Zero-Downtime Hot-Reload*)
+1. **Generación de Modelfile:**
+   ```dockerfile
+   FROM llama3.2:latest
+   ADAPTER ./continual_learning/adapters/lora_checkpoint_latest
+   PARAMETER temperature 0.2
+   PARAMETER stop "<|eot_id|>"
+   SYSTEM """
+   Eres SoeBOT, asistente de posgrado de la UAGRM afinado con CLODA-RAG.
+   Responde con exactitud basándote en los reglamentos y cita formalmente [Doc, Art].
+   """
+   ```
+2. **Compilación en Ollama:** Ejecuta `ollama create soebot:v{N} -f Modelfile` vía CLI o REST API `/api/create`.
+3. **Registro Persistente:** Se guarda la nueva versión en `continual_learning/model_registry.json`.
+4. **Hot-Reload en Memoria:** El callback `reload_active_model("soebot:v{N}")` sustituye la instancia activa de `OllamaLLM` dentro del proceso de FastAPI:
+   ```python
+   LLM_MODEL = new_model_name
+   new_llm = OllamaLLM(model=new_model_name, temperature=0.2, num_ctx=8192)
+   llm = new_llm
+   hallucination_grader.llm = new_llm
+   query_rewriter.llm = new_llm
+   ```
+5. **Resultado en Producción:** **0 segundos de inactividad (Downtime = 0s)**; las conexiones SSE abiertas no sufren corte y las solicitudes subsiguientes son respondidas automáticamente por el modelo afinado con el nuevo adaptador LoRA.
+

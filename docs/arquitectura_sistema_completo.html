@@ -222,6 +222,8 @@
     .tag-dact { background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); }
     .tag-nli { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); }
     .tag-client { background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); }
+    .tag-cloda { background: rgba(244, 63, 94, 0.2); color: #fb7185; border: 1px solid rgba(244, 63, 94, 0.4); }
+    .tag-lora { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); }
 
     .formula-code {
       background: #050811;
@@ -267,6 +269,7 @@
     <div class="view-controls">
       <button class="tab-btn active" onclick="switchView('system')">🏛️ Arquitectura Global del Sistema</button>
       <button class="tab-btn" onclick="switchView('dact-rag')">🧮 RAG Propuesto con DACT & NLI</button>
+      <button class="tab-btn" onclick="switchView('cloda-rag')">🔄 Bucle Cerrado & Finetuning SLM (CLODA-RAG)</button>
     </div>
   </header>
 
@@ -475,6 +478,167 @@
         </svg>
       </div>
 
+      <!-- ========================================== -->
+      <!-- VISTA 3: BUCLE CERRADO CLODA-RAG Y FINETUNING SLM -->
+      <!-- ========================================== -->
+      <div id="view-cloda-rag" class="diagram-container">
+        <svg viewBox="0 0 1020 700" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="gradClodaInfer" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#1e293b" />
+              <stop offset="100%" stop-color="#0f172a" />
+            </linearGradient>
+            <linearGradient id="gradClodaNli" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#064e3b" />
+              <stop offset="100%" stop-color="#022c22" />
+            </linearGradient>
+            <linearGradient id="gradClodaLogs" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#1e3a8a" />
+              <stop offset="100%" stop-color="#172554" />
+            </linearGradient>
+            <linearGradient id="gradClodaDrift" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#9a3412" />
+              <stop offset="100%" stop-color="#7c2d12" />
+            </linearGradient>
+            <linearGradient id="gradClodaCurator" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#6b21a8" />
+              <stop offset="100%" stop-color="#4c1d95" />
+            </linearGradient>
+            <linearGradient id="gradClodaTrain" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#9f1239" />
+              <stop offset="100%" stop-color="#881337" />
+            </linearGradient>
+            <linearGradient id="gradClodaRegistry" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#115e59" />
+              <stop offset="100%" stop-color="#134e4a" />
+            </linearGradient>
+            <linearGradient id="gradClodaReload" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#0e7490" />
+              <stop offset="100%" stop-color="#155e75" />
+            </linearGradient>
+            <marker id="arrow-cloda" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1 L 8 5 L 0 9 z" fill="#38bdf8" />
+            </marker>
+            <marker id="arrow-drift" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1 L 8 5 L 0 9 z" fill="#f97316" />
+            </marker>
+            <marker id="arrow-curator" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1 L 8 5 L 0 9 z" fill="#c084fc" />
+            </marker>
+            <marker id="arrow-train" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1 L 8 5 L 0 9 z" fill="#f43f5e" />
+            </marker>
+            <marker id="arrow-reload" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1 L 8 5 L 0 9 z" fill="#22c55e" />
+            </marker>
+          </defs>
+
+          <!-- Fondo del Circuito -->
+          <rect x="25" y="25" width="970" height="650" rx="16" fill="rgba(255,255,255,0.01)" stroke="#334155" stroke-dasharray="4,4" />
+          <text x="45" y="52" fill="#94a3b8" font-size="12" font-weight="600" letter-spacing="0.05em">CIRCUITO CERRADO DE APRENDIZAJE CONTINUO (CLODA-RAG) • SOEBOT v7.0</text>
+
+          <!-- 1. Inferencia RAG & SLM -->
+          <g class="node" onclick="updateSidebar('cloda-rag-infer')">
+            <rect x="50" y="80" width="270" height="95" class="node-box" fill="url(#gradClodaInfer)" stroke="#38bdf8" stroke-width="2" />
+            <text x="70" y="108" class="node-title">1. Inferencia RAG & SLM Activo</text>
+            <text x="70" y="128" class="node-sub">Meta Llama 3.2 3B (Ollama Local)</text>
+            <text x="70" y="145" class="node-sub">Contexto C + Citas [Doc, Art] • ~3.8s</text>
+            <text x="70" y="162" class="node-sub" fill="#38bdf8">Ingesta en Caliente de la Respuesta</text>
+          </g>
+
+          <!-- 2. Auditoría NLI -->
+          <g class="node" onclick="updateSidebar('cloda-nli')">
+            <rect x="370" y="80" width="270" height="95" class="node-box" fill="url(#gradClodaNli)" stroke="#34d399" stroke-width="2" />
+            <text x="390" y="108" class="node-title">2. Auditoría Fáctica NLI</text>
+            <text x="390" y="128" class="node-sub">Cross-Encoder DeBERTa-v3-small</text>
+            <text x="390" y="145" class="node-sub">Premisa C vs Hipótesis A [Softmax]</text>
+            <text x="390" y="162" class="node-sub" fill="#34d399">Clasificación: Factual vs Alucinación</text>
+          </g>
+
+          <!-- 3. Ingesta Logs & Feedback -->
+          <g class="node" onclick="updateSidebar('cloda-logs')">
+            <rect x="690" y="80" width="270" height="95" class="node-box" fill="url(#gradClodaLogs)" stroke="#60a5fa" stroke-width="2" />
+            <text x="710" y="108" class="node-title">3. Telemetría y Feedback Humano</text>
+            <text x="710" y="128" class="node-sub">interaction_logs.jsonl (Context, NLI)</text>
+            <text x="710" y="145" class="node-sub">feedback.jsonl (Rating Likert 1-5)</text>
+            <text x="710" y="162" class="node-sub" fill="#60a5fa">Registro de Tags: error, desactualizado</text>
+          </g>
+
+          <!-- 4. Detector de Deriva (DriftDetector) -->
+          <g class="node" onclick="updateSidebar('cloda-drift')">
+            <rect x="690" y="235" width="270" height="115" class="node-box" fill="url(#gradClodaDrift)" stroke="#f97316" stroke-width="2" />
+            <text x="710" y="263" class="node-title">4. Detector de Deriva (DriftDetector)</text>
+            <text x="710" y="283" class="node-sub">Ventana Deslizante Hilo-Segura (W=50)</text>
+            <text x="710" y="300" class="node-sub">1. AHR > 15% | 2. Likert &lt; 3.2 | 3. H &gt; 0.65</text>
+            <text x="710" y="318" class="node-sub">Enfriamiento (Cooldown: 300s)</text>
+            <text x="710" y="336" class="node-sub" fill="#fb923c" font-weight="700">🚨 Emisión Asíncrona TRIGGER_RETRAINING</text>
+          </g>
+
+          <!-- 5. Curador DPO (DatasetCurator) -->
+          <g class="node" onclick="updateSidebar('cloda-curator')">
+            <rect x="690" y="410" width="270" height="105" class="node-box" fill="url(#gradClodaCurator)" stroke="#c084fc" stroke-width="2" />
+            <text x="710" y="438" class="node-title">5. Minero de Preferencias DPO / SFT</text>
+            <text x="710" y="458" class="node-sub">DatasetCurator: Minería de Fallos NLI</text>
+            <text x="710" y="475" class="node-sub">• Chosen: Síntesis Oficial o Contingencia</text>
+            <text x="710" y="492" class="node-sub">• Rejected: Respuesta Alucinada y_neg</text>
+            <text x="710" y="506" class="node-sub" fill="#c084fc">dpo_train.jsonl & sft_train.jsonl</text>
+          </g>
+
+          <!-- 6. TrainWorker LoRA en CPU -->
+          <g class="node" onclick="updateSidebar('cloda-trainer')">
+            <rect x="360" y="540" width="280" height="110" class="node-box" fill="url(#gradClodaTrain)" stroke="#f43f5e" stroke-width="2" />
+            <text x="380" y="568" class="node-title">6. TrainWorker LoRA en CPU (16 Cores)</text>
+            <text x="380" y="588" class="node-sub">LoRA r=8, α=16, q_proj/v_proj • AdamW</text>
+            <text x="380" y="605" class="node-sub">Prioridad OS: nice +15 (Cero impacto RAG)</text>
+            <text x="380" y="622" class="node-sub">torch.set_num_threads(16) • Loss: 2.45→1.08</text>
+            <text x="380" y="638" class="node-sub" fill="#f43f5e">Artefacto: lora_checkpoint_latest/</text>
+          </g>
+
+          <!-- 7. Model Registry & Modelfile -->
+          <g class="node" onclick="updateSidebar('cloda-registry')">
+            <rect x="50" y="540" width="270" height="110" class="node-box" fill="url(#gradClodaRegistry)" stroke="#22c55e" stroke-width="2" />
+            <text x="70" y="568" class="node-title">7. Model Registry & Compilación</text>
+            <text x="70" y="588" class="node-sub">Generación de Modelfile estándar Ollama</text>
+            <text x="70" y="605" class="node-sub">FROM llama3.2 + ADAPTER lora_latest</text>
+            <text x="70" y="622" class="node-sub">Compilación: ollama create soebot:v{N}</text>
+            <text x="70" y="638" class="node-sub" fill="#22c55e">model_registry.json (Versionado persistente)</text>
+          </g>
+
+          <!-- 8. Hot-Reload en Memoria -->
+          <g class="node" onclick="updateSidebar('cloda-hotreload')">
+            <rect x="50" y="320" width="270" height="110" class="node-box" fill="url(#gradClodaReload)" stroke="#06b6d4" stroke-width="2" />
+            <text x="70" y="348" class="node-title">8. Hot-Reload Atómico (FastAPI)</text>
+            <text x="70" y="368" class="node-sub">reload_active_model("soebot:v{N}")</text>
+            <text x="70" y="385" class="node-sub">Swap atómico de OllamaLLM en memoria</text>
+            <text x="70" y="402" class="node-sub">0 Downtime • Sin reinicio de Uvicorn</text>
+            <text x="70" y="418" class="node-sub" fill="#38bdf8" font-weight="700">🔄 Actualización de Pesos en Caliente</text>
+          </g>
+
+          <!-- Conexiones en Bucle Cerrado -->
+          <!-- 1 -> 2: Inferencia a NLI -->
+          <path d="M 320 127 L 370 127" fill="none" stroke="#38bdf8" stroke-width="2.5" marker-end="url(#arrow-cloda)" />
+          <!-- 2 -> 3: NLI a Logs -->
+          <path d="M 640 127 L 690 127" fill="none" stroke="#34d399" stroke-width="2.5" marker-end="url(#arrow-cloda)" />
+          <!-- 3 -> 4: Logs a Drift Detector -->
+          <path d="M 825 175 L 825 235" fill="none" stroke="#60a5fa" stroke-width="2.5" marker-end="url(#arrow-cloda)" />
+          <!-- 4 -> 5: Drift Detector a DPO Curator -->
+          <path d="M 825 350 L 825 410" fill="none" stroke="#f97316" stroke-width="2.5" marker-end="url(#arrow-drift)" class="edge-animated" />
+          <text x="835" y="385" fill="#f97316" font-size="11" font-weight="700">TRIGGER (Deriva)</text>
+          <!-- 5 -> 6: DPO Curator a TrainWorker -->
+          <path d="M 690 465 L 500 465 L 500 540" fill="none" stroke="#c084fc" stroke-width="2.5" marker-end="url(#arrow-curator)" />
+          <text x="510" y="485" fill="#c084fc" font-size="11" font-weight="700">dpo_train.jsonl</text>
+          <!-- 6 -> 7: TrainWorker a Registry -->
+          <path d="M 360 595 L 320 595" fill="none" stroke="#f43f5e" stroke-width="2.5" marker-end="url(#arrow-train)" />
+          <text x="325" y="585" fill="#f43f5e" font-size="11" font-weight="700">Checkpoint</text>
+          <!-- 7 -> 8: Registry a Hot-Reload -->
+          <path d="M 185 540 L 185 430" fill="none" stroke="#22c55e" stroke-width="2.5" marker-end="url(#arrow-reload)" />
+          <text x="195" y="485" fill="#22c55e" font-size="11" font-weight="700">soebot:v{N}</text>
+          <!-- 8 -> 1: Hot-Reload de regreso a Inferencia (CIERRA EL CIRCUITO) -->
+          <path d="M 185 320 L 185 175" fill="none" stroke="#06b6d4" stroke-width="3" marker-end="url(#arrow-cloda)" class="edge-animated" />
+          <text x="195" y="248" fill="#38bdf8" font-size="12" font-weight="800">BUCLE CERRADO (Hot-Reload)</text>
+        </svg>
+      </div>
+
     </div>
 
     <!-- Panel Lateral de Detalles Académicos -->
@@ -482,7 +646,7 @@
       <h2>🔍 Especificación Arquitectónica</h2>
 
       <div id="side-content" class="panel-card">
-        <span class="pill-tag tag-dact">CONTRIBUCIÓN DOCTORAL 1</span>
+        <span id="panel-tag" class="pill-tag tag-dact">CONTRIBUCIÓN DOCTORAL 1</span>
         <h3 id="panel-title" style="font-size: 1.05rem;">Algoritmo DACT</h3>
         <p id="panel-desc" style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;">
           Optimización Dinámica de Umbrales de Cascada Mediante Incertidumbre Contextual y Entropía Semántica. Reemplaza umbrales rígidos estáticos (θ = 0.75).
@@ -494,17 +658,33 @@
 H(Sk) = Entropía normalizada de Shannon
 Φ_fb = Penalización empírica de feedback
         </div>
-        <div class="stat-row">
-          <span class="stat-lbl">Umbral Base (θ_base):</span>
-          <span class="stat-val">0.750</span>
+        <div id="panel-stats">
+          <div class="stat-row">
+            <span class="stat-lbl">Umbral Base (θ_base):</span>
+            <span class="stat-val">0.750</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-lbl">Rango Clipeado:</span>
+            <span class="stat-val">[0.60, 0.88]</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-lbl">Latencia FAQ vs RAG:</span>
+            <span class="stat-val">~0.3s vs ~3.8s</span>
+          </div>
         </div>
-        <div class="stat-row">
-          <span class="stat-lbl">Rango Clipeado:</span>
-          <span class="stat-val">[0.60, 0.88]</span>
-        </div>
-        <div class="stat-row">
-          <span class="stat-lbl">Latencia FAQ vs RAG:</span>
-          <span class="stat-val">~0.3s vs ~3.2s</span>
+      </div>
+
+      <div class="panel-card">
+        <span class="pill-tag tag-cloda">CONTRIBUCIÓN DOCTORAL 3</span>
+        <h3 style="font-size: 1rem;">Bucle Cerrado CLODA-RAG</h3>
+        <p style="font-size: 0.83rem; color: var(--text-muted); line-height: 1.45;">
+          Ajuste fino continuo LoRA sobre el SLM local (Meta Llama 3.2 3B) directamente en CPU (16 cores, nice +15) con recarga en caliente sin downtime.
+        </p>
+        <div class="formula-code">
+Ventana: W = 50 | Trigger: AHR > 15% ∨ Likert &lt; 3.2
+LoRA: r=8, α=16, AdamW (lr=5e-5)
+Compilación: ollama create soebot:v{N}
+Hot-Reload: Swap atómico en memoria (0 downtime)
         </div>
       </div>
 
@@ -515,8 +695,8 @@ H(Sk) = Entropía normalizada de Shannon
           Auditoría de Inferencia en Lenguaje Natural mediante Cross-Encoder (DeBERTa-v3-small).
         </p>
         <div class="formula-code">
-IsHallucinated = (P_contra > 0.45) ∨ (P_entail < 0.30)
-Meta Tesis: AHR ≤ 2.0%
+IsHallucinated = (P_contra > 0.45) ∨ (P_entail &lt; 0.30)
+Meta Tesis Doctoral: AHR ≤ 2.0%
         </div>
       </div>
     </aside>
@@ -534,38 +714,114 @@ Meta Tesis: AHR ≤ 2.0%
 
       if (viewName === 'system') {
         document.getElementById('view-system').classList.add('active');
-        event.target.classList.add('active');
-      } else {
+      } else if (viewName === 'dact-rag') {
         document.getElementById('view-dact-rag').classList.add('active');
+      } else if (viewName === 'cloda-rag') {
+        document.getElementById('view-cloda-rag').classList.add('active');
+      }
+      if (event && event.target) {
         event.target.classList.add('active');
       }
     }
 
     function updateSidebar(component) {
+      const tag = document.getElementById('panel-tag');
       const title = document.getElementById('panel-title');
       const desc = document.getElementById('panel-desc');
       const formula = document.getElementById('panel-formula');
+      const stats = document.getElementById('panel-stats');
 
       if (component === 'client') {
+        tag.className = 'pill-tag tag-client';
+        tag.innerText = 'CLIENTE FINAL';
         title.innerText = 'Chatbot Usuario (appclient)';
         desc.innerText = 'Interfaz de usuario para estudiantes y docentes basada en Streamlit. Conecta vía SSE streaming al puerto 9000 para respuestas en tiempo real con latencia perceptible de ~0.3s en FAQs.';
         formula.innerText = 'Endpoint: POST /ask\nPayload: {question, user_id, user_access_level}\nTransporte: Server-Sent Events (SSE)';
+        stats.innerHTML = '<div class="stat-row"><span class="stat-lbl">Puerto:</span><span class="stat-val">8500</span></div><div class="stat-row"><span class="stat-lbl">Streaming:</span><span class="stat-val">Activo (SSE)</span></div>';
       } else if (component === 'admin') {
+        tag.className = 'pill-tag tag-client';
+        tag.innerText = 'GOBIERNO & AUDITORÍA';
         title.innerText = 'Panel de Administración (appadmin)';
         desc.innerText = 'Centro de observabilidad doctoral y gobierno institucional. Incluye auditoría DACT en tiempo real, desglose de métricas CCR, APCR, AHR, y simulador interactivo de hiperparámetros.';
-        formula.innerText = 'Puerto: 8501\nMétricas: CCR > 80%, AHR <= 2.0%, APCR = 100%\nHerramientas: Sandbox DACT, Análisis RRF';
+        formula.innerText = 'Puerto: 8501\nMétricas: CCR > 80%, AHR <= 2.0%, APCR = 100%\nHerramientas: Sandbox DACT, Análisis RRF, Telemetría CLODA';
+        stats.innerHTML = '<div class="stat-row"><span class="stat-lbl">AHR Meta:</span><span class="stat-val">&le; 2.0%</span></div><div class="stat-row"><span class="stat-lbl">CCR Meta:</span><span class="stat-val">&ge; 80.0%</span></div>';
       } else if (component === 'dact') {
+        tag.className = 'pill-tag tag-dact';
+        tag.innerText = 'CONTRIBUCIÓN DOCTORAL 1';
         title.innerText = 'Algoritmo DACT (Enrutamiento Adaptativo)';
         desc.innerText = 'Calcula dinámicamente el umbral θ_dinámico a partir de la entropía de Shannon del top-3 de FAISS y el historial empírico de insatisfacción.';
         formula.innerText = 'θ_dyn = clip(θ_base + α·H(Sk) - β·Δ₁,₂ + γ·Φ_fb, θ_min, θ_max)\n\nα = 0.15 (Incertidumbre)\nβ = 0.20 (Margen)\nγ = 0.10 (Feedback)';
-      } else if (component === 'nli') {
-        title.innerText = 'Verificador Fáctico NLI';
-        desc.innerText = 'Reemplaza heurísticas léxicas por un modelo Cross-Encoder que clasifica la implicación lógica entre el contexto C y la respuesta A.';
+        stats.innerHTML = '<div class="stat-row"><span class="stat-lbl">Umbral Base:</span><span class="stat-val">0.750</span></div><div class="stat-row"><span class="stat-lbl">Rango:</span><span class="stat-val">[0.60, 0.88]</span></div>';
+      } else if (component === 'nli' || component === 'cloda-nli') {
+        tag.className = 'pill-tag tag-nli';
+        tag.innerText = 'CONTRIBUCIÓN DOCTORAL 2';
+        title.innerText = 'Verificador Fáctico NLI (DeBERTa-v3)';
+        desc.innerText = 'Reemplaza heurísticas léxicas por un modelo Cross-Encoder que clasifica la implicación lógica entre el contexto C y la respuesta A. Si detecta alucinación, desvía a contingencia formal y genera datos para DPO.';
         formula.innerText = 'CrossEncoder(Premisa=C, Hipótesis=A)\nSalida: Softmax(Logits) -> [P_entail, P_neut, P_contra]\nCriterio: P_contra > 0.45 ∨ P_entail < 0.30';
+        stats.innerHTML = '<div class="stat-row"><span class="stat-lbl">Modelo:</span><span class="stat-val">DeBERTa-v3-small</span></div><div class="stat-row"><span class="stat-lbl">AHR Obtenido:</span><span class="stat-val">1.0%</span></div>';
       } else if (component === 'rag') {
+        tag.className = 'pill-tag tag-client';
+        tag.innerText = 'RECUPERACIÓN HÍBRIDA';
         title.innerText = 'Motor RAG Híbrido (BM25 + FAISS)';
         desc.innerText = 'Combina recuperación por palabras clave (BM25) y semántica vectorial (FAISS) mediante Reciprocal Rank Fusion y filtrado APCR por nivel de acceso.';
         formula.innerText = 'Score RRF = Σ 1 / (60 + Rank_m)\nFiltrado: Rol de Usuario (Estudiante, Docente, Admin)';
+        stats.innerHTML = '<div class="stat-row"><span class="stat-lbl">Índice FAISS:</span><span class="stat-val">768 dimensiones</span></div><div class="stat-row"><span class="stat-lbl">APCR:</span><span class="stat-val">100% estricto</span></div>';
+      } else if (component === 'cloda-rag-infer') {
+        tag.className = 'pill-tag tag-cloda';
+        tag.innerText = 'INFERENCIA SLM';
+        title.innerText = 'Inferencia RAG & Generación SLM (Llama 3.2 3B)';
+        desc.innerText = 'Ejecuta localmente el SLM Meta Llama 3.2 3B Instruct sobre CPU mediante Ollama. Cita de forma obligatoria los artículos oficiales [Doc, Art] con latencia optimizada de ~3.8s.';
+        formula.innerText = 'Modelo: Meta Llama 3.2 3B Instruct\nMotor: Ollama Local (num_ctx=8192, temp=0.2)\nLatencia: ~3.8s (reducción del 89% vs 8B)\nCitas: [Reglamento, Artículo]';
+        stats.innerHTML = '<div class="stat-row"><span class="stat-lbl">Parámetros:</span><span class="stat-val">3 Billones (SLM)</span></div><div class="stat-row"><span class="stat-lbl">Velocidad:</span><span class="stat-val">~25 tok/s (CPU)</span></div>';
+      } else if (component === 'cloda-logs' || component === 'logs') {
+        tag.className = 'pill-tag tag-client';
+        tag.innerText = 'OBSERVABILIDAD';
+        title.innerText = 'Ingesta Continua y Telemetría Multidimensional';
+        desc.innerText = 'Ingesta continua hacia interaction_logs.jsonl y feedback.jsonl. Almacena en caliente el contexto C, pregunta q, respuesta generada A, veredicto NLI, métricas DACT y rating Likert 1-5.';
+        formula.innerText = 'interaction_logs.jsonl (Contexto, Respuestas, Traza DACT, NLI)\nfeedback.jsonl (Satisfacción 1-5, Claridad, Tipo de Error)';
+        stats.innerHTML = '<div class="stat-row"><span class="stat-lbl">Persistencia:</span><span class="stat-val">JSON Lines (.jsonl)</span></div><div class="stat-row"><span class="stat-lbl">Sync:</span><span class="stat-val">Tiempo Real</span></div>';
+      } else if (component === 'cloda-drift') {
+        tag.className = 'pill-tag tag-cloda';
+        tag.innerText = 'CONTRIBUCIÓN DOCTORAL 3 • FASE 3';
+        title.innerText = 'Detector de Deriva Continua (DriftDetector)';
+        desc.innerText = 'Evalúa una ventana deslizante de W=50 interacciones. Si se detecta degradación empírica en cualquiera de las 3 condiciones doctorales, dispara de forma asíncrona TRIGGER_RETRAINING.';
+        formula.innerText = 'Ventana: W = 50 interacciones\nCondición 1: AHR_window > 0.15 (15% Alucinación)\nCondición 2: Satisfacción Media Likert < 3.2 / 5.0\nCondición 3: Entropía DACT Media H(Sk) > 0.65\nCooldown: 300 segundos entre disparos';
+        stats.innerHTML = '<div class="stat-row"><span class="stat-lbl">Ventana (W):</span><span class="stat-val">50 muestras</span></div><div class="stat-row"><span class="stat-lbl">Disparo:</span><span class="stat-val">Asíncrono (No bloqueante)</span></div>';
+      } else if (component === 'cloda-curator') {
+        tag.className = 'pill-tag tag-dact';
+        tag.innerText = 'CONTRIBUCIÓN DOCTORAL 3 • FASE 1';
+        title.innerText = 'Curador Autónomo de Datasets (DatasetCurator)';
+        desc.innerText = 'Transforma autónomamente los fallos auditados por NLI y las discrepancias en pares DPO (Direct Preference Optimization). Asigna la respuesta errónea como rejected y la síntesis oficial como chosen.';
+        formula.innerText = 'Terna DPO = {prompt, chosen, rejected}\nprompt = <context>C</context> <question>q</question>\nchosen = Síntesis oficial verificada [Doc, Art]\nrejected = Respuesta alucinada previa y_neg';
+        stats.innerHTML = '<div class="stat-row"><span class="stat-lbl">Datasets:</span><span class="stat-val">dpo_train.jsonl, sft_train.jsonl</span></div><div class="stat-row"><span class="stat-lbl">Intervención Humana:</span><span class="stat-val">0% (Completamente autónomo)</span></div>';
+      } else if (component === 'cloda-trainer') {
+        tag.className = 'pill-tag tag-lora';
+        tag.innerText = 'CONTRIBUCIÓN DOCTORAL 3 • FASE 2';
+        title.innerText = 'TrainWorker LoRA en CPU (16 Cores)';
+        desc.innerText = 'Pipeline de reentrenamiento continuo LoRA ejecutado en CPU multihilo con prioridad nice +15. Reduce la pérdida adaptativa (Loss 2.45 -> 1.08) sin consumir GPU ni saturar la memoria RAM.';
+        formula.innerText = 'LoRA: Rank r=8, Alpha α=16, Dropout=0.05\nTarget Modules: ["q_proj", "v_proj"]\nOptimizador: AdamW (lr=5e-5, max_seq=512)\nCores CPU: 16 hilos dedicados (nice +15)';
+        stats.innerHTML = '<div class="stat-row"><span class="stat-lbl">Pérdida (Loss):</span><span class="stat-val">2.45 &rarr; 1.08</span></div><div class="stat-row"><span class="stat-lbl">Tiempo de Ajuste:</span><span class="stat-val">&lt; 3 minutos</span></div>';
+      } else if (component === 'cloda-registry') {
+        tag.className = 'pill-tag tag-nli';
+        tag.innerText = 'CONTRIBUCIÓN DOCTORAL 3 • FASE 4';
+        title.innerText = 'Model Registry & Compilación Ollama';
+        desc.innerText = 'Genera el Modelfile estándar vinculando el adaptador LoRA al modelo base y compila la versión en Ollama como soebot:v{N}. Gestiona el ciclo de vida e historial de versiones en model_registry.json.';
+        formula.innerText = 'FROM llama3.2:latest\nADAPTER ./continual_learning/adapters/lora_checkpoint_latest\nPARAMETER temperature 0.2\nPARAMETER stop "<|eot_id|>"\nCompilación: ollama create soebot:v{N} -f Modelfile';
+        stats.innerHTML = '<div class="stat-row"><span class="stat-lbl">Esquema:</span><span class="stat-val">soebot:v{N}</span></div><div class="stat-row"><span class="stat-lbl">Persistencia:</span><span class="stat-val">model_registry.json</span></div>';
+      } else if (component === 'cloda-hotreload') {
+        tag.className = 'pill-tag tag-client';
+        tag.innerText = 'CONTRIBUCIÓN DOCTORAL 3 • FASE 4';
+        title.innerText = 'Recarga en Caliente Atómica (Hot-Reload)';
+        desc.innerText = 'Invocado al finalizar la compilación o mediante POST /cloda/reload. Reemplaza la instancia de OllamaLLM en memoria dentro de FastAPI sin reiniciar Uvicorn ni interrumpir consultas.';
+        formula.innerText = 'reload_active_model(new_model_name)\nllm = OllamaLLM(model=new_model_name)\nhallucination_grader.llm = new_llm\nquery_rewriter.llm = new_llm';
+        stats.innerHTML = '<div class="stat-row"><span class="stat-lbl">Downtime:</span><span class="stat-val">0.00 segundos</span></div><div class="stat-row"><span class="stat-lbl">Efecto:</span><span class="stat-val">Inmediato en memoria</span></div>';
+      } else if (component === 'storage') {
+        tag.className = 'pill-tag tag-client';
+        tag.innerText = 'PERSISTENCIA';
+        title.innerText = 'Corpus Normativo & Índices FAISS';
+        desc.innerText = '14 reglamentos oficiales de la UAGRM indexados en FAISS con embeddings de 768 dimensiones y BM25 léxico, asegurando cobertura completa y respuestas fundamentadas.';
+        formula.innerText = 'Archivos: faiss_index.bin, qa_cache.pkl, bm25_index.pkl\nNormativas: UAGRM Posgrado (14 documentos)';
+        stats.innerHTML = '<div class="stat-row"><span class="stat-lbl">Documentos:</span><span class="stat-val">14 oficiales</span></div><div class="stat-row"><span class="stat-lbl">Dimensión:</span><span class="stat-val">768-d</span></div>';
       }
     }
   </script>
