@@ -26,6 +26,7 @@ from agents.hallucination_grader import HallucinationGrader
 from agents.query_rewriter import QueryRewriter
 from agents.nli_evaluator import NLIEvaluator, NLIResult
 from retrieval.dact import DACTRouter, DACTResult
+from retrieval.institutional_guardrails import is_out_of_domain_query, INSTITUTIONAL_FALLBACK_MSG
 from orchestrator.router import MultiAgentOrchestrator
 from typing import Optional, Dict, Any, List
 
@@ -591,7 +592,7 @@ async def lifespan(app: FastAPI):
     # 6. Inicializar agentes y orquestador Sprint 1+2 (GUIDANCE -> FAQ -> CACHE -> RAG_DOC/GRAPH_RAG)
     def _build_chain():
         template = """<rol_y_mision>
-Eres SoeBOT, asistente académico oficial de posgrado. Tu función es responder consultas de estudiantes y docentes basándote ÚNICA Y EXCLUSIVAMENTE en la normativa provista en <contexto_normativo>.
+Eres SoeBOT, asistente académico oficial de la Unidad de Postgrado de la Facultad de Ingeniería en Ciencias de la Computación y Telecomunicaciones (FICCT - UAGRM). Tu función es responder consultas de estudiantes y docentes basándote ÚNICA Y EXCLUSIVAMENTE en la normativa provista en <contexto_normativo>.
 </rol_y_mision>
 
 <contexto_normativo>
@@ -604,8 +605,8 @@ Eres SoeBOT, asistente académico oficial de posgrado. Tu función es responder 
 
 <recordatorio_formato_y_citas>
 REGLAS OBLIGATORIAS ANTES DE GENERAR LA RESPUESTA:
-1. Responde ÚNICA Y EXCLUSIVAMENTE con la información presente en <contexto_normativo>. NUNCA asumas ni inventes datos externos.
-2. Si la respuesta NO se encuentra en el contexto, responde EXACTAMENTE con esta frase y nada más:
+1. Responde ÚNICA Y EXCLUSIVAMENTE con la información explícita presente en <contexto_normativo>. Eres asistente exclusivo de la FICCT - UAGRM. Tienes TERMINANTEMENTE PROHIBIDO hablar de otras universidades, posgrados o datos externos que no figuren en los reglamentos provistos.
+2. Si la consulta trata sobre otra universidad, otro programa o la respuesta NO se encuentra en el contexto normativo, responde EXACTAMENTE con esta frase y nada más:
    "No dispongo de esa información en los reglamentos vigentes. Por favor, acude a la Jefatura Académica."
 3. OBLIGATORIO: CITA SIEMPRE la fuente o artículo del documento al sustentar tu respuesta usando corchetes, por ejemplo: [Reglamento General, Art. 12] o [FAQ Académica, Sección 1].
 4. Mantén un tono formal, profesional, conciso y directo, sin saludos ni rodeos.
@@ -850,9 +851,12 @@ def is_research_sensitive_query(question: str, categories: list) -> bool:
     return any(cat in {"Investigacion"} for cat in (categories or []))
 
 def should_bypass_cache_answer(question: str, categories: list, cached_response: str) -> bool:
-    """Bypass cuando el cache devuelve FAQ de ubicacion para consulta de tesis/investigacion."""
+    """Bypass cuando el cache devuelve FAQ de ubicacion para consulta de tesis/investigacion o fallback."""
     if not cached_response:
-        return False
+        return True
+    fallback_marker = "No dispongo de esa información en los reglamentos vigentes"
+    if fallback_marker in cached_response:
+        return True
     if is_research_sensitive_query(question, categories):
         bad_markers = [
             "¿Dónde queda ubicado el SOE?",
@@ -995,259 +999,331 @@ def buscar_faq_semantico(question: str, faqs: list, embed_fn, threshold: float =
 async def ask(request: AskRequest):
     """
     Sprint 1: routing multi-agente (GUIDANCE -> FAQ -> CACHE -> RAG_DOC)
-    preservando streaming y métricas existentes.
+    con guardrails de alcance institucional, resiliencia anti-500 y protección de caché.
     """
-    global orchestrator
-    if len(request.question) > 2500:
-        logging.warning(f"Consulta excede 2500 caracteres ({len(request.question)}). Podando defensivamente para evitar desbordes de contexto.")
-        request.question = request.question[:2500]
+    try:
+        global orchestrator
+        if len(request.question) > 2500:
+            logging.warning(f"Consulta excede 2500 caracteres ({len(request.question)}). Podando defensivamente para evitar desbordes de contexto.")
+            request.question = request.question[:2500]
 
-    print(f"Recibida pregunta: {request.question} (Acceso: {request.user_access_level})")
-    query_counter.inc()
-    request_start = time.time()
+        print(f"Recibida pregunta: {request.question} (Acceso: {request.user_access_level})")
+        query_counter.inc()
+        request_start = time.time()
 
-    categories = categorize_query_multi(request.question)
-    qualitative_metrics["query_categories"][str(categories)] = qualitative_metrics["query_categories"].get(str(categories), 0) + 1
-    print(f"Categorías detectadas: {categories}")
+        categories = categorize_query_multi(request.question)
+        qualitative_metrics["query_categories"][str(categories)] = qualitative_metrics["query_categories"].get(str(categories), 0) + 1
+        print(f"Categorías detectadas: {categories}")
 
-    if orchestrator is None:
-        # Fallback defensivo para no romper servicio si no se inicializó en lifespan
-        print("[WARNING] Orquestador no inicializado, activando fallback mínimo.")
-        guidance_message = build_guidance_message()
-        async def stream_fallback():
-            response_time_val = time.time() - request_start
-            response_time.observe(response_time_val)
-            qualitative_metrics["response_times"].append(response_time_val)
-            qualitative_metrics["hallucination_rate"].append(0)
-            record_interaction_metrics(request.user_id, request.question, categories, "GUIDANCE", guidance_message, response_time_val, False)
-            yield guidance_message
-        return StreamingResponse(stream_fallback(), media_type="text/event-stream")
+        fallback_msg = "No dispongo de esa información en los reglamentos vigentes. Por favor, acude a la Jefatura Académica."
 
-    route_result = orchestrator.route_pre_llm(request.question, user_access_level=request.user_access_level)
-
-    if route_result.answer_mode in ("GUIDANCE", "FAQ", "CACHE"):
-        if route_result.answer_mode == "CACHE":
-            # Evitar cache para consultas académicas/investigación sensibles o respuestas contaminadas
-            cached_text = route_result.answer_text or ""
-            bypass_sensitive = any(cat in {"Academica", "Investigacion"} for cat in categories)
-            bypass_contaminated = should_bypass_cache_answer(request.question, categories, cached_text)
-
-            if bypass_sensitive or bypass_contaminated:
-                context, sources, retrieval_ms, q_np, retrieval_metrics = doc_rag_agent.retrieve(request.question, user_access_level=request.user_access_level)
-                route_result = type(route_result)(
-                    answer_text="",
-                    answer_mode="RAG_DOC",
-                    confidence=0.0,
-                    sources=sources,
-                    routing_trace={
-                        **(route_result.routing_trace or {}),
-                        "cache_bypassed_for_sensitive_categories": bool(bypass_sensitive),
-                        "cache_bypassed_for_contaminated_answer": bool(bypass_contaminated),
-                        "cache_hit": False,
-                        "rag_used": True,
-                        "retrieval_metrics": retrieval_metrics,
-                    },
-                    timing_ms={**(route_result.timing_ms or {}), "retrieval": retrieval_ms},
-                    knowledge_context=context,
-                    question_embedding_np=q_np,
-                )
-            else:
-                cache_hit_counter.inc()
-
-        if route_result.answer_mode in ("GUIDANCE", "FAQ", "CACHE"):
-            async def stream_pre_llm():
+        # 1. Guardrail institucional estricto (Pre-LLM) para instituciones externas o fuera de dominio
+        if is_out_of_domain_query(request.question):
+            logging.info(f"Consulta detectada fuera de dominio institucional: '{request.question}'. Activando contingencia.")
+            async def stream_out_of_domain():
                 response_time_val = time.time() - request_start
                 response_time.observe(response_time_val)
                 qualitative_metrics["response_times"].append(response_time_val)
                 qualitative_metrics["hallucination_rate"].append(0)
-
-                prompt_tokens = estimate_token_count(request.question)
-                completion_tokens = estimate_token_count(route_result.answer_text)
-                tokens_used = {
-                    "prompt_tokens": prompt_tokens,
-                    "completion_tokens": completion_tokens,
-                    "total_tokens": prompt_tokens + completion_tokens
-                }
-
                 record_interaction_metrics(
                     request.user_id,
                     request.question,
                     categories,
-                    route_result.answer_mode,
-                    route_result.answer_text,
+                    "OUT_OF_DOMAIN",
+                    fallback_msg,
                     response_time_val,
                     False,
-                    sources=route_result.sources,
-                    routing_trace=route_result.routing_trace,
-                    confidence=route_result.confidence,
-                    timing_ms=route_result.timing_ms,
-                    tokens_used=tokens_used,
+                    is_contingency_fallback=True,
                 )
+                yield fallback_msg
+            return StreamingResponse(stream_out_of_domain(), media_type="text/event-stream")
 
-                if route_result.answer_mode == "FAQ":
-                    qa_cache[request.question] = route_result.answer_text
-                    qa_faiss_index.add(np.array([embeddings.embed_query(request.question)], dtype="float32"))
-                    try:
-                        faiss.write_index(qa_faiss_index, QA_FAISS_INDEX_PATH)
-                        with open(QA_CACHE_PATH, "wb") as f:
-                            pickle.dump(qa_cache, f)
-                    except Exception as e:
-                        logging.error(f"Error guardando caché: {e}")
+        if orchestrator is None:
+            # Fallback defensivo para no romper servicio si no se inicializó en lifespan
+            print("[WARNING] Orquestador no inicializado, activando fallback mínimo.")
+            guidance_message = build_guidance_message()
+            async def stream_fallback():
+                response_time_val = time.time() - request_start
+                response_time.observe(response_time_val)
+                qualitative_metrics["response_times"].append(response_time_val)
+                qualitative_metrics["hallucination_rate"].append(0)
+                record_interaction_metrics(request.user_id, request.question, categories, "GUIDANCE", guidance_message, response_time_val, False)
+                yield guidance_message
+            return StreamingResponse(stream_fallback(), media_type="text/event-stream")
 
-                yield route_result.answer_text
+        route_result = orchestrator.route_pre_llm(request.question, user_access_level=request.user_access_level)
 
-            return StreamingResponse(stream_pre_llm(), media_type="text/event-stream")
+        if route_result.answer_mode in ("GUIDANCE", "FAQ", "CACHE"):
+            if route_result.answer_mode == "CACHE":
+                # Evitar cache para consultas académicas/investigación sensibles o respuestas contaminadas
+                cached_text = route_result.answer_text or ""
+                bypass_sensitive = any(cat in {"Academica", "Investigacion"} for cat in categories)
+                bypass_contaminated = should_bypass_cache_answer(request.question, categories, cached_text)
 
-    # RAG_DOC / GRAPH_RAG
-    if route_result.answer_mode == "RAG_DOC" and (route_result.question_embedding_np is None or not route_result.knowledge_context):
-        context, sources, retrieval_ms, q_np, retrieval_metrics = doc_rag_agent.retrieve(request.question, user_access_level=request.user_access_level)
-        route_result.knowledge_context = context
-        route_result.sources = sources
-        route_result.question_embedding_np = q_np
-        base_timing = dict(route_result.timing_ms or {})
-        base_timing["retrieval"] = retrieval_ms
-        route_result.timing_ms = base_timing
-        route_result.routing_trace = {**(route_result.routing_trace or {}), "retrieval_metrics": retrieval_metrics}
+                if bypass_sensitive or bypass_contaminated:
+                    context, sources, retrieval_ms, q_np, retrieval_metrics = doc_rag_agent.retrieve(request.question, user_access_level=request.user_access_level)
+                    route_result = type(route_result)(
+                        answer_text="",
+                        answer_mode="RAG_DOC",
+                        confidence=0.0,
+                        sources=sources,
+                        routing_trace={
+                            **(route_result.routing_trace or {}),
+                            "cache_bypassed_for_sensitive_categories": bool(bypass_sensitive),
+                            "cache_bypassed_for_contaminated_answer": bool(bypass_contaminated),
+                            "cache_hit": False,
+                            "rag_used": True,
+                            "retrieval_metrics": retrieval_metrics,
+                        },
+                        timing_ms={**(route_result.timing_ms or {}), "retrieval": retrieval_ms},
+                        knowledge_context=context,
+                        question_embedding_np=q_np,
+                    )
+                else:
+                    cache_hit_counter.inc()
 
-    if route_result.answer_mode == "GRAPH_RAG" and not route_result.knowledge_context and graph_rag_agent is not None:
-        graph_result = graph_rag_agent.retrieve_with_graph(request.question, user_access_level=request.user_access_level)
-        route_result.knowledge_context = graph_result.context
-        route_result.sources = graph_result.sources
-        route_result.question_embedding_np = np.array([embeddings.embed_query(request.question)], dtype="float32")
-        base_timing = dict(route_result.timing_ms or {})
-        base_timing.update(graph_result.timing_ms or {})
-        route_result.timing_ms = base_timing
-        route_result.routing_trace = {**(route_result.routing_trace or {}), "graph_trace": graph_result.graph_trace}
-        route_result.confidence = float(graph_result.confidence)
+            if route_result.answer_mode in ("GUIDANCE", "FAQ", "CACHE"):
+                async def stream_pre_llm():
+                    response_time_val = time.time() - request_start
+                    response_time.observe(response_time_val)
+                    qualitative_metrics["response_times"].append(response_time_val)
+                    qualitative_metrics["hallucination_rate"].append(0)
 
-    knowledge_context = route_result.knowledge_context
-    question_embedding_np = route_result.question_embedding_np
-    if question_embedding_np is None:
-        question_embedding_np = np.array([embeddings.embed_query(request.question)], dtype="float32")
-    similar_qa_examples = "Sin ejemplos previos."
+                    prompt_tokens = estimate_token_count(request.question)
+                    completion_tokens = estimate_token_count(route_result.answer_text)
+                    tokens_used = {
+                        "prompt_tokens": prompt_tokens,
+                        "completion_tokens": completion_tokens,
+                        "total_tokens": prompt_tokens + completion_tokens
+                    }
 
-    qa_keys = list(qa_cache.keys())
-    if qa_faiss_index.ntotal > 0 and len(qa_keys) > 0:
-        k = min(2, qa_faiss_index.ntotal, len(qa_keys))
-        distances, indices = qa_faiss_index.search(question_embedding_np, k=k)
-        example_list = []
-        for i in indices[0]:
-            if 0 <= i < len(qa_keys):
-                q = qa_keys[i]
-                if q in qa_cache:
-                    ans_preview = str(qa_cache[q])[:250].strip()
-                    example_list.append(f"<ejemplo>\n<pregunta>{q}</pregunta>\n<respuesta>{ans_preview}</respuesta>\n</ejemplo>")
-        if example_list:
-            similar_qa_examples = "\n".join(example_list)
+                    record_interaction_metrics(
+                        request.user_id,
+                        request.question,
+                        categories,
+                        route_result.answer_mode,
+                        route_result.answer_text,
+                        response_time_val,
+                        False,
+                        sources=route_result.sources,
+                        routing_trace=route_result.routing_trace,
+                        confidence=route_result.confidence,
+                        timing_ms=route_result.timing_ms,
+                        tokens_used=tokens_used,
+                    )
 
-    async def stream_rag_doc():
-        full_response = ""
-        generation_ms = 0.0
+                    if route_result.answer_mode == "FAQ":
+                        qa_cache[request.question] = route_result.answer_text
+                        qa_faiss_index.add(np.array([embeddings.embed_query(request.question)], dtype="float32"))
+                        try:
+                            faiss.write_index(qa_faiss_index, QA_FAISS_INDEX_PATH)
+                            with open(QA_CACHE_PATH, "wb") as f:
+                                pickle.dump(qa_cache, f)
+                        except Exception as e:
+                            logging.error(f"Error guardando caché: {e}")
 
-        async for chunk, done_ms in doc_rag_agent.generate(
-            request.question,
-            knowledge_context,
-            few_shot_examples=similar_qa_examples,
-        ):
-            if chunk is not None:
-                full_response += chunk
-                yield chunk
-            if done_ms is not None:
-                generation_ms = done_ms
+                    yield route_result.answer_text
 
-        response_time_val = time.time() - request_start
-        response_time.observe(response_time_val)
-        qualitative_metrics["response_times"].append(response_time_val)
+                return StreamingResponse(stream_pre_llm(), media_type="text/event-stream")
 
-        # Auditar alucinaciones con NLI y HallucinationGrader (Fase 3.1 & 3.3)
-        t_audit_0 = time.time()
-        is_grounded = True
-        grader_reason = "Auditoría completada"
-        nli_res = None
-        if nli_evaluator:
-            nli_res = nli_evaluator.evaluate(knowledge_context, full_response, request.question)
+        # RAG_DOC / GRAPH_RAG
+        if route_result.answer_mode == "RAG_DOC" and (route_result.question_embedding_np is None or not route_result.knowledge_context):
+            context, sources, retrieval_ms, q_np, retrieval_metrics = doc_rag_agent.retrieve(request.question, user_access_level=request.user_access_level)
+            route_result.knowledge_context = context
+            route_result.sources = sources
+            route_result.question_embedding_np = q_np
+            base_timing = dict(route_result.timing_ms or {})
+            base_timing["retrieval"] = retrieval_ms
+            route_result.timing_ms = base_timing
+            route_result.routing_trace = {**(route_result.routing_trace or {}), "retrieval_metrics": retrieval_metrics}
 
-        if hallucination_grader:
-            is_grounded, grader_reason = hallucination_grader.grade(knowledge_context, full_response, request.question)
-        audit_ms = (time.time() - t_audit_0) * 1000.0
+        if route_result.answer_mode == "GRAPH_RAG" and not route_result.knowledge_context and graph_rag_agent is not None:
+            graph_result = graph_rag_agent.retrieve_with_graph(request.question, user_access_level=request.user_access_level)
+            route_result.knowledge_context = graph_result.context
+            route_result.sources = graph_result.sources
+            route_result.question_embedding_np = np.array([embeddings.embed_query(request.question)], dtype="float32")
+            base_timing = dict(route_result.timing_ms or {})
+            base_timing.update(graph_result.timing_ms or {})
+            route_result.timing_ms = base_timing
+            route_result.routing_trace = {**(route_result.routing_trace or {}), "graph_trace": graph_result.graph_trace}
+            route_result.confidence = float(graph_result.confidence)
 
-        if nli_res:
-            is_hallucinated = nli_res.is_hallucinated or (not is_grounded)
-            grader_reason = f"{grader_reason} | NLI: {nli_res.reason}"
-            route_result.routing_trace = {
-                **(route_result.routing_trace or {}),
-                "nli_audit": nli_res.to_dict()
-            }
-        else:
-            is_hallucinated = not is_grounded or detect_hallucination(full_response, knowledge_context)
+        knowledge_context = route_result.knowledge_context or ""
+        question_embedding_np = route_result.question_embedding_np
+        if question_embedding_np is None:
+            question_embedding_np = np.array([embeddings.embed_query(request.question)], dtype="float32")
 
-        if is_hallucinated:
-            hallucination_counter.inc()
-            qualitative_metrics["hallucination_rate"].append(1)
-        else:
-            qualitative_metrics["hallucination_rate"].append(0)
+        # 2. Guardrail de contexto inexistente: Si no hay fuentes recuperadas o el contexto indica falta de datos
+        has_relevant_info = bool(route_result.sources) and ("no se encontró información relevante" not in knowledge_context.lower())
+        if not has_relevant_info:
+            logging.info(f"Sin contexto documental relevante para: '{request.question}'. Retornando contingencia sin invocar LLM.")
+            async def stream_no_info():
+                response_time_val = time.time() - request_start
+                response_time.observe(response_time_val)
+                qualitative_metrics["response_times"].append(response_time_val)
+                qualitative_metrics["hallucination_rate"].append(0)
+                record_interaction_metrics(
+                    request.user_id,
+                    request.question,
+                    categories,
+                    "NO_CONTEXT",
+                    fallback_msg,
+                    response_time_val,
+                    False,
+                    sources=[],
+                    routing_trace=route_result.routing_trace,
+                    is_contingency_fallback=True,
+                )
+                yield fallback_msg
+            return StreamingResponse(stream_no_info(), media_type="text/event-stream")
 
-        fallback_msg = "No dispongo de esa información en los reglamentos vigentes. Por favor, acude a la Jefatura Académica."
-        is_contingency_fallback = fallback_msg.lower() in full_response.lower()
-        has_citations = "[" in full_response and "]" in full_response
+        similar_qa_examples = "Sin ejemplos previos."
+        qa_keys = list(qa_cache.keys())
+        if qa_faiss_index.ntotal > 0 and len(qa_keys) > 0:
+            k = min(2, qa_faiss_index.ntotal, len(qa_keys))
+            distances, indices = qa_faiss_index.search(question_embedding_np, k=k)
+            example_list = []
+            for i in indices[0]:
+                if 0 <= i < len(qa_keys):
+                    q = qa_keys[i]
+                    if q in qa_cache:
+                        ans_preview = str(qa_cache[q])[:250].strip()
+                        example_list.append(f"<ejemplo>\n<pregunta>{q}</pregunta>\n<respuesta>{ans_preview}</respuesta>\n</ejemplo>")
+            if example_list:
+                similar_qa_examples = "\n".join(example_list)
 
-        global sia
-        if sia is None:
-            sia = get_sentiment_analyzer()
+        async def stream_rag_doc():
+            full_response = ""
+            generation_ms = 0.0
 
-        sentiment = 0
-        if sia:
             try:
-                sentiment = sia.polarity_scores(full_response)["compound"]
-                sentiment_score.set(sentiment)
-                qualitative_metrics["avg_sentiment"].append(sentiment)
-            except Exception:
+                async for chunk, done_ms in doc_rag_agent.generate(
+                    request.question,
+                    knowledge_context,
+                    few_shot_examples=similar_qa_examples,
+                ):
+                    if chunk is not None:
+                        full_response += chunk
+                        yield chunk
+                    if done_ms is not None:
+                        generation_ms = done_ms
+            except Exception as gen_err:
+                logging.error(f"Error durante generación con LLM: {gen_err}", exc_info=True)
+                if not full_response:
+                    full_response = fallback_msg
+                    yield fallback_msg
+
+            response_time_val = time.time() - request_start
+            response_time.observe(response_time_val)
+            qualitative_metrics["response_times"].append(response_time_val)
+
+            # Auditar alucinaciones con NLI y HallucinationGrader (Fase 3.1 & 3.3)
+            t_audit_0 = time.time()
+            is_grounded = True
+            grader_reason = "Auditoría completada"
+            nli_res = None
+            try:
+                if nli_evaluator:
+                    nli_res = nli_evaluator.evaluate(knowledge_context, full_response, request.question)
+
+                if hallucination_grader:
+                    is_grounded, grader_reason = hallucination_grader.grade(knowledge_context, full_response, request.question)
+            except Exception as audit_err:
+                logging.warning(f"Error no bloqueante en auditoría de alucinación: {audit_err}")
+
+            audit_ms = (time.time() - t_audit_0) * 1000.0
+
+            if nli_res:
+                is_hallucinated = nli_res.is_hallucinated or (not is_grounded)
+                grader_reason = f"{grader_reason} | NLI: {nli_res.reason}"
+                route_result.routing_trace = {
+                    **(route_result.routing_trace or {}),
+                    "nli_audit": nli_res.to_dict()
+                }
+            else:
+                is_hallucinated = not is_grounded or detect_hallucination(full_response, knowledge_context)
+
+            # Si el modelo generó una respuesta pero alucina mencionando instituciones ajenas
+            if is_out_of_domain_query(full_response):
+                is_hallucinated = True
+                grader_reason += " | Detectada mención a institución externa no autorizada"
+
+            if is_hallucinated:
+                hallucination_counter.inc()
+                qualitative_metrics["hallucination_rate"].append(1)
+            else:
+                qualitative_metrics["hallucination_rate"].append(0)
+
+            is_contingency_fallback = fallback_msg.lower() in full_response.lower()
+            has_citations = "[" in full_response and "]" in full_response
+
+            global sia
+            if sia is None:
+                sia = get_sentiment_analyzer()
+
+            sentiment = 0
+            if sia:
+                try:
+                    sentiment = sia.polarity_scores(full_response)["compound"]
+                    sentiment_score.set(sentiment)
+                    qualitative_metrics["avg_sentiment"].append(sentiment)
+                except Exception:
+                    qualitative_metrics["avg_sentiment"].append(0)
+            else:
                 qualitative_metrics["avg_sentiment"].append(0)
-        else:
-            qualitative_metrics["avg_sentiment"].append(0)
 
-        qa_cache[request.question] = full_response
-        qa_faiss_index.add(question_embedding_np)
-        try:
-            faiss.write_index(qa_faiss_index, QA_FAISS_INDEX_PATH)
-            with open(QA_CACHE_PATH, "wb") as f:
-                pickle.dump(qa_cache, f)
-        except Exception as e:
-            logging.error(f"Error guardando caché: {e}")
-            error_counter.inc()
+            # Protección de caché: NUNCA cachear respuestas alucinadas o contingencias de fallback
+            if not is_hallucinated and not is_contingency_fallback:
+                qa_cache[request.question] = full_response
+                qa_faiss_index.add(question_embedding_np)
+                try:
+                    faiss.write_index(qa_faiss_index, QA_FAISS_INDEX_PATH)
+                    with open(QA_CACHE_PATH, "wb") as f:
+                        pickle.dump(qa_cache, f)
+                except Exception as e:
+                    logging.error(f"Error guardando caché: {e}")
+                    error_counter.inc()
 
-        timing_ms = dict(route_result.timing_ms or {})
-        timing_ms["generation"] = float(generation_ms)
-        timing_ms["audit"] = float(audit_ms)
-        timing_ms["total"] = float(response_time_val * 1000.0)
+            timing_ms = dict(route_result.timing_ms or {})
+            timing_ms["generation"] = float(generation_ms)
+            timing_ms["audit"] = float(audit_ms)
+            timing_ms["total"] = float(response_time_val * 1000.0)
 
-        prompt_tokens = estimate_token_count(request.question) + estimate_token_count(knowledge_context)
-        completion_tokens = estimate_token_count(full_response)
-        tokens_used = {
-            "prompt_tokens": prompt_tokens,
-            "completion_tokens": completion_tokens,
-            "total_tokens": prompt_tokens + completion_tokens
-        }
+            prompt_tokens = estimate_token_count(request.question) + estimate_token_count(knowledge_context)
+            completion_tokens = estimate_token_count(full_response)
+            tokens_used = {
+                "prompt_tokens": prompt_tokens,
+                "completion_tokens": completion_tokens,
+                "total_tokens": prompt_tokens + completion_tokens
+            }
 
-        record_interaction_metrics(
-            request.user_id,
-            request.question,
-            categories,
-            "GRAPH_RAG" if route_result.answer_mode == "GRAPH_RAG" else "RAG_DOC",
-            full_response,
-            response_time_val,
-            is_hallucinated,
-            sources=route_result.sources,
-            routing_trace=route_result.routing_trace,
-            confidence=route_result.confidence,
-            timing_ms=timing_ms,
-            tokens_used=tokens_used,
-            grader_reason=grader_reason,
-            is_contingency_fallback=is_contingency_fallback,
-            has_citations=has_citations,
-        )
+            record_interaction_metrics(
+                request.user_id,
+                request.question,
+                categories,
+                "GRAPH_RAG" if route_result.answer_mode == "GRAPH_RAG" else "RAG_DOC",
+                full_response,
+                response_time_val,
+                is_hallucinated,
+                sources=route_result.sources,
+                routing_trace=route_result.routing_trace,
+                confidence=route_result.confidence,
+                timing_ms=timing_ms,
+                tokens_used=tokens_used,
+                grader_reason=grader_reason,
+                is_contingency_fallback=is_contingency_fallback,
+                has_citations=has_citations,
+            )
 
-    return StreamingResponse(stream_rag_doc(), media_type="text/event-stream")
+        return StreamingResponse(stream_rag_doc(), media_type="text/event-stream")
+
+    except Exception as exc:
+        logging.error(f"Error crítico no controlado en /ask: {exc}", exc_info=True)
+        error_counter.inc()
+        fallback_msg = "No dispongo de esa información en los reglamentos vigentes. Por favor, acude a la Jefatura Académica."
+        async def stream_critical_fallback():
+            yield fallback_msg
+        return StreamingResponse(stream_critical_fallback(), media_type="text/event-stream")
 
 @app.post("/feedback")
 async def feedback(request: FeedbackRequest):

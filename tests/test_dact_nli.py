@@ -138,6 +138,48 @@ class TestFAQAgentWithDACT(unittest.TestCase):
         self.assertIn("theta_dynamic", result.dact_metrics)
         self.assertGreater(result.dact_metrics.get("s1", 0), 0.8)
 
+    def test_faq_agent_no_name_error_on_unmatched_category(self):
+        # Asegurar que categories no mapeadas o preguntas sin match no disparen NameError
+        dummy_faqs = [
+            {"pregunta": "¿Cómo tramitar certificados?", "respuesta": "Acuda a caja", "embedding": [0.1] * 768},
+        ]
+        agent = FAQAgent(
+            faq_files={"AtencionCliente": "dummy_path"},
+            load_faqs_fn=lambda path, embed_fn: dummy_faqs,
+            embed_query_fn=lambda q: [0.1] * 768,
+            threshold=0.85,
+            min_token_overlap=1,
+        )
+
+        # Pregunta que no coincide con ningún FAQ con categoría arbitraria
+        result = agent.run("¿Cuánto cuesta la inscripción en otra institución?", ["Finanzas"])
+        self.assertFalse(result.found)
+
+
+class TestInstitutionalGuardrails(unittest.TestCase):
+
+    def test_out_of_domain_institutions_detected(self):
+        from retrieval.institutional_guardrails import is_out_of_domain_query
+
+        self.assertTrue(is_out_of_domain_query("¿Cuáles son los costos de maestría en la UNAM?"))
+        self.assertTrue(is_out_of_domain_query("Quiero saber sobre el posgrado en Harvard"))
+        self.assertTrue(is_out_of_domain_query("Costos y materias del posgrado en la UPSA"))
+        self.assertTrue(is_out_of_domain_query("admisión doctorado en Stanford o MIT"))
+        self.assertTrue(is_out_of_domain_query("requisitos para entrar a la San Simón de Cochabamba"))
+
+    def test_in_domain_and_convalidation_queries_allowed(self):
+        from retrieval.institutional_guardrails import is_out_of_domain_query
+
+        # Consultas legítimas del posgrado FICCT
+        self.assertFalse(is_out_of_domain_query("¿Cuáles son los documentos de inscripción?"))
+        self.assertFalse(is_out_of_domain_query("¿Cómo puedo obtener mi tutor de tesis?"))
+        self.assertFalse(is_out_of_domain_query("¿Cuáles son los horarios de clases de la maestría?"))
+
+        # Convalidaciones / traspasos que mencionan otras instituciones pero son trámites válidos en UAGRM
+        self.assertFalse(is_out_of_domain_query("Vengo de la UMSA y deseo convalidar materias para el posgrado"))
+        self.assertFalse(is_out_of_domain_query("Requisitos para traspaso u homologación de asignaturas cursadas en la UCB"))
+
 
 if __name__ == "__main__":
     unittest.main()
+

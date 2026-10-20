@@ -143,6 +143,7 @@ class FAQAgent:
         checked = set()
         normalized_categories = categories or ["Otro"]
         needs_strict_rag_fallback = any(cat in {"Investigacion", "Academica"} for cat in normalized_categories)
+        has_specific_categories = any(cat in self.faq_files for cat in normalized_categories)
         latest_dact_metrics = {}
 
         for category in normalized_categories:
