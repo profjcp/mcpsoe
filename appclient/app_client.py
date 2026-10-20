@@ -734,8 +734,13 @@ else:
 
                 with requests.post(
                     "http://127.0.0.1:9000/ask",
-                    json={"question": question, "user_id": st.session_state.user_id},
-                    stream=True
+                    json={
+                        "question": question,
+                        "user_id": st.session_state.user_id,
+                        "user_access_level": "estudiante"
+                    },
+                    stream=True,
+                    timeout=(10, 300)
                 ) as response:
                     response.raise_for_status()
                     first_chunk = True
@@ -815,9 +820,16 @@ else:
             )
             st.rerun()
 
-        except requests.exceptions.RequestException:
-            st.error("Error de conexion: no se pudo conectar al servidor MCP.")
+        except requests.exceptions.HTTPError as e:
+            err_detail = e.response.text if hasattr(e, "response") and e.response is not None else str(e)
+            st.error(f"Error en el servidor MCP (HTTP {getattr(e.response, 'status_code', 500)}): {err_detail}")
+        except requests.exceptions.Timeout:
+            st.error("Tiempo de espera agotado (Timeout): La consulta es muy extensa o el modelo tardó más de lo esperado en procesar los documentos normativos. Intenta formular una pregunta más concreta.")
+        except requests.exceptions.ConnectionError:
+            st.error("Error de conexión: No se pudo comunicar con el servidor MCP en http://127.0.0.1:9000. Verifica que el servidor FastAPI/Uvicorn esté corriendo.")
+        except requests.exceptions.RequestException as e:
+            st.error(f"Error de comunicación con el servidor MCP: {e}")
         except Exception as e:
-            st.error(f"Ocurrio un error inesperado: {e}")
+            st.error(f"Ocurrió un error inesperado: {e}")
 
     st.markdown("</div>", unsafe_allow_html=True)

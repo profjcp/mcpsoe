@@ -560,6 +560,7 @@ def build_interactions(usuarios_map, preguntas_map, total_target=100):
                 "expected_answer": pregunta.get("expected_answer", ""),
                 "in_context": pregunta.get("in_context", True),
                 "tipo_pregunta": pregunta.get("type", "faq"),
+                "target_level": pregunta.get("target_level", "FAQ"),
             })
             counts[area] += 1
             avance = True
@@ -577,15 +578,30 @@ def main():
     parser.add_argument("--base-url", default=DEFAULT_BASE_URL, help="URL del servidor MCP")
     parser.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT, help="Timeout por interaccion (s)")
     parser.add_argument("--limit", type=int, default=100, help="Numero maximo de interacciones")
+    parser.add_argument("--preguntas-file", default=None, help="Ruta personalizada al archivo de preguntas JSON")
+    parser.add_argument(
+        "--multinivel",
+        action="store_true",
+        help="Usa la batería avanzada multinivel simulation_data/preguntas_multinivel_cloda.json para ejercitar RAG_DOC, GRAPH_RAG y reentrenamiento"
+    )
     args = parser.parse_args()
 
     print("=" * 60)
     print("Bateria de Simulacion Multi-Usuario SoeBOT")
     print("=" * 60)
 
+    # Determinar archivo de preguntas
+    preguntas_path = PREGUNTAS_FILE
+    if args.multinivel:
+        preguntas_path = os.path.join(DATA_DIR, "preguntas_multinivel_cloda.json")
+    elif args.preguntas_file:
+        preguntas_path = args.preguntas_file
+
+    print(f"Fuente de preguntas seleccionada: {preguntas_path}")
+
     # Cargar datos
     usuarios_map = load_json(USUARIOS_FILE, {})
-    preguntas_map = load_json(PREGUNTAS_FILE, {})
+    preguntas_map = load_json(preguntas_path, {})
     if not usuarios_map or not preguntas_map:
         print("ERROR: No se encontraron los archivos de datos de simulacion.")
         print("   Ejecutar con los archivos en simulation_data/")
@@ -665,7 +681,11 @@ def main():
                 error_type = "Formato incorrecto"
 
             sat, clar, comp = 3, 3, 3
-            if clasificacion == "correcta":
+            if inter.get("tipo_pregunta") == "drift_retrain":
+                # Simular insatisfacción deliberada para inducir deriva y activar el bucle cerrado CLODA-RAG
+                sat, clar, comp = 1, 2, 2
+                error_type = error_type or "Ambiguedad normativa / desvio detectado"
+            elif clasificacion == "correcta":
                 sat, clar, comp = 5, 5, 5
             elif clasificacion in ("contexto_insuficiente", "posible_alucinacion"):
                 sat, clar, comp = 1, 2, 2

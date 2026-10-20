@@ -998,6 +998,10 @@ async def ask(request: AskRequest):
     preservando streaming y métricas existentes.
     """
     global orchestrator
+    if len(request.question) > 2500:
+        logging.warning(f"Consulta excede 2500 caracteres ({len(request.question)}). Podando defensivamente para evitar desbordes de contexto.")
+        request.question = request.question[:2500]
+
     print(f"Recibida pregunta: {request.question} (Acceso: {request.user_access_level})")
     query_counter.inc()
     request_start = time.time()
@@ -1029,7 +1033,7 @@ async def ask(request: AskRequest):
             bypass_contaminated = should_bypass_cache_answer(request.question, categories, cached_text)
 
             if bypass_sensitive or bypass_contaminated:
-                context, sources, retrieval_ms, q_np = doc_rag_agent.retrieve(request.question, user_access_level=request.user_access_level)
+                context, sources, retrieval_ms, q_np, retrieval_metrics = doc_rag_agent.retrieve(request.question, user_access_level=request.user_access_level)
                 route_result = type(route_result)(
                     answer_text="",
                     answer_mode="RAG_DOC",
@@ -1041,6 +1045,7 @@ async def ask(request: AskRequest):
                         "cache_bypassed_for_contaminated_answer": bool(bypass_contaminated),
                         "cache_hit": False,
                         "rag_used": True,
+                        "retrieval_metrics": retrieval_metrics,
                     },
                     timing_ms={**(route_result.timing_ms or {}), "retrieval": retrieval_ms},
                     knowledge_context=context,
@@ -1095,16 +1100,17 @@ async def ask(request: AskRequest):
 
     # RAG_DOC / GRAPH_RAG
     if route_result.answer_mode == "RAG_DOC" and (route_result.question_embedding_np is None or not route_result.knowledge_context):
-        context, sources, retrieval_ms, q_np = doc_rag_agent.retrieve(request.question)
+        context, sources, retrieval_ms, q_np, retrieval_metrics = doc_rag_agent.retrieve(request.question, user_access_level=request.user_access_level)
         route_result.knowledge_context = context
         route_result.sources = sources
         route_result.question_embedding_np = q_np
         base_timing = dict(route_result.timing_ms or {})
         base_timing["retrieval"] = retrieval_ms
         route_result.timing_ms = base_timing
+        route_result.routing_trace = {**(route_result.routing_trace or {}), "retrieval_metrics": retrieval_metrics}
 
     if route_result.answer_mode == "GRAPH_RAG" and not route_result.knowledge_context and graph_rag_agent is not None:
-        graph_result = graph_rag_agent.retrieve_with_graph(request.question)
+        graph_result = graph_rag_agent.retrieve_with_graph(request.question, user_access_level=request.user_access_level)
         route_result.knowledge_context = graph_result.context
         route_result.sources = graph_result.sources
         route_result.question_embedding_np = np.array([embeddings.embed_query(request.question)], dtype="float32")

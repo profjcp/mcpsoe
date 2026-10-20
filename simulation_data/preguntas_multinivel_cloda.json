@@ -1,0 +1,308 @@
+{
+  "AtencionCliente": [
+    {
+      "question": "¿Cómo puedo tramitar las certificaciones intermedias?",
+      "expected_answer": "Deberá cumplir con los siguientes requisitos",
+      "in_context": true,
+      "type": "faq",
+      "target_level": "FAQ"
+    },
+    {
+      "question": "¿Cuáles son los documentos de inscripción?",
+      "expected_answer": "Fotocopia legalizada del Título",
+      "in_context": true,
+      "type": "faq",
+      "target_level": "FAQ"
+    },
+    {
+      "question": "De acuerdo con el Reglamento del Postgraduante, ¿qué plazo máximo tiene un estudiante para presentar las dos fotocopias legalizadas del título antes de quedar inhabilitado para el siguiente módulo?",
+      "expected_answer": "un plazo de un mes",
+      "in_context": true,
+      "type": "rag_doc",
+      "target_level": "RAG_DOC"
+    },
+    {
+      "question": "Si un estudiante incurre en mora con las cuotas de su plan de pago, ¿cómo repercute esto en la asistencia con el docente y qué porcentaje de inasistencias causa la pérdida automática del módulo?",
+      "expected_answer": "acumulación mayor al 25% de faltas",
+      "in_context": true,
+      "type": "rag_doc",
+      "target_level": "RAG_DOC"
+    },
+    {
+      "question": "¿Cuál es el procedimiento detallado y las condiciones económicas para que un estudiante que completó sus módulos pueda defender su monografía y recibir sus certificados intermedios?",
+      "expected_answer": "saldado el costo total del programa",
+      "in_context": true,
+      "type": "graph_rag",
+      "target_level": "GRAPH_RAG"
+    },
+    {
+      "question": "Quiero solicitar un reembolso total de mi matrícula y cuotas porque decidí retirarme voluntariamente después de dos semanas de clases.",
+      "expected_answer": "Reglamento Específico del Postgraduante",
+      "in_context": true,
+      "type": "drift_retrain",
+      "target_level": "DRIFT_RETRAIN"
+    },
+    {
+      "question": "¿Cuánto cuesta inscribirse en un posgrado en la universidad de Harvard?",
+      "expected_answer": "",
+      "in_context": false,
+      "type": "out_of_context",
+      "target_level": "CONTINGENCY"
+    }
+  ],
+  "Academico": [
+    {
+      "question": "¿Cuál es el nombre del programa de Ciencia de Datos e Inteligencia Artificial?",
+      "expected_answer": "Maestría en Ciencia de Datos e Inteligencia Artificial",
+      "in_context": true,
+      "type": "faq",
+      "target_level": "FAQ"
+    },
+    {
+      "question": "¿Cuál es la modalidad y duración total del programa de Ciberseguridad y Ciberdefensa?",
+      "expected_answer": "virtual y 18 meses",
+      "in_context": true,
+      "type": "faq",
+      "target_level": "FAQ"
+    },
+    {
+      "question": "Según la normativa académica, ¿cuántos días calendario posteriores a la finalización de un módulo tiene el estudiante para solicitar formalmente una revisión de nota antes de que el reclamo sea considerado improcedente?",
+      "expected_answer": "30 días calendario",
+      "in_context": true,
+      "type": "rag_doc",
+      "target_level": "RAG_DOC"
+    },
+    {
+      "question": "¿Cuáles son las condiciones reglamentarias para que un postgraduante mantenga la categoría de Postgraduante Activo y qué derechos pierde al pasar a Postgraduante Pasivo?",
+      "expected_answer": "Postgraduante Activo y obligaciones académicas",
+      "in_context": true,
+      "type": "rag_doc",
+      "target_level": "RAG_DOC"
+    },
+    {
+      "question": "Explica la articulación académica entre los módulos cursados en Ciencia de Datos, los requisitos de aprobación y la asignación del Director de Trabajo Final de Grado según el reglamento.",
+      "expected_answer": "Director de Trabajo Final de Grado",
+      "in_context": true,
+      "type": "graph_rag",
+      "target_level": "GRAPH_RAG"
+    },
+    {
+      "question": "¿Puedo convalidar materias cursadas en otra maestría internacional sin presentar el programa analítico legalizado si el docente da su visto bueno verbal?",
+      "expected_answer": "solicitud de convalidación formal",
+      "in_context": true,
+      "type": "drift_retrain",
+      "target_level": "DRIFT_RETRAIN"
+    },
+    {
+      "question": "¿Cuál es el programa de doctorado en física nuclear de la UNAM?",
+      "expected_answer": "",
+      "in_context": false,
+      "type": "out_of_context",
+      "target_level": "CONTINGENCY"
+    }
+  ],
+  "Investigacion": [
+    {
+      "question": "¿Cómo puedo obtener mi tutor?",
+      "expected_answer": "investigacion@soe.uagrm.edu.bo",
+      "in_context": true,
+      "type": "faq",
+      "target_level": "FAQ"
+    },
+    {
+      "question": "¿Puedo tener un tutor externo al listado provisto?",
+      "expected_answer": "hoja de vida",
+      "in_context": true,
+      "type": "faq",
+      "target_level": "FAQ"
+    },
+    {
+      "question": "¿Qué normativa rige si un estudiante no culmina y defiende su Trabajo Final de Grado dentro del plazo máximo de dos años establecido tras terminar los módulos?",
+      "expected_answer": "curso de actualización",
+      "in_context": true,
+      "type": "rag_doc",
+      "target_level": "RAG_DOC"
+    },
+    {
+      "question": "En relación con los derechos de autor y propiedad intelectual, ¿qué sanciones específicas contempla el reglamento para casos de plagio comprobado en una monografía o tesis de posgrado?",
+      "expected_answer": "sanciones por plagio",
+      "in_context": true,
+      "type": "rag_doc",
+      "target_level": "RAG_DOC"
+    },
+    {
+      "question": "Describe el flujo completo de investigación: desde la aprobación de perfil y designación de tutor, pasando por el informe preliminar y la predefensa virtual, hasta la defensa final de grado.",
+      "expected_answer": "predefensa virtual y defensa final",
+      "in_context": true,
+      "type": "graph_rag",
+      "target_level": "GRAPH_RAG"
+    },
+    {
+      "question": "Tengo un tutor externo pero ya pasaron 3 años desde que terminé módulos. ¿Puedo defender directamente mi tesis sin cursar módulos de actualización si mi tutor firma una dispensa?",
+      "expected_answer": "curso de actualización obligatorio",
+      "in_context": true,
+      "type": "drift_retrain",
+      "target_level": "DRIFT_RETRAIN"
+    },
+    {
+      "question": "¿Cómo presento mi tesis doctoral en la Universidad de Buenos Aires?",
+      "expected_answer": "",
+      "in_context": false,
+      "type": "out_of_context",
+      "target_level": "CONTINGENCY"
+    }
+  ],
+  "Administracion": [
+    {
+      "question": "¿Cuáles son los documentos de inscripción requeridos?",
+      "expected_answer": "Fotocopia legalizada",
+      "in_context": true,
+      "type": "faq",
+      "target_level": "FAQ"
+    },
+    {
+      "question": "¿Cuál es el horario de atención del SOE?",
+      "expected_answer": "9:00 AM a 3:00 PM",
+      "in_context": true,
+      "type": "faq",
+      "target_level": "FAQ"
+    },
+    {
+      "question": "Según el reglamento de postgrado, ¿cuáles son las causales disciplinarias consideradas faltas graves o gravísimas y qué instancias determinan la suspensión definitiva del estudiante?",
+      "expected_answer": "faltas graves o gravísimas",
+      "in_context": true,
+      "type": "rag_doc",
+      "target_level": "RAG_DOC"
+    },
+    {
+      "question": "¿Qué descuentos, becas o convenios institucionales reconoce la Unidad de Postgrado y bajo qué condiciones de mora se pierde definitivamente dicho beneficio?",
+      "expected_answer": "pérdida del beneficio",
+      "in_context": true,
+      "type": "rag_doc",
+      "target_level": "RAG_DOC"
+    },
+    {
+      "question": "Explica la relación normativa y administrativa entre la suspensión temporal justificada de un programa, el congelamiento de matrícula y el impacto financiero en las cuotas restantes.",
+      "expected_answer": "congelamiento y obligaciones económicas",
+      "in_context": true,
+      "type": "graph_rag",
+      "target_level": "GRAPH_RAG"
+    },
+    {
+      "question": "¿Puedo pagar únicamente los módulos que decida cursar este semestre e ignorar las mensualidades de diciembre y enero?",
+      "expected_answer": "pagos son mensuales y no por módulo",
+      "in_context": true,
+      "type": "drift_retrain",
+      "target_level": "DRIFT_RETRAIN"
+    },
+    {
+      "question": "¿Cuál es el presupuesto anual de la universidad de Yale?",
+      "expected_answer": "",
+      "in_context": false,
+      "type": "out_of_context",
+      "target_level": "CONTINGENCY"
+    }
+  ],
+  "Direccion": [
+    {
+      "question": "¿Cuál es la normativa sobre módulos reprobados?",
+      "expected_answer": "2 módulos",
+      "in_context": true,
+      "type": "faq",
+      "target_level": "FAQ"
+    },
+    {
+      "question": "¿Cuál es la política de congelamiento de maestría?",
+      "expected_answer": "3 meses",
+      "in_context": true,
+      "type": "faq",
+      "target_level": "FAQ"
+    },
+    {
+      "question": "En el marco de la reglamentación institucional, ¿cuál es el procedimiento formal y los límites temporales para que un postgraduante tramite una licencia o suspensión justificada de sus estudios?",
+      "expected_answer": "suspensión justificada",
+      "in_context": true,
+      "type": "rag_doc",
+      "target_level": "RAG_DOC"
+    },
+    {
+      "question": "¿Bajo qué causales específicas concluye formal y legalmente la condición de Postgraduante en la Unidad de Postgrado de la FICCT?",
+      "expected_answer": "defensa y aprobación del respectivo Trabajo Final de Grado",
+      "in_context": true,
+      "type": "rag_doc",
+      "target_level": "RAG_DOC"
+    },
+    {
+      "question": "¿Cómo se interconectan los reglamentos de evaluación continua, asistencia mínima presencial/virtual y la habilitación de jurados para defensas de titulación intermedia?",
+      "expected_answer": "tribunal académico y titulación intermedia",
+      "in_context": true,
+      "type": "graph_rag",
+      "target_level": "GRAPH_RAG"
+    },
+    {
+      "question": "¿Puede la Dirección autorizar la titulación de un estudiante que aprobó módulos pero tiene una deuda pendiente en caja mediante una carta de compromiso simple?",
+      "expected_answer": "saldado el costo total del programa",
+      "in_context": true,
+      "type": "drift_retrain",
+      "target_level": "DRIFT_RETRAIN"
+    },
+    {
+      "question": "¿Cuál es el reglamento de posgrado de la universidad de Cambridge?",
+      "expected_answer": "",
+      "in_context": false,
+      "type": "out_of_context",
+      "target_level": "CONTINGENCY"
+    }
+  ],
+  "Marketing": [
+    {
+      "question": "¿Cuáles son los horarios de clases de Ciencia de Datos?",
+      "expected_answer": "Martes 19:00 - 22:00",
+      "in_context": true,
+      "type": "faq",
+      "target_level": "FAQ"
+    },
+    {
+      "question": "¿Cuáles son los requisitos de admisión de Ciberseguridad?",
+      "expected_answer": "Fotocopia legalizada",
+      "in_context": true,
+      "type": "faq",
+      "target_level": "FAQ"
+    },
+    {
+      "question": "¿Qué perfil profesional de ingreso exige formalmente la maestría en Ciberseguridad y qué competencias previas en redes o sistemas son requeridas para la admisión?",
+      "expected_answer": "Licenciatura en áreas afines",
+      "in_context": true,
+      "type": "rag_doc",
+      "target_level": "RAG_DOC"
+    },
+    {
+      "question": "¿Cuáles son las diferencias normativas y académicas entre un diplomado de postgrado, una maestría y un curso de actualización en términos de créditos y carga horaria?",
+      "expected_answer": "créditos académicos y estructura modular",
+      "in_context": true,
+      "type": "rag_doc",
+      "target_level": "RAG_DOC"
+    },
+    {
+      "question": "Explica la propuesta de valor curricular del programa de Ciencia de Datos vinculando los módulos de Machine Learning con el proyecto de grado aplicado y el perfil de egreso.",
+      "expected_answer": "Machine Learning e Inteligencia Artificial",
+      "in_context": true,
+      "type": "graph_rag",
+      "target_level": "GRAPH_RAG"
+    },
+    {
+      "question": "¿Es posible obtener el título de Máster en Ciencia de Datos sin presentar trabajo final de grado si acredito 5 años de experiencia laboral como programador?",
+      "expected_answer": "defensa de Trabajo Final de Grado obligatoria",
+      "in_context": true,
+      "type": "drift_retrain",
+      "target_level": "DRIFT_RETRAIN"
+    },
+    {
+      "question": "¿Cuál es el costo de la maestría en administración de la Universidad de Chile?",
+      "expected_answer": "",
+      "in_context": false,
+      "type": "out_of_context",
+      "target_level": "CONTINGENCY"
+    }
+  ]
+}
