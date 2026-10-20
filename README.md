@@ -1,4 +1,5 @@
-# SoeBOT v7.0 - CLODA-RAG: Inferencia Adaptativa DACT + NLI y Aprendizaje Continuo en Bucle Cerrado
+# SoeBOT v7.0: Arquitectura de Arneses de Inferencia Adaptativa (DACT), Verificación Fáctica (NLI) y Aprendizaje en Bucle Cerrado (CLODA-RAG)
+### *(Agentic Harness Architecture for Small Language Models in Higher Education)*
 
 [![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.119.0-green.svg)](https://fastapi.tiangolo.com/)
@@ -10,10 +11,12 @@
 
 ## 📋 Descripción General (v7.0)
 
-**SoeBOT v7.0 (CLODA-RAG: Closed-Loop Observability-Driven Adaptive RAG)** es una arquitectura científica doctoral desarrollada para la Unidad de Posgrado de la Facultad de Ingeniería en Ciencias de la Computación y Telecomunicaciones (SOE-UAGRM). Supera el paradigma convencional de bucle abierto mediante:
+**SoeBOT v7.0** es una arquitectura científica doctoral desarrollada para la Unidad de Posgrado de la Facultad de Ingeniería en Ciencias de la Computación y Telecomunicaciones (SOE-UAGRM). Supera el paradigma convencional del modelo aislado (*naked SLM*) y los sistemas RAG de bucle abierto mediante una **Arquitectura de Arneses de Control y Evaluación (Agentic Harness Architecture)** dividida en 4 capas:
 
-1. **Inferencia Adaptativa:** Enrutador dinámico **DACT** (basado en margen semántico $\Delta$ y entropía de Shannon $\mathcal{H}$) + Verificador Fáctico Cross-Encoder **NLI** (DeBERTa-v3) con mitigación contingente.
-2. **Aprendizaje Continuo en Bucle Cerrado:** Detector de deriva semántica en ventana deslizante ($W=50$), minería autónoma de preferencias **DPO/SFT**, reentrenamiento continuo **LoRA** en CPU multihilo (`nice +15`, 16 hilos) y **Hot-Reload** atómico en memoria sin tiempo de inactividad.
+1. **Agent Execution & Tool Harness:** Basado en el estándar MCP (Model Context Protocol) sobre FastAPI (puerto 9000), gobernando herramientas (BM25, FAISS, GraphRAG), control de acceso por rol (APCR) y streaming SSE.
+2. **Safety & Guardrail Harness:** Enrutador adaptativo **DACT** (basado en margen semántico $\Delta$ y entropía de Shannon $\mathcal{H}$) + Verificador Fáctico Cross-Encoder **NLI** (DeBERTa-v3) con mitigación contingente institucional ($P_{\text{contra}} > 0.45$).
+3. **Closed-Loop Alignment Harness (CLODA-RAG):** Detector de deriva semántica en ventana deslizante ($W=50$), minería autónoma de preferencias **DPO/SFT**, reentrenamiento continuo **LoRA** en CPU multihilo (`nice +15`, 16 hilos) y **Hot-Reload** atómico en memoria sin tiempo de inactividad.
+4. **Doctoral Evaluation & Benchmark Harness:** Suite experimental automatizada (`simulate_users.py` y `DoctoralEvaluator`) que simula personas concurrentes, audita métricas de tesis (AHR $\le 2\%$, CCR $\ge 80\%$) y contrasta hipótesis con significancia estadística ($p < 0.001$, McNemar y Mann-Whitney $U$).
 
 ```mermaid
 graph TD

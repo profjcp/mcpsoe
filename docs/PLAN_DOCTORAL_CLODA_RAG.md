@@ -1,5 +1,6 @@
 # 🎓 Plan Maestro de Implementación Doctoral: CLODA-RAG
 ## Closed-Loop Observability-Driven Adaptive RAG (SoeBOT v7.0)
+### *El Closed-Loop Alignment Harness dentro de la Arquitectura de Arneses Doctorales*
 
 > **Estado del Plan:** ✅ 100% COMPLETADO Y VALIDADO (Fases 0 a 6 Aprobadas)  
 > **Fecha de Inicio:** 2026-10-13  
@@ -14,11 +15,11 @@
 ### 1.1 El Vacío Científico (Research Gap)
 Los sistemas RAG convencionales son de **bucle abierto**: la observabilidad (Prometheus, LangSmith) solo grafica métricas de forma pasiva, mientras que el ajuste fino (*fine-tuning*) se realiza de forma manual y desconectada.
 
-**CLODA-RAG** introduce una arquitectura de **bucle cerrado (Closed-Loop)** donde:
-1. La telemetría en tiempo real y la auditoría fáctica NLI miden alucinaciones y derivas semánticas.
-2. Al superar umbrales de error, el sistema activa automáticamente la minería de ejemplos fallidos.
-3. Se entrena de forma continua y autónoma un adaptador ligero (LoRA) sobre el SLM local (Llama 3.2 3B) directamente en CPU.
-4. El nuevo modelo se recarga en caliente en Ollama sin interrumpir el servicio.
+Dentro de la **Arquitectura de Arneses de SoeBOT v7.0 (Agentic Harness Architecture)**, **CLODA-RAG** constituye el **Closed-Loop Alignment & Self-Improvement Harness**, donde:
+1. La telemetría en tiempo real y la auditoría fáctica NLI miden alucinaciones y derivas semánticas en vuelo.
+2. Al superar umbrales de error, el arnés activa automáticamente la minería de ejemplos fallidos (ternas DPO).
+3. Se entrena de forma continua y autónoma un adaptador ligero (LoRA) sobre el SLM local (Llama 3.2 3B) directamente en CPU multihilo (`nice +15`).
+4. El nuevo modelo se recarga en caliente en Ollama sin interrumpir el servicio (Hot-Reload atómico con 0 downtime).
 
 ### 1.2 Esquema del Bucle Cerrado (Closed-Loop Architecture)
 
