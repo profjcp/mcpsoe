@@ -1,5 +1,10 @@
 import unittest
 import os
+import sys
+
+# Asegurar importación de módulos raíz
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 import json
 import tempfile
 import shutil
