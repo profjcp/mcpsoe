@@ -289,6 +289,10 @@ def send_feedback(base_url, payload, timeout=10):
 # ---------------------------------------------------------------------------
 def generar_reporte_latencia(resultados):
     """Genera reporte Markdown de latencia (función LLM)."""
+    if not resultados:
+        print("[WARNING] No hay resultados para generar reporte de latencia.")
+        return
+
     lines = ["# Reporte de Latencia (Funcion LLM)\n"]
     lines.append(f"**Fecha:** {datetime.now().isoformat()}\n")
     lines.append(f"**Total interacciones:** {len(resultados)}\n")
@@ -306,7 +310,8 @@ def generar_reporte_latencia(resultados):
         lines.append(f"- **TTFT medio:** {sum(ttfts)/len(ttfts):.2f}s")
         lines.append(f"- **TTFT max:** {max(ttfts):.2f}s")
     if timeouts:
-        lines.append(f"- **Timeouts:** {len(timeouts)} ({len(timeouts)/len(resultados)*100:.1f}%)")
+        pct = len(timeouts)/len(resultados)*100 if resultados else 0.0
+        lines.append(f"- **Timeouts:** {len(timeouts)} ({pct:.1f}%)")
 
     # Por área
     lines.append("\n## Latencia por Area\n")
@@ -319,9 +324,12 @@ def generar_reporte_latencia(resultados):
         ts = [r["total_s"] for r in rlist if r.get("total_s") is not None]
         tfs = [r["ttft_s"] for r in rlist if r.get("ttft_s") is not None]
         to = sum(1 for r in rlist if r.get("status") == "timeout")
+        ts_mean = f"{sum(ts)/len(ts):.2f}" if ts else "N/A"
+        ts_max = f"{max(ts):.2f}" if ts else "N/A"
+        tfs_mean = f"{sum(tfs)/len(tfs):.2f}" if tfs else "N/A"
         lines.append(f"| {area} | {len(rlist)} | "
-                     f"{sum(ts)/len(ts):.2f} | {max(ts):.2f} | "
-                     f"{sum(tfs)/len(tfs):.2f} | {to} |")
+                     f"{ts_mean} | {ts_max} | "
+                     f"{tfs_mean} | {to} |")
 
     # Por tipo de pregunta
     lines.append("\n## Latencia por Tipo de Pregunta\n")
@@ -334,9 +342,11 @@ def generar_reporte_latencia(resultados):
         ts = [r["total_s"] for r in rlist if r.get("total_s") is not None]
         tfs = [r["ttft_s"] for r in rlist if r.get("ttft_s") is not None]
         to = sum(1 for r in rlist if r.get("status") == "timeout")
+        ts_mean = f"{sum(ts)/len(ts):.2f}" if ts else "N/A"
+        tfs_mean = f"{sum(tfs)/len(tfs):.2f}" if tfs else "N/A"
         lines.append(f"| {t} | {len(rlist)} | "
-                     f"{sum(ts)/len(ts):.2f} | "
-                     f"{sum(tfs)/len(tfs):.2f} | {to} |")
+                     f"{ts_mean} | "
+                     f"{tfs_mean} | {to} |")
 
     # Registros con timeout
     if timeouts:
@@ -351,6 +361,10 @@ def generar_reporte_latencia(resultados):
 
 def generar_reporte_rag(resultados):
     """Genera reporte Markdown de niveles de respuesta (función RAG)."""
+    if not resultados:
+        print("[WARNING] No hay resultados para generar reporte RAG.")
+        return
+
     lines = ["# Reporte de Niveles de Respuesta (Funcion RAG)\n"]
     lines.append(f"**Fecha:** {datetime.now().isoformat()}\n")
     lines.append(f"**Total interacciones:** {len(resultados)}\n")
@@ -363,7 +377,8 @@ def generar_reporte_rag(resultados):
     lines.append("| Clasificacion | N | % |")
     lines.append("|---------------|---|----|")
     for cls, n in sorted(by_cls.items(), key=lambda x: -x[1]):
-        lines.append(f"| {cls} | {n} | {n/len(resultados)*100:.1f}% |")
+        pct = n/len(resultados)*100 if resultados else 0.0
+        lines.append(f"| {cls} | {n} | {pct:.1f}% |")
 
     # Por área
     lines.append("\n## Niveles por Area\n")
